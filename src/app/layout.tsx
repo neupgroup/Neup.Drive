@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'ProDrive',
+  title: 'Neup.Drive',
   description: 'Secure cloud storage and collaboration platform.',
 };
 

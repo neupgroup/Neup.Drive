@@ -22,7 +22,7 @@ function MobileSidebar() {
         <nav className="flex h-full flex-col gap-6 text-lg font-medium">
           <Link href="/drive" className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base">
             <Logo className="h-5 w-5 transition-all group-hover:scale-110" />
-            <span className="sr-only">ProDrive</span>
+            <span className="sr-only">Neup.Drive</span>
           </Link>
           <MobileNavLinks />
           <div className="mt-auto">
