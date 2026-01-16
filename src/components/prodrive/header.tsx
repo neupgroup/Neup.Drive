@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { PanelLeft, Search } from 'lucide-react';
+import { PanelLeft, Search, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -44,17 +44,43 @@ function MobileSidebar() {
 
 
 export function Header() {
-    return (
-        <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
-          <MobileSidebar />
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search files..."
-              className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
-            />
-          </div>
-        </header>
-    );
+  return (
+    <header className="sticky top-0 z-10 flex h-16 items-center border-b bg-white backdrop-blur-sm shadow-lg">
+      <div className="w-full max-w-[1440px] mx-auto px-4 md:px-6 flex items-center gap-4">
+        <MobileSidebar />
+        <Link href="/drive" className="flex items-center gap-2 text-lg font-semibold">
+          <Logo className="h-6 w-6 transition-all hover:scale-110" />
+          <span className="font-bold">Neup.Drive</span>
+        </Link>
+        <nav className="hidden md:flex items-center gap-6 ml-8">
+          <Link href="/drive" className="text-sm font-medium transition-colors hover:text-primary">
+            Files
+          </Link>
+          <Link href="/drive/shared" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+            Shared
+          </Link>
+          <Link href="/drive/recent" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+            Recent
+          </Link>
+        </nav>
+        <div className="relative flex-1 ml-auto max-w-md">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search files..."
+            className="w-full rounded-lg bg-background pl-8"
+          />
+        </div>
+        <div className="hidden sm:flex items-center gap-2">
+          <Button variant="ghost" size="icon">
+            <PanelLeft className="h-5 w-5" />
+          </Button>
+          <Button size="sm">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            New
+          </Button>
+        </div>
+      </div>
+    </header>
+  );
 }
