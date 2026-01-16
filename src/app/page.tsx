@@ -1,6 +1,5 @@
-import { redirect } from 'next/navigation';
+import { FileManager } from '@/components/prodrive/file-manager';
 
 export default function Home() {
-  redirect('/drive');
-  return null;
+  return <FileManager />;
 }

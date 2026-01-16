@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { Header } from '@/components/prodrive/header';
+import { Sidebar } from '@/components/prodrive/sidebar';
 
 export const metadata: Metadata = {
   title: 'Neup.Drive',
@@ -21,7 +23,15 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        {children}
+        <div className="flex min-h-screen w-full flex-col bg-white">
+          <Header />
+          <div className="flex flex-1 w-full max-w-[1440px] mx-auto">
+            <Sidebar />
+            <main className="flex-1 p-6 sm:px-8 sm:py-8">
+              {children}
+            </main>
+          </div>
+        </div>
         <Toaster />
       </body>
     </html>

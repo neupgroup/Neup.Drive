@@ -2,18 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HardDrive, Share, Users, Bot, Trash2, Globe } from 'lucide-react';
+import { HardDrive, Share, Trash2, Globe, Clock } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const navLinksData = [
-    { href: '/drive', icon: HardDrive, label: 'My Drive' },
-    { href: '/drive/shared', icon: Share, label: 'Shared with me' },
-    { href: '/drive/team', icon: Users, label: 'Team Drives' },
-    { href: '/drive/webdisk', icon: Globe, label: 'WebDisk' },
-    { href: '/drive/ai-indexing', icon: Bot, label: 'AI Indexing Tool' },
-    { href: '/drive/trash', icon: Trash2, label: 'Trash' },
+  { href: '/', icon: HardDrive, label: 'Drive' },
+  { href: '/recents', icon: Clock, label: 'Recent' },
+  { href: '/shared', icon: Share, label: 'Shared' },
+  { href: '/webdisk', icon: Globe, label: 'WebDisk' },
+  { href: '/trash', icon: Trash2, label: 'Trash' },
 ];
 
 export function NavLinks() {
