@@ -1,115 +1,88 @@
 # Neup CDN
 
-A Go-based CDN gateway that receives files via HTTP/SFTP and stores them on a remote storage server.
+A High-Performance, API-First CDN Gateway written in Go.
+
+It is designed to handle secure, high-volume file uploads via **Chunked HTTP PUT** requests. It is entirely API-based and does not serve a frontend UI.
+
+## Architecture
+
+Neup CDN operates as a standalone microservice that:
+1.  **Authenticates** requests using **HMAC-SHA256** tokens signed by the main application (`neupdrive`).
+2.  **Receives** files in chunks (supporting resumable uploads via `Content-Range`).
+3.  **Stores** files on the configured storage backend (local filesystem or SFTP).
+4.  **Notifies** the main application via Webhook upon completion.
 
 ## Prerequisites
 
-- [Go](https://go.dev/dl/) installed.
+- [Go 1.21+](https://go.dev/dl/)
+- Access to the main application (`neupdrive`) for token generation.
 
-## Setup
+## Configuration
 
-1. **Generate your keys**: This will authorize your accounts and prepare your environment.
-   ```bash
-   go run cmd/keygen/main.go
-   ```
-   *This tool will generate your public/private keys and create/update the `.env.example` file.*
+Create a `.env` file in the `neupcdn` directory:
 
-2. **Configure your Environment**:
-   - Create a `.env` file.
-   - Copy the required values from `.env.example` into your `.env`.
-   - Update your SFTP storage credentials and `PUBLIC_ROOT`.
+```env
+PORT=3000
+PUBLIC_ROOT=./uploads
+UPLOAD_SECRET_KEY=your-shared-secret-key
+CALLBACK_URL=http://localhost:3000/drive/api/upload/callback
+MAX_UPLOAD_SIZE=104857600  # 100MB in bytes
+```
 
-3. **Install dependencies**:
-   ```bash
-   go mod tidy
-   ```
-
-## Running the Application
+## Running the Server
 
 ```bash
-# Start the HTTP (3000) and SFTP (2022) gateways
+go mod tidy
 go run main.go
 ```
 
-## Security Model
+The server will start on port 3000 (or configured PORT).
 
-We use **Ed25519 Asymmetric Signatures** for zero-trust security.
-- **Server**: Only stores **Public Keys** (configured in `.env` as `PUBLIC_KEY_{ACCOUNT}`).
-- **Client**: Holds the **Private Key** to sign requests.
+## API Reference
 
-### 1. Batch Uploads (CLI Tool) - Recommended
-For uploading multiple files, use the included CLI tool. It handles key loading, hashing, and signing automatically.
+### 1. Upload Chunk
+**Endpoint**: `PUT /upload`
 
-```bash
-# Upload all PNGs to the 'assets' category
-go run cmd/neup-cli/main.go -key client_key -account default -category assets *.png
-```
-
-### 2. Automated SFTP Upload (Port 2022)
-**Strict Security Mode**: 
-- You must authenticate using your **SSH Private Key**.
-- Each session is locked to a specific **file path** and **content hash**.
-- Files must be uploaded **sequentially**.
-- The server verifies the SHA256 hash on-the-fly. Mismatches result in immediate deletion.
-
-**Command:**
-```bash
-# Username format: account:category:filename:timestamp:hash
-sftp -i client_key -P 2022 -oUser="default:assets:hero.png:1678900000:<sha256_hash>" localhost
-```
-
-### 3. HTTP API Upload
-**Endpoint**: `POST /upload`
 **Headers**:
-- `X-Time`: Unix timestamp
-- `X-Hash`: SHA256 file hash
-- `X-Signature`: Ed25519 signature
+- `x-upload-token`: JSON string containing the signed payload.
+- `x-file-hash`: SHA-256 hash of the entire file.
+- `Content-Range`: Byte range of the chunk (e.g., `bytes 0-1048575/5242880`).
+- `Content-Type`: `application/octet-stream`.
 
-**Form Fields**:
-- `account`: Your account ID
-- `category`: File category (e.g., `assets`, `brand`)
-- `path`: (Optional) Target path/filename
-- `file`: The file content
+**Body**: Raw binary data of the chunk.
 
-**Example Request:**
-```bash
-curl -X POST http://localhost:3000/upload \
-  -H "X-Time: $(date +%s)" \
-  -H "X-Hash: <file_sha256>" \
-  -H "X-Signature: <ed25519_signature>" \
-  -F "account=myaccount" \
-  -F "category=assets" \
-  -F "file=@/path/to/local/file.png"
-```
-
-**Response**:
+**Response (Partial)**:
 ```json
 {
   "success": true,
-  "path": "neupcdn.com/myaccount/assets/hero.png"
+  "chunk": "0-1048575",
+  "status": "partial"
 }
 ```
 
-## directions.md
+**Response (Complete)**:
+```json
+{
+  "success": true,
+  "path": "uploads/user-123/file.jpg",
+  "status": "completed"
+}
+```
 
-This section explains the advanced architectural choices that make Neup CDN hyper-secure for automated, high-volume file transfers.
+### 2. Prepare Upload (Legacy)
+*Deprecated. Use the main application to generate tokens.*
 
-### 1. Asymmetric "Zero-Trust" Security (Ed25519)
-Unlike standard systems that share a password between client and server, we use **Asymmetric Cryptography**. Even if the CDN server is fully compromised, an attacker cannot generate new upload requests because they lack your Private Key.
+## Security Model
 
-### 2. Multi-Account Isolation
-The server supports multiple accounts, each with its own independent Public Key. A key leak in one account cannot affect the security of any other account in the system.
+1.  **Shared Secret**: The CDN and Main App share a `UPLOAD_SECRET_KEY`.
+2.  **Tokenized Access**: The client never sends the secret. It sends a token signed by the Main App.
+3.  **Strict Constraints**: The token locks the `path`, `max_size`, and `expiration`. The CDN enforces these strictly.
+4.  **Integrity**: The client must provide the file hash. (Future: Server verifies hash on completion).
 
-### 3. Integrated SFTP Gateway (Port 2022)
-We have custom-built an SFTP server that treats the connection handshake as a security layer. It generates a persistent `host_key` to prevent Man-in-the-Middle attacks.
+## Integration with Neup Drive
 
-### 4. Virtual Sandboxing (The "Jail")
-When an automated system connects via SFTP, it is jailed inside its own `account/category` directory. It has zero access to the server's OS or other users' files.
-
-### 5. Integrity Verification
-As data streams in, the server computes a SHA256 hash. Only when the transfer is 100% complete is it verified against your signature. If it fails, the transfer is discarded.
-
-### 6. Path Sanitization Logic
-- All paths are lowercase and stripped of leading slashes.
-- Restricted characters are replaced with `-`.
-- Final URLs: `neupcdn.com/[account]/[category]/[sanitized_path]`
+1.  **Client** (Browser) requests upload permission from **Neup Drive**.
+2.  **Neup Drive** generates a signed token and returns it to Client.
+3.  **Client** uploads file chunks directly to **Neup CDN** using the token.
+4.  **Neup CDN** reassembles the file and calls **Neup Drive**'s callback URL.
+5.  **Neup Drive** records the file as "Verified".
