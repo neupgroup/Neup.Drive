@@ -1,0 +1,47 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  files     File[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model File {
+  id          String   @id @default(uuid())
+  name        String
+  size        BigInt
+  mimeType    String
+  hash        String
+  path        String   // Storage path (e.g., "account-id/assets/image.png")
+  status      String   @default("PENDING") // PENDING, VERIFIED, FAILED
+  
+  // Relations
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([hash])
+}
+
+model ErrorLog {
+  id          String   @id @default(uuid())
+  on_page     String   // Page/Component where error occurred
+  context     String   // JSON string of error details
+  created_on  DateTime @default(now())
+}

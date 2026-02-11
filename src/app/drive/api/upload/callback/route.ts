@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
 
 /**
  * Step 6: Finalization - Server Callback
@@ -20,17 +21,32 @@ export async function POST(request: NextRequest) {
         // if (!verifySignature(signature, body)) return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
 
         if (status === 'verified') {
-            // 1. Mark upload session as consumed
-            // 2. Move file from temp to final storage (if needed, or just index it)
-            // 3. Update user quota
-            // 4. Create file record in database
-            
-            console.log('✅ File verified and finalized:', metadata);
+            // Update file status in database
+            const updated = await prisma.file.updateMany({
+                where: {
+                    path: metadata.path,
+                    // We can also verify hash matches if needed, but path is strong enough for this demo
+                },
+                data: {
+                    status: 'VERIFIED',
+                    hash: file_hash // Ensure hash is consistent
+                }
+            });
+
+            if (updated.count > 0) {
+                console.log('✅ File verified and finalized in DB:', metadata.path);
+            } else {
+                console.warn('⚠️ File record not found for verification:', metadata.path);
+            }
             
             return NextResponse.json({ success: true });
         } else {
             console.warn('❌ File verification failed:', metadata);
-            // Handle failure cleanup
+            // Handle failure cleanup - mark as FAILED
+            await prisma.file.updateMany({
+                where: { path: metadata.path },
+                data: { status: 'FAILED' }
+            });
             return NextResponse.json({ success: true }); // Acknowledge receipt even for failures
         }
 

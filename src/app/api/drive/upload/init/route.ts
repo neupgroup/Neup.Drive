@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateNonce } from '@/lib/upload-client';
 import type { UploadInitRequest, UploadInitResponse, UploadSignaturePayload } from '@/lib/upload-types';
+import { prisma } from '@/lib/db';
 
 // This should be stored securely in environment variables
 const SECRET_KEY = process.env.UPLOAD_SECRET_KEY || 'your-secret-key-here';
@@ -47,12 +48,32 @@ export async function POST(request: NextRequest) {
         // - Validate file type against allowed policy
         const userId = 'demo-user-123'; // Mocked user ID
         
+        // Ensure user exists (Mock logic)
+        await prisma.user.upsert({
+            where: { id: userId },
+            create: { id: userId, email: 'demo@neupgroup.com', name: 'Demo User' },
+            update: {},
+        });
+
         // 3. Generate Upload Session & Token
         const upload_session_id = crypto.randomUUID();
         const timestamp = Date.now();
         const sanitizedName = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
         const destination_path = `uploads/${userId}/${timestamp}-${sanitizedName}`;
         const expires_at = Math.floor(Date.now() / 1000) + (15 * 60); // 15 minutes expiration
+
+        // Create Pending File Record
+        await prisma.file.create({
+            data: {
+                name: filename,
+                size: BigInt(size),
+                mimeType: mime,
+                hash: file_hash,
+                path: destination_path,
+                status: 'PENDING',
+                userId: userId,
+            }
+        });
 
         const payload: UploadSignaturePayload = {
             path: destination_path,

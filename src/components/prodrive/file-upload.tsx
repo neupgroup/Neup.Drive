@@ -73,6 +73,22 @@ export function FileUpload({
         });
     };
 
+    // Helper to log errors to the database
+    const logError = async (context: any) => {
+        try {
+            await fetch('/api/log-error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    on_page: 'FileUpload',
+                    context
+                }),
+            });
+        } catch (e) {
+            console.error('Failed to log error to DB:', e);
+        }
+    };
+
     // ========Step 2 Starts, Hashing ==============
     // Processing loop to handle queue transitions
     React.useEffect(() => {
@@ -104,10 +120,19 @@ export function FileUpload({
                 // Update state to HASHED
                 updateQueueItem(pendingItem.id, { status: 'HASHED', hash, progress: 100 });
             } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Hashing failed';
                 console.error('Hashing failed:', error);
+                
+                logError({
+                    action: 'hashing',
+                    fileId: pendingItem.id,
+                    fileName: pendingItem.metadata.name,
+                    error: errorMessage
+                });
+
                 updateQueueItem(pendingItem.id, { 
                     status: 'ERROR', 
-                    error: error instanceof Error ? error.message : 'Hashing failed' 
+                    error: errorMessage 
                 });
             } finally {
                 processingRef.current = false;
@@ -145,10 +170,19 @@ export function FileUpload({
                     uploadInit: initResponse 
                 });
             } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Authorization failed';
                 console.error('Authorization failed:', error);
+                
+                logError({
+                    action: 'authorization',
+                    fileId: hashedItem.id,
+                    fileName: hashedItem.metadata.name,
+                    error: errorMessage
+                });
+
                 updateQueueItem(hashedItem.id, { 
                     status: 'ERROR', 
-                    error: error instanceof Error ? error.message : 'Authorization failed' 
+                    error: errorMessage 
                 });
             }
         };
@@ -196,13 +230,22 @@ export function FileUpload({
                 }, 1000);
 
             } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Upload failed';
                 console.error('Upload failed:', error);
+                
+                logError({
+                    action: 'uploading',
+                    fileId: readyItem.id,
+                    fileName: readyItem.metadata.name,
+                    error: errorMessage
+                });
+
                 updateQueueItem(readyItem.id, { 
                     status: 'ERROR', 
-                    error: error instanceof Error ? error.message : 'Upload failed' 
+                    error: errorMessage 
                 });
                 
-                onUploadError?.(error instanceof Error ? error.message : 'Upload failed', readyItem.file);
+                onUploadError?.(errorMessage, readyItem.file);
             }
         };
 

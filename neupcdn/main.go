@@ -22,7 +22,8 @@ func main() {
 	// Start Virtual SFTP Server
 	go sftp.StartServer()
 
-	mux := internalHttp.SetupRoutes()
+	// SetupRoutes now returns http.Handler (with CORS)
+	handler := internalHttp.SetupRoutes()
 	log.Println("Starting Neup.CDN on port " + config.Cfg.Port)
-	log.Fatal(http.ListenAndServe(":"+config.Cfg.Port, mux))
+	log.Fatal(http.ListenAndServe(":"+config.Cfg.Port, handler))
 }

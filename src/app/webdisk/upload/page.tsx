@@ -1,6 +1,8 @@
 'use client';
 
+import * as React from 'react';
 import { FileUpload } from '@/components/prodrive/file-upload';
+import { FileList } from '@/components/prodrive/file-list';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function WebDiskUploadPage() {
@@ -9,6 +11,8 @@ export default function WebDiskUploadPage() {
     const keyId = 'demo-key';
     const secretKey = process.env.NEXT_PUBLIC_UPLOAD_SECRET || 'demo-secret-key';
     const cdnUrl = 'https://neupcdn.com/upload';
+
+    const [refreshTrigger, setRefreshTrigger] = React.useState(0);
 
     return (
         <div className="space-y-6">
@@ -40,7 +44,8 @@ export default function WebDiskUploadPage() {
                                 url,
                                 fileName: file.name,
                             });
-                            // You might want to show a toast notification here
+                            // Trigger file list refresh
+                            setRefreshTrigger(prev => prev + 1);
                         }}
                         onUploadError={(error, file) => {
                             console.error('❌ Upload error:', {
@@ -49,6 +54,18 @@ export default function WebDiskUploadPage() {
                             });
                         }}
                     />
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Your Files</CardTitle>
+                    <CardDescription>
+                        Files stored in the database
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <FileList refreshTrigger={refreshTrigger} />
                 </CardContent>
             </Card>
         </div>
