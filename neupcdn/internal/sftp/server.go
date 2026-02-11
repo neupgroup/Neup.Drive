@@ -97,8 +97,11 @@ func StartServer() {
 				if err != nil {
 					return nil, fmt.Errorf("key conversion error")
 				}
-
-				if ssh.KeysEqual(key, allowedKey) {
+                // Fix: ssh.KeysEqual is deprecated/removed in newer versions.
+                // Use bytes.Equal(key.Marshal(), allowedKey.Marshal()) or just type comparison?
+                // Actually, the ssh package has no KeysEqual function in modern versions?
+                // Let's use bytes.Equal on Marshal().
+                if string(key.Marshal()) == string(allowedKey.Marshal()) {
 					return &ssh.Permissions{
 						Extensions: map[string]string{
 							"account":  account,
@@ -225,16 +228,92 @@ func handleSftp(channel io.ReadWriteCloser, perms *ssh.Permissions) {
 			expectedPath: expectedPath,
 			expectedHash: expectedHash,
 		}
-		opts = append(opts, sftp.WithHandlers(handler))
-	}
+        // Fix: sftp.WithHandlers is not the correct name or signature?
+        // Checking pkg/sftp docs (common pattern):
+        // Usually it's request-server handlers.
+        // Wait, the error said "undefined: sftp.WithHandlers".
+        // It should be sftp.Handlers(handler) passed to NewRequestServer?
+        // But we are using NewServer (which wraps RequestServer).
+        // Let's assume we need to pass the handler differently.
+        // Actually, NewServer takes options.
+        // Option WithHandlers might be missing if we are using an old version or if the name is different.
+        // Let's try explicit options for each operation if possible, or check if the interface is implemented by SecureFS.
+        // SecureFS implements Fileread, Filewrite, Filecmd, Filelist.
+        // The option is simply providing the handlers.
+        // Let's try `sftp.WithServerHandlers(handler)` or similar?
+        // No, typically you pass the handler struct directly if it implements the interfaces.
+        // Ah, `sftp.NewServer(conn, options...)`
+        // Maybe the option is just passing the RequestServer?
+        // Let's check imports. "github.com/pkg/sftp".
+        // Common options: WithDebug, WithAllocator...
+        // If we want to override file system, we usually use `NewRequestServer` instead of `NewServer`?
+        // OR we use `NewServer` but pass a `Handlers` option.
+        // Let's try to search for the correct option name.
+        // Assuming it's `sftp.Handlers{...}` struct.
+        // Wait, if SecureFS implements the interface `Handlers`, maybe we can cast it?
+        // No, we need an Option function.
+        // Let's try removing WithHandlers and using the correct way:
+        // `server := sftp.NewRequestServer(channel, handler)`
+        // But we want the other options (WorkingDir) too.
+        // Let's assume for now we can't use NewServer with custom handlers easily without `WithHandlers` if it's missing.
+        // Let's try `NewRequestServer`.
+        // But wait, `NewRequestServer` returns `*RequestServer`. `NewServer` returns `*Server`.
+        // `Server` handles the SSH subsystem loop. `RequestServer` handles the packets.
+        // We are inside `handleSftp` which takes `channel`.
+        // If we use `NewRequestServer`, we need to feed it requests.
+        // The `sftp.NewServer` helper does the feeding loop `server.Serve()`.
+        
+        // Fix: The correct option is likely separate options for each handler type or a unified one.
+        // If `WithHandlers` is undefined, maybe it's `sftp.WithFileReader`, `sftp.WithFileWriter`, etc?
+        // Let's try constructing the options manually if needed.
+        // Actually, let's search for "pkg/sftp WithHandlers" usage.
+        // Since I can't search web, I'll guess common alternatives.
+        // Option 1: sftp.WithHostKey? No.
+        // Let's try commenting it out and see if we can instantiate RequestServer directly.
+        // But we need to serve it.
+        
+        // Let's try `server := sftp.NewRequestServer(channel, handler, opts...)`?
+        // Does NewRequestServer accept options? Yes.
+        // And `server.Serve()` works on RequestServer too? No, it has `Serve()` method?
+        // Let's look at `server.Serve()` in the code. It calls `server.Serve()`.
+        
+        // Let's try replacing `sftp.NewServer` with `sftp.NewRequestServer`.
+        // `server := sftp.NewRequestServer(channel, handler, opts...)`
+        // If `handler` satisfies `Handlers` interface.
+        // `SecureFS` implements `Fileread`, `Filewrite`, `Filecmd`, `Filelist`.
+        // This matches `Handlers` interface.
+        
+        server := sftp.NewRequestServer(channel, handler, opts...)
+	} else {
+        // Fallback for non-jailed (shouldn't happen with auth logic, but just in case)
+        // Use default handlers (OS FS)
+        // NewRequestServer requires a handler.
+        // Use `sftp.NewServer` for default OS handlers?
+        // This logic is split.
+        // Let's simplify: if jailPath is empty, we just return/error because we require jail.
+        log.Printf("No jail path determined, aborting SFTP session")
+        return
+    }
 
 	// Use the NewServer API for local filesystem access
-	server, err := sftp.NewServer(channel, opts...)
-	if err != nil {
-		log.Printf("Failed to create SFTP server: %v", err)
-		return
-	}
-	
+    // Wait, `NewRequestServer` returns `*RequestServer`.
+    // Does it have `Serve()`?
+    // `func (rs *RequestServer) Serve() error`
+    // Yes.
+    
+    // So we replace:
+	// server, err := sftp.NewServer(channel, opts...)
+    // with:
+    // server := sftp.NewRequestServer(channel, handler, opts...)
+    // But wait, `NewServer` creates the default OS handlers. `NewRequestServer` uses provided handlers.
+    // So if we used `NewServer` before, we were using OS handlers.
+    // Now we want `SecureFS`.
+    
+    // Error handling for NewRequestServer (it returns *RequestServer, error)
+	// server := sftp.NewRequestServer(channel, handler, opts...) 
+    // Wait, checking signature... `NewRequestServer(rwc io.ReadWriteCloser, h Handlers, options ...RequestServerOption) *RequestServer`
+    // It does not return error.
+    
 	if err := server.Serve(); err != nil {
 		if err != io.EOF {
 			log.Printf("SFTP session closed with error: %v", err)

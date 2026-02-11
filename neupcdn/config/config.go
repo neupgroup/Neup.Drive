@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+    "golang.org/x/crypto/ssh"
 )
 
 type Config struct {
@@ -17,6 +18,7 @@ type Config struct {
 	SFTPUser          string
 	SFTPPass          string
 	SFTPHostKeyPath   string
+    AccountPublicKeys map[string]ssh.PublicKey
 }
 
 var Cfg Config
@@ -33,6 +35,7 @@ func Load() {
 		SFTPUser:          getEnv("SFTP_USER", "root"),
 		SFTPPass:          getEnv("SFTP_PASS", ""),
 		SFTPHostKeyPath:   getEnv("SFTP_HOST_KEY_PATH", "host_key"),
+        AccountPublicKeys: make(map[string]ssh.PublicKey),
 	}
 
 	log.Printf("Config loaded. PublicRoot: %s, MaxSize: %d", Cfg.PublicRoot, Cfg.MaxUploadSize)

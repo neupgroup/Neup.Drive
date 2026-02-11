@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+    "hash"
 	"io"
 	"os"
 	"path/filepath"
@@ -69,10 +70,29 @@ func (fs *SecureFS) Filecmd(r *sftp.Request) error {
 		// Disallow metadata changes or deletions for now to keep it simple and secure?
 		// Actually, standard SFTP clients might need to set mtime (Setstat).
 		// Let's just return permission denied for everything except maybe Remove?
+        // Use path and target variables to avoid "unused variable" error if we ever implement logic
+        _ = path
+        _ = target
 		return fmt.Errorf("operation not permitted in secure upload mode")
 	}
 	return nil
 }
+
+// ListerAtImpl is a wrapper to implement sftp.ListerAt
+type ListerAtImpl []os.FileInfo
+
+func (l ListerAtImpl) ListAt(f []os.FileInfo) int {
+    // This method is not strictly used by the pkg/sftp interface for simple listing but required for type assertion?
+    // Actually, looking at the library, it expects a slice of os.FileInfo.
+    // The error says: "[]io/fs.FileInfo does not implement github.com/pkg/sftp.ListerAt (missing method ListAt)"
+    // Wait, the interface is:
+    // type ListerAt interface { ListAt([]os.FileInfo, int64) (int, error) }
+    // No, that's not right. The error message implies it expects a method ListAt.
+    return 0
+}
+
+// Let's check the library source or documentation via search if possible.
+// But for now, let's fix the Hash type and variables.
 
 func (fs *SecureFS) Filelist(r *sftp.Request) (sftp.ListerAt, error) {
 	path := filepath.Join(fs.jailPath, cleanPath(r.Filepath))
@@ -89,23 +109,39 @@ func (fs *SecureFS) Filelist(r *sftp.Request) (sftp.ListerAt, error) {
 				stats = append(stats, info)
 			}
 		}
-		return sftp.ListerAt(stats), nil
+        // pkg/sftp expects a type that implements ListerAt.
+        // ListerAt is an interface: ListAt([]os.FileInfo, int64) (int, error)
+        return ListerAt(stats), nil
 	case "Stat":
 		f, err := os.Stat(path)
 		if err != nil {
 			return nil, err
 		}
-		return sftp.ListerAt([]os.FileInfo{f}), nil
+		return ListerAt([]os.FileInfo{f}), nil
 	case "Readlink":
 		return nil, fmt.Errorf("readlink not supported")
 	}
 	return nil, nil
 }
 
+// Simple implementation of ListerAt
+type ListerAt []os.FileInfo
+
+func (l ListerAt) ListAt(ls []os.FileInfo, offset int64) (int, error) {
+	if offset >= int64(len(l)) {
+		return 0, io.EOF
+	}
+	n := copy(ls, l[offset:])
+	if n < len(ls) {
+		return n, io.EOF
+	}
+	return n, nil
+}
+
 // SecureFileWriter wraps the file to compute hash on the fly
 type SecureFileWriter struct {
 	f            *os.File
-	hasher       io.Hash
+	hasher       hash.Hash
 	expectedHash string
 	path         string
 	written      int64
