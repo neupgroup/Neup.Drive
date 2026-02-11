@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# produce-cdn
+# This script converts the repository into the standalone CDN application.
+# 1. Removes the Drive application (Next.js) content.
+# 2. Moves the CDN application (Go) content to the root.
+# 3. Cleans up.
+
+echo "Producing CDN standalone build..."
+
+# Ensure we are in the root and neupcdn exists
+if [ ! -d "neupcdn" ]; then
+    echo "Error: neupcdn directory not found."
+    exit 1
+fi
+
+# Create a temporary directory outside the current folder to hold CDN files safely
+TEMP_DIR=$(mktemp -d)
+echo "Backing up CDN files to $TEMP_DIR..."
+
+# Move CDN content to temp dir (including hidden files)
+# Using dotglob to match hidden files with *
+shopt -s dotglob
+mv neupcdn/* "$TEMP_DIR/"
+shopt -u dotglob
+
+# Remove everything in the current directory except this script
+# We use find to avoid errors with argument list too long and handle hidden files correctly
+echo "Removing Drive application files..."
+find . -maxdepth 1 ! -name 'produce-cdn' ! -name '.' ! -name '..' -exec rm -rf {} +
+
+# Move CDN files back to root
+echo "Moving CDN files to root..."
+shopt -s dotglob
+mv "$TEMP_DIR"/* .
+shopt -u dotglob
+
+# Cleanup temp dir
+rmdir "$TEMP_DIR"
+
+echo "CDN standalone build produced."
+
+# Self destruct
+rm -- "$0"

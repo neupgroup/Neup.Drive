@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# produce-drive
+# This script converts the repository into the standalone Drive application.
+# 1. Removes the CDN application folder.
+# 2. Removes the produce-cdn script.
+# 3. Cleans up.
+
+echo "Producing Drive standalone build..."
+
+# Remove the CDN folder
+if [ -d "neupcdn" ]; then
+    echo "Removing CDN application..."
+    rm -rf neupcdn
+fi
+
+# Remove the produce-cdn script if it exists
+if [ -f "produce-cdn" ]; then
+    echo "Removing produce-cdn script..."
+    rm produce-cdn
+fi
+
+echo "Drive standalone build produced."
+
+# Self destruct
+rm -- "$0"
