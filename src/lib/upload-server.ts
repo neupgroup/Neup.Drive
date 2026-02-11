@@ -1,20 +1,31 @@
 import type { UploadSignaturePayload } from './upload-types';
 
 /**
- * Verify HMAC-SHA256 signature (server-side)
+ * Verify Ed25519 signature (server-side)
  */
 async function verifySignature(
     payload: UploadSignaturePayload,
     signature: string,
-    secretKey: string
+    publicKeyHex: string
 ): Promise<boolean> {
     try {
         const encoder = new TextEncoder();
         const data = encoder.encode(JSON.stringify(payload));
+        
+        // Convert hex string to Uint8Array
+        const publicKeyBytes = new Uint8Array(
+            publicKeyHex.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []
+        );
+
+        if (publicKeyBytes.length !== 32) {
+            console.error('Invalid public key length');
+            return false;
+        }
+
         const key = await crypto.subtle.importKey(
             'raw',
-            encoder.encode(secretKey),
-            { name: 'HMAC', hash: 'SHA-256' },
+            publicKeyBytes,
+            { name: 'Ed25519' },
             false,
             ['verify']
         );
@@ -23,7 +34,7 @@ async function verifySignature(
             signature.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
         );
 
-        return await crypto.subtle.verify('HMAC', key, signatureBytes, data);
+        return await crypto.subtle.verify('Ed25519', key, signatureBytes, data);
     } catch (error) {
         console.error('Signature verification error:', error);
         return false;

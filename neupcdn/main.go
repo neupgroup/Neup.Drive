@@ -3,10 +3,11 @@ package main
 import (
 	"log"
 	"net/http"
-	
-	"github.com/joho/godotenv"
+
 	"neupcdn/config"
 	internalHttp "neupcdn/internal/http"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -17,6 +18,9 @@ func main() {
 
 	// Load config
 	config.Load()
+
+	// Initialize Loggers
+	internalHttp.InitLoggers()
 
 	// SetupRoutes now returns http.Handler (with CORS)
 	handler := internalHttp.SetupRoutes()

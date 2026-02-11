@@ -2,7 +2,6 @@ package security
 
 import (
 	"crypto/ed25519"
-	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -37,26 +36,33 @@ func CalculateHash(data []byte) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// VerifyHMACSignature validates the HMAC-SHA256 signature
-func VerifyHMACSignature(tokenJSON string, secretKey string) (*UploadSignaturePayload, error) {
+// VerifyEd25519Token validates the token using Ed25519 public key
+func VerifyEd25519Token(tokenJSON string, publicKeyHex string) (*UploadSignaturePayload, error) {
 	// 1. Parse the token
 	var token SignedUploadToken
 	if err := json.Unmarshal([]byte(tokenJSON), &token); err != nil {
 		return nil, errors.New("invalid token format")
 	}
 
-	// 2. Re-create the signature
+	// 2. Decode Public Key
+	pubKey, err := hex.DecodeString(publicKeyHex)
+	if err != nil || len(pubKey) != ed25519.PublicKeySize {
+		return nil, errors.New("invalid public key configuration")
+	}
+
+	// 3. Verify signature
+	// The signature was created on the JSON representation of the payload
 	payloadBytes, err := json.Marshal(token.Payload)
 	if err != nil {
 		return nil, errors.New("failed to marshal payload")
 	}
 
-	h := hmac.New(sha256.New, []byte(secretKey))
-	h.Write(payloadBytes)
-	expectedSignature := hex.EncodeToString(h.Sum(nil))
+	sigBytes, err := hex.DecodeString(token.Signature)
+	if err != nil || len(sigBytes) != ed25519.SignatureSize {
+		return nil, errors.New("invalid signature format")
+	}
 
-	// 3. Verify signature matches
-	if !hmac.Equal([]byte(token.Signature), []byte(expectedSignature)) {
+	if !ed25519.Verify(pubKey, payloadBytes, sigBytes) {
 		return nil, errors.New("invalid signature")
 	}
 

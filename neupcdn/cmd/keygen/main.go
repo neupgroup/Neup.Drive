@@ -20,9 +20,8 @@ func main() {
 	privHex := hex.EncodeToString(priv)
 
 	fmt.Println("=== NEW ED25519 KEY PAIR ===")
-	fmt.Printf("ACCOUNT:     %s\n", "default")
-	fmt.Printf("PUBLIC_KEY:  %s\n", pubHex)
-	fmt.Printf("PRIVATE_KEY: %s\n", privHex)
+	fmt.Printf("UPLOAD_SECRET_PUBLIC_KEY:  %s\n", pubHex)
+	fmt.Printf("UPLOAD_SECRET_PRIVATE_KEY: %s\n", privHex)
 	fmt.Println("============================")
 
 	// 2. Update .env.example
@@ -35,27 +34,29 @@ func main() {
 		lines = []string{
 			"PORT=3000",
 			"PUBLIC_ROOT=/home/ubuntu/public",
-			"UPLOAD_SIGNING_KEY=place-your-secure-key-here",
+			"UPLOAD_SECRET_PUBLIC_KEY=",
+			"UPLOAD_SECRET_PRIVATE_KEY=",
 			"MAX_UPLOAD_SIZE=52428800",
-			"",
-			"# Account Public Keys",
 		}
 	}
 
-	// Append the new public key to .env.example
-	newKeyLine := fmt.Sprintf("PUBLIC_KEY_%s=%s", "default", pubHex)
-	
-	// Check if already exists to avoid duplicates
-	exists := false
+	// Update keys in .env.example
+	pubKeyLine := fmt.Sprintf("UPLOAD_SECRET_PUBLIC_KEY=%s", pubHex)
+	privKeyLine := fmt.Sprintf("UPLOAD_SECRET_PRIVATE_KEY=%s", privHex)
+
+	updated := false
 	for i, line := range lines {
-		if strings.HasPrefix(line, "PUBLIC_KEY_default=") {
-			lines[i] = newKeyLine
-			exists = true
-			break
+		if strings.HasPrefix(line, "UPLOAD_SECRET_PUBLIC_KEY=") {
+			lines[i] = pubKeyLine
+			updated = true
+		} else if strings.HasPrefix(line, "UPLOAD_SECRET_PRIVATE_KEY=") {
+			lines[i] = privKeyLine
 		}
 	}
-	if !exists {
-		lines = append(lines, newKeyLine)
+
+	if !updated {
+		lines = append(lines, pubKeyLine)
+		lines = append(lines, privKeyLine)
 	}
 
 	err = os.WriteFile(exampleFile, []byte(strings.Join(lines, "\n")), 0644)

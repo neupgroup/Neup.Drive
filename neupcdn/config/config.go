@@ -7,22 +7,22 @@ import (
 )
 
 type Config struct {
-	Port              string
-	PublicRoot        string
-	SecretKey         string // For HMAC-SHA256
-	CallbackURL       string // URL to notify on upload completion
-	MaxUploadSize     int64
+	Port            string
+	PublicRoot      string
+	UploadPublicKey string // Ed25519 Public Key
+	CallbackURL     string // URL to notify on upload completion
+	MaxUploadSize   int64
 }
 
 var Cfg Config
 
 func Load() {
 	Cfg = Config{
-		Port:              getEnv("PORT", "3000"),
-		PublicRoot:        getEnv("PUBLIC_ROOT", "/home/ubuntu/public"),
-		SecretKey:         getEnv("UPLOAD_SECRET_KEY", "your-secret-key-here"),
-		CallbackURL:       getEnv("CALLBACK_URL", "https://neupgroup.com/drive/api/upload/callback"),
-		MaxUploadSize:     getEnvInt64("MAX_UPLOAD_SIZE", 100<<20), // Default 100MB
+		Port:            getEnv("PORT", "3000"),
+		PublicRoot:      getEnv("PUBLIC_ROOT", "/home/ubuntu/public"),
+		UploadPublicKey: getEnv("UPLOAD_SECRET_PUBLIC_KEY", ""),
+		CallbackURL:     getEnv("CALLBACK_URL", "https://neupgroup.com/drive/api/upload/callback"),
+		MaxUploadSize:   getEnvInt64("MAX_UPLOAD_SIZE", 100<<20), // Default 100MB
 	}
 
 	log.Printf("Config loaded. PublicRoot: %s, MaxSize: %d", Cfg.PublicRoot, Cfg.MaxUploadSize)

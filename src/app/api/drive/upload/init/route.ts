@@ -4,24 +4,35 @@ import type { UploadInitRequest, UploadInitResponse, UploadSignaturePayload } fr
 import { prisma } from '@/lib/db';
 
 // This should be stored securely in environment variables
-const SECRET_KEY = process.env.UPLOAD_SECRET_KEY || 'your-secret-key-here';
-const CDN_URL = process.env.CDN_URL || 'https://neupgroup.com/upload';
+const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
+// Hardcoded CDN URL as per requirement
+const CDN_URL = 'https://neupcdn.com/upload';
 
 /**
- * Generate HMAC-SHA256 signature for the upload token
+ * Generate Ed25519 signature for the upload token
  */
-async function createSignature(payload: UploadSignaturePayload, secretKey: string): Promise<string> {
+async function createSignature(payload: UploadSignaturePayload, privateKeyHex: string): Promise<string> {
     const encoder = new TextEncoder();
     const data = encoder.encode(JSON.stringify(payload));
+    
+    // Convert hex string to Uint8Array
+    const privateKeyBytes = new Uint8Array(
+        privateKeyHex.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []
+    );
+
+    if (privateKeyBytes.length !== 32 && privateKeyBytes.length !== 64) {
+        throw new Error("Invalid private key length");
+    }
+
     const key = await crypto.subtle.importKey(
         'raw',
-        encoder.encode(secretKey),
-        { name: 'HMAC', hash: 'SHA-256' },
+        privateKeyBytes,
+        { name: 'Ed25519' },
         false,
         ['sign']
     );
 
-    const signature = await crypto.subtle.sign('HMAC', key, data);
+    const signature = await crypto.subtle.sign('Ed25519', key, data);
     return Array.from(new Uint8Array(signature))
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
@@ -86,7 +97,7 @@ export async function POST(request: NextRequest) {
             key_id: 'demo-key', // Should come from config
         };
 
-        const signature = await createSignature(payload, SECRET_KEY);
+        const signature = await createSignature(payload, PRIVATE_KEY);
 
         const response: UploadInitResponse = {
             upload_session_id,

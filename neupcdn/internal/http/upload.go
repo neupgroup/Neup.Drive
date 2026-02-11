@@ -28,20 +28,23 @@ func PrepareUploadHandler(w http.ResponseWriter, r *http.Request) {
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. Method Check
 	if r.Method != http.MethodPut {
-		http.Error(w, "Method not allowed. Use PUT for chunked uploads.", http.StatusMethodNotAllowed)
+		LogUploadError("Method not allowed", nil)
+		JSONError(w, http.StatusMethodNotAllowed, "Method not allowed. Use PUT for chunked uploads.")
 		return
 	}
 
-	// 2. Security: Verify HMAC Token
+	// 2. Security: Verify Token (Ed25519)
 	tokenJSON := r.Header.Get("x-upload-token")
 	if tokenJSON == "" {
-		http.Error(w, "Missing x-upload-token header", http.StatusUnauthorized)
+		LogUploadError("Missing x-upload-token header", nil)
+		JSONError(w, http.StatusUnauthorized, "Missing x-upload-token header")
 		return
 	}
 
-	claims, err := security.VerifyHMACSignature(tokenJSON, config.Cfg.SecretKey)
+	claims, err := security.VerifyEd25519Token(tokenJSON, config.Cfg.UploadPublicKey)
 	if err != nil {
-		http.Error(w, "Invalid upload token: "+err.Error(), http.StatusForbidden)
+		LogUploadError("Invalid upload token", err)
+		JSONError(w, http.StatusForbidden, "Invalid upload token: "+err.Error())
 		return
 	}
 
@@ -49,7 +52,8 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	// Check Content-Hash header (sent by client for the chunk or full file? Client sends x-file-hash)
 	fileHash := r.Header.Get("x-file-hash")
 	if fileHash == "" {
-		http.Error(w, "Missing x-file-hash header", http.StatusBadRequest)
+		LogUploadError("Missing x-file-hash header", nil)
+		JSONError(w, http.StatusBadRequest, "Missing x-file-hash header")
 		return
 	}
 
@@ -57,18 +61,21 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	// Format: bytes start-end/total
 	contentRange := r.Header.Get("Content-Range")
 	if contentRange == "" {
-		http.Error(w, "Missing Content-Range header", http.StatusBadRequest)
+		LogUploadError("Missing Content-Range header", nil)
+		JSONError(w, http.StatusBadRequest, "Missing Content-Range header")
 		return
 	}
 
 	start, end, total, err := parseContentRange(contentRange)
 	if err != nil {
-		http.Error(w, "Invalid Content-Range header", http.StatusBadRequest)
+		LogUploadError("Invalid Content-Range header", err)
+		JSONError(w, http.StatusBadRequest, "Invalid Content-Range header")
 		return
 	}
 
 	if total > claims.MaxSize {
-		http.Error(w, "File size exceeds token limit", http.StatusForbidden)
+		LogUploadError("File size exceeds token limit", nil)
+		JSONError(w, http.StatusForbidden, "File size exceeds token limit")
 		return
 	}
 
@@ -80,7 +87,8 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Ensure directory exists
 	if err := os.MkdirAll(filepath.Dir(finalPath), 0755); err != nil {
-		http.Error(w, "Failed to create directory", http.StatusInternalServerError)
+		LogUploadError("Failed to create directory", err)
+		JSONError(w, http.StatusInternalServerError, "Failed to create directory")
 		return
 	}
 
@@ -93,21 +101,24 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	f, err := os.OpenFile(tempPath, flags, 0644)
 	if err != nil {
-		http.Error(w, "Failed to open file for writing", http.StatusInternalServerError)
+		LogUploadError("Failed to open file for writing", err)
+		JSONError(w, http.StatusInternalServerError, "Failed to open file for writing")
 		return
 	}
 	defer f.Close()
 
 	// Seek to the correct offset
 	if _, err := f.Seek(start, 0); err != nil {
-		http.Error(w, "Failed to seek file", http.StatusInternalServerError)
+		LogUploadError("Failed to seek file", err)
+		JSONError(w, http.StatusInternalServerError, "Failed to seek file")
 		return
 	}
 
 	// Copy request body to file
 	written, err := io.Copy(f, r.Body)
 	if err != nil {
-		http.Error(w, "Failed to write chunk", http.StatusInternalServerError)
+		LogUploadError("Failed to write chunk", err)
+		JSONError(w, http.StatusInternalServerError, "Failed to write chunk")
 		return
 	}
 
@@ -122,7 +133,8 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Rename .part to final
 		if err := os.Rename(tempPath, finalPath); err != nil {
-			http.Error(w, "Failed to finalize file", http.StatusInternalServerError)
+			LogUploadError("Failed to finalize file", err)
+			JSONError(w, http.StatusInternalServerError, "Failed to finalize file")
 			return
 		}
 
@@ -133,8 +145,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		// 8. Trigger Callback
 		go triggerCallback(claims, fileHash, "verified")
 
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		JSONResponse(w, http.StatusOK, map[string]interface{}{
 			"success": true,
 			"path":    claims.Path,
 			"status":  "completed",
@@ -142,8 +153,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	JSONResponse(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"chunk":   fmt.Sprintf("%d-%d", start, end),
 		"status":  "partial",
@@ -205,7 +215,7 @@ func triggerCallback(claims *security.UploadSignaturePayload, fileHash, status s
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != 200 {
 		log.Printf("Callback returned non-200 status: %d", resp.StatusCode)
 	}

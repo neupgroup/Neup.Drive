@@ -3,7 +3,7 @@ import { validateUploadWithReplayProtection } from '@/lib/upload-server';
 import type { UploadSignaturePayload } from '@/lib/upload-types';
 
 // This should be stored securely in environment variables
-const SECRET_KEY = process.env.UPLOAD_SECRET_KEY || 'your-secret-key-here';
+const PUBLIC_KEY = process.env.UPLOAD_SECRET_PUBLIC_KEY || '';
 const CDN_STORAGE_PATH = process.env.CDN_STORAGE_PATH || './uploads';
 
 export async function POST(request: NextRequest) {
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         const validation = await validateUploadWithReplayProtection(
             payload,
             signature,
-            SECRET_KEY,
+            PUBLIC_KEY,
             file.size
         );
 
@@ -99,7 +99,7 @@ export async function PUT(request: NextRequest) {
         const validation = await validateUploadWithReplayProtection(
             payload,
             signature,
-            SECRET_KEY,
+            PUBLIC_KEY,
             contentLength
         );
 
