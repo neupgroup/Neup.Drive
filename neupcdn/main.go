@@ -7,7 +7,6 @@ import (
 	"github.com/joho/godotenv"
 	"neupcdn/config"
 	internalHttp "neupcdn/internal/http"
-	"neupcdn/internal/sftp"
 )
 
 func main() {
@@ -18,9 +17,6 @@ func main() {
 
 	// Load config
 	config.Load()
-
-	// Start Virtual SFTP Server
-	go sftp.StartServer()
 
 	// SetupRoutes now returns http.Handler (with CORS)
 	handler := internalHttp.SetupRoutes()

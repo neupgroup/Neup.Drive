@@ -3,13 +3,10 @@ package main
 import (
 	"crypto/ed25519"
 	"encoding/hex"
-	"encoding/pem"
 	"fmt"
 	"log"
 	"os"
 	"strings"
-
-	"golang.org/x/crypto/ssh"
 )
 
 func main() {
@@ -28,20 +25,6 @@ func main() {
 	fmt.Printf("PRIVATE_KEY: %s\n", privHex)
 	fmt.Println("============================")
 
-	// Generate OpenSSH Private Key (for SFTP client)
-	pemBlock, err := ssh.MarshalPrivateKey(priv, "")
-	if err != nil {
-		log.Printf("Failed to marshal private key for SSH usage: %v", err)
-	} else {
-		pemBytes := pem.EncodeToMemory(pemBlock)
-		keyFileName := "client_key"
-		if err := os.WriteFile(keyFileName, pemBytes, 0600); err != nil {
-			log.Printf("Failed to write private key file: %v", err)
-		} else {
-			fmt.Printf("Generated OpenSSH private key: %s (use with sftp -i)\n", keyFileName)
-		}
-	}
-
 	// 2. Update .env.example
 	exampleFile := ".env.example"
 	content, _ := os.ReadFile(exampleFile)
@@ -54,13 +37,6 @@ func main() {
 			"PUBLIC_ROOT=/home/ubuntu/public",
 			"UPLOAD_SIGNING_KEY=place-your-secure-key-here",
 			"MAX_UPLOAD_SIZE=52428800",
-			"",
-			"# SFTP Config",
-			"SFTP_HOST=localhost",
-			"SFTP_PORT=2022",
-			"SFTP_USER=root",
-			"SFTP_PASS=root",
-			"SFTP_HOST_KEY_PATH=host_key",
 			"",
 			"# Account Public Keys",
 		}
