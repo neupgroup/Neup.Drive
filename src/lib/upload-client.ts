@@ -1,4 +1,27 @@
-import type { UploadSignaturePayload, SignedUploadRequest } from './upload-types';
+import type { UploadSignaturePayload, SignedUploadRequest, UploadInitRequest, UploadInitResponse } from './upload-types';
+
+/**
+ * Initialize upload session with server (Step 3)
+ */
+export async function initializeUpload(
+    metadata: UploadInitRequest,
+    apiEndpoint: string = '/api/drive/upload/init'
+): Promise<UploadInitResponse> {
+    const response = await fetch(apiEndpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(metadata),
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Upload initialization failed' }));
+        throw new Error(error.error || `Server error: ${response.status}`);
+    }
+
+    return await response.json();
+}
 
 /**
  * Generate a random nonce for the upload request

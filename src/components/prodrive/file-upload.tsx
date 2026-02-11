@@ -1,11 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import { Upload, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Upload, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { signAndUploadFile } from '@/lib/upload-client';
+import { signAndUploadFile, initializeUpload } from '@/lib/upload-client';
 import { cn } from '@/lib/utils';
+import { hashFile } from '@/lib/sha256';
+import type { UploadInitResponse } from '@/lib/upload-types';
+import { uploadFileChunks } from '@/lib/chunked-upload';
+import { saveUpload, getUploads, deleteUpload, type UploadQueueItem } from '@/lib/upload-persistence';
 
 interface FileUploadProps {
     accountId: string;
@@ -14,18 +18,15 @@ interface FileUploadProps {
     uploadPath?: string; // Base path for uploads
     maxSize?: number; // Max file size in bytes
     acceptedTypes?: string[]; // Accepted MIME types
+    cdnUrl?: string; // CDN API endpoint URL
     onUploadComplete?: (url: string, file: File) => void;
     onUploadError?: (error: string, file: File) => void;
     className?: string;
 }
 
-interface UploadingFile {
-    file: File;
-    progress: number;
-    status: 'uploading' | 'success' | 'error';
-    url?: string;
-    error?: string;
-}
+// Remove local FileState/UploadQueueItem in favor of shared types
+// type FileState = 'PENDING' | 'HASHING' | 'HASHED' | 'TOKEN_ISSUED' | 'UPLOADING' | 'SUCCESS' | 'ERROR';
+// interface UploadQueueItem { ... }
 
 export function FileUpload({
     accountId,
@@ -34,21 +35,194 @@ export function FileUpload({
     uploadPath = 'uploads',
     maxSize = 100 * 1024 * 1024, // 100MB default
     acceptedTypes,
+    cdnUrl = '/api/upload', // Default to local API endpoint
     onUploadComplete,
     onUploadError,
     className,
 }: FileUploadProps) {
-    const [uploadingFiles, setUploadingFiles] = React.useState<Map<string, UploadingFile>>(new Map());
+    const [queue, setQueue] = React.useState<UploadQueueItem[]>([]);
     const [isDragging, setIsDragging] = React.useState(false);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const processingRef = React.useRef(false);
+
+    // Step 7: Load persisted uploads on mount
+    React.useEffect(() => {
+        getUploads().then(persistedUploads => {
+            // Filter out old completed/failed items or handle resume logic
+            // For now, we load everything that isn't DONE
+            const activeItems = persistedUploads.filter(item => item.status !== 'DONE');
+            if (activeItems.length > 0) {
+                setQueue(activeItems);
+            }
+        });
+    }, []);
+
+    // Helper to update queue and persist
+    const updateQueueItem = (id: string, updates: Partial<UploadQueueItem>) => {
+        setQueue(prev => {
+            const newQueue = prev.map(item => {
+                if (item.id === id) {
+                    const updatedItem = { ...item, ...updates };
+                    // Persist change
+                    saveUpload(updatedItem).catch(console.error);
+                    return updatedItem;
+                }
+                return item;
+            });
+            return newQueue;
+        });
+    };
+
+    // ========Step 2 Starts, Hashing ==============
+    // Processing loop to handle queue transitions
+    React.useEffect(() => {
+        const processQueue = async () => {
+            if (processingRef.current) return;
+
+            // Find files that need processing (limit concurrency if needed, here we process one by one or all pending)
+            // User requested: "Hashing worker pool starts (2–4 concurrent workers)"
+            // We'll implement a simple concurrency limit of 2 for hashing
+            const activeHashing = queue.filter(item => item.status === 'HASHING').length;
+            if (activeHashing >= 2) return;
+
+            const pendingItem = queue.find(item => item.status === 'PENDING');
+            if (!pendingItem) return;
+
+            processingRef.current = true;
+
+            try {
+                // Update state to HASHING
+                updateQueueItem(pendingItem.id, { status: 'HASHING' });
+
+                // Process hashing
+                console.log(`Starting hash for ${pendingItem.metadata.name}`);
+                
+                const hash = await hashFile(pendingItem.file, (progress) => {
+                    updateQueueItem(pendingItem.id, { progress });
+                });
+
+                // Update state to HASHED
+                updateQueueItem(pendingItem.id, { status: 'HASHED', hash, progress: 100 });
+            } catch (error) {
+                console.error('Hashing failed:', error);
+                updateQueueItem(pendingItem.id, { 
+                    status: 'ERROR', 
+                    error: error instanceof Error ? error.message : 'Hashing failed' 
+                });
+            } finally {
+                processingRef.current = false;
+            }
+        };
+
+        // Run the processor whenever queue changes
+        processQueue();
+        
+        // Also set an interval to check for free slots if multiple files are pending
+        const interval = setInterval(processQueue, 500);
+        return () => clearInterval(interval);
+    }, [queue]);
+    // =========Step2 Ends, Hashing =============
+
+    // ======= Step 3 Starts, Authorization ===============
+    // Process files that are HASHED and need authorization
+    React.useEffect(() => {
+        const authorizeFile = async () => {
+            const hashedItem = queue.find(item => item.status === 'HASHED');
+            if (!hashedItem || !hashedItem.hash) return;
+
+            try {
+                const initResponse = await initializeUpload({
+                    file_id: hashedItem.id,
+                    filename: hashedItem.metadata.name,
+                    size: hashedItem.metadata.size,
+                    mime: hashedItem.metadata.type,
+                    file_hash: hashedItem.hash,
+                });
+
+                // Update state to TOKEN_ISSUED
+                updateQueueItem(hashedItem.id, { 
+                    status: 'TOKEN_ISSUED', 
+                    uploadInit: initResponse 
+                });
+            } catch (error) {
+                console.error('Authorization failed:', error);
+                updateQueueItem(hashedItem.id, { 
+                    status: 'ERROR', 
+                    error: error instanceof Error ? error.message : 'Authorization failed' 
+                });
+            }
+        };
+
+        // Check for hashed files periodically or when queue changes
+        // Since we modify queue in the effect, we need to be careful not to create infinite loops
+        // The condition `queue.find(item => item.status === 'HASHED')` ensures we only act when there is work
+        authorizeFile();
+    }, [queue]);
+    // ======== Step 3 Ends, Authorization ==============
+
+    // ======= Step 4 Starts, Uploading ===============
+    // Process files that have TOKEN_ISSUED and are ready to upload
+    React.useEffect(() => {
+        const processUploads = async () => {
+            // Limit concurrent uploads (3-5 max)
+            const activeUploads = queue.filter(item => item.status === 'UPLOADING').length;
+            if (activeUploads >= 3) return;
+
+            const readyItem = queue.find(item => item.status === 'TOKEN_ISSUED');
+            if (!readyItem || !readyItem.uploadInit || !readyItem.hash) return;
+
+            // Update state to UPLOADING
+            updateQueueItem(readyItem.id, { status: 'UPLOADING', progress: 0 });
+
+            try {
+                await uploadFileChunks(
+                    readyItem.file,
+                    readyItem.uploadInit,
+                    readyItem.hash,
+                    (progress) => {
+                        updateQueueItem(readyItem.id, { progress });
+                    }
+                );
+
+                // Update state to VERIFIED (Step 5)
+                updateQueueItem(readyItem.id, { status: 'VERIFIED', progress: 100 });
+
+                // Step 6: Finalization - wait for callback or immediate completion
+                // In a real scenario, we might poll for status or wait for socket event
+                // Here we assume if chunk upload succeeded, we are verified
+                setTimeout(() => {
+                    updateQueueItem(readyItem.id, { status: 'DONE' });
+                    onUploadComplete?.(readyItem.uploadInit!.destination_path, readyItem.file);
+                }, 1000);
+
+            } catch (error) {
+                console.error('Upload failed:', error);
+                updateQueueItem(readyItem.id, { 
+                    status: 'ERROR', 
+                    error: error instanceof Error ? error.message : 'Upload failed' 
+                });
+                
+                onUploadError?.(error instanceof Error ? error.message : 'Upload failed', readyItem.file);
+            }
+        };
+
+        // Check for ready files periodically or when queue changes
+        processUploads();
+        
+        // Also set an interval to check for free slots
+        const interval = setInterval(processUploads, 1000);
+        return () => clearInterval(interval);
+    }, [queue, onUploadComplete, onUploadError]);
+    // ======== Step 4 Ends, Uploading ==============
 
     const handleFiles = async (files: FileList | null) => {
         if (!files || files.length === 0) return;
 
-        const newFiles = Array.from(files);
+        // ======= Step 1 Starts, Pending ===============
+        const newItems: UploadQueueItem[] = [];
 
-        for (const file of newFiles) {
-            // Validate file type if specified
+        for (const file of Array.from(files)) {
+            // Validate file type
             if (acceptedTypes && acceptedTypes.length > 0) {
                 if (!acceptedTypes.includes(file.type)) {
                     console.error(`File type ${file.type} not accepted`);
@@ -62,92 +236,29 @@ export function FileUpload({
                 continue;
             }
 
-            const fileId = `${file.name}-${Date.now()}`;
+            // Generate Client-side UUID
+            const id = crypto.randomUUID();
 
-            // Add file to uploading state
-            setUploadingFiles(prev => {
-                const updated = new Map(prev);
-                updated.set(fileId, {
-                    file,
-                    progress: 0,
-                    status: 'uploading',
-                });
-                return updated;
+            // Create queue item in PENDING state
+            newItems.push({
+                id,
+                file,
+                metadata: {
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                },
+                status: 'PENDING',
+                progress: 0,
+                createdAt: Date.now(),
             });
-
-            // Generate unique path for the file
-            const timestamp = Date.now();
-            const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-            const filePath = `${uploadPath}/${accountId}/${timestamp}-${sanitizedName}`;
-
-            try {
-                // Upload the file
-                const result = await signAndUploadFile(
-                    file,
-                    filePath,
-                    accountId,
-                    keyId,
-                    secretKey,
-                    {
-                        maxSize,
-                        cdnUrl: '/api/upload', // Use local API endpoint
-                        onProgress: (progress) => {
-                            setUploadingFiles(prev => {
-                                const updated = new Map(prev);
-                                const fileData = updated.get(fileId);
-                                if (fileData) {
-                                    updated.set(fileId, { ...fileData, progress });
-                                }
-                                return updated;
-                            });
-                        },
-                    }
-                );
-
-                if (result.success && result.url) {
-                    // Update to success state
-                    setUploadingFiles(prev => {
-                        const updated = new Map(prev);
-                        updated.set(fileId, {
-                            file,
-                            progress: 100,
-                            status: 'success',
-                            url: result.url,
-                        });
-                        return updated;
-                    });
-
-                    onUploadComplete?.(result.url, file);
-
-                    // Remove from list after 3 seconds
-                    setTimeout(() => {
-                        setUploadingFiles(prev => {
-                            const updated = new Map(prev);
-                            updated.delete(fileId);
-                            return updated;
-                        });
-                    }, 3000);
-                } else {
-                    throw new Error(result.error || 'Upload failed');
-                }
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Upload failed';
-
-                // Update to error state
-                setUploadingFiles(prev => {
-                    const updated = new Map(prev);
-                    updated.set(fileId, {
-                        file,
-                        progress: 0,
-                        status: 'error',
-                        error: errorMessage,
-                    });
-                    return updated;
-                });
-
-                onUploadError?.(errorMessage, file);
-            }
         }
+
+        // Add to queue and persist
+        const newQueue = [...queue, ...newItems];
+        setQueue(newQueue);
+        newItems.forEach(item => saveUpload(item).catch(console.error));
+        // ======== Step 1 Ends, Pending ==============
     };
 
     const handleDragOver = (e: React.DragEvent) => {
@@ -170,12 +281,22 @@ export function FileUpload({
         handleFiles(e.target.files);
     };
 
-    const removeFile = (fileId: string) => {
-        setUploadingFiles(prev => {
-            const updated = new Map(prev);
-            updated.delete(fileId);
-            return updated;
-        });
+    const removeFile = (id: string) => {
+        setQueue(prev => prev.filter(item => item.id !== id));
+    };
+
+    const getStatusText = (item: UploadQueueItem) => {
+        switch (item.status) {
+            case 'PENDING': return 'Pending...';
+            case 'HASHING': return `Hashing... ${item.progress.toFixed(0)}%`;
+            case 'HASHED': return 'Ready (Hashed)';
+            case 'TOKEN_ISSUED': return 'Authorized';
+            case 'UPLOADING': return `Uploading... ${item.progress.toFixed(0)}%`;
+            case 'VERIFIED': return 'Verified (Processing)';
+            case 'DONE': return 'Complete';
+            case 'ERROR': return 'Error';
+            default: return '';
+        }
     };
 
     return (
@@ -215,46 +336,49 @@ export function FileUpload({
             />
 
             {/* Upload progress list */}
-            {uploadingFiles.size > 0 && (
+            {queue.length > 0 && (
                 <div className="space-y-2">
-                    {Array.from(uploadingFiles.entries()).map(([fileId, uploadFile]) => (
+                    {queue.map((item) => (
                         <div
-                            key={fileId}
+                            key={item.id}
                             className="flex items-center gap-3 p-3 border rounded-lg bg-card"
                         >
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between mb-1">
-                                    <p className="text-sm font-medium truncate">{uploadFile.file.name}</p>
+                                    <div className="flex flex-col">
+                                        <p className="text-sm font-medium truncate">{item.metadata.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {getStatusText(item)}
+                                        </p>
+                                    </div>
                                     <div className="flex items-center gap-2">
-                                        {uploadFile.status === 'uploading' && (
-                                            <span className="text-xs text-muted-foreground">
-                                                {uploadFile.progress.toFixed(0)}%
-                                            </span>
+                                        {item.status === 'HASHING' && (
+                                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                                         )}
-                                        {uploadFile.status === 'success' && (
+                                        {item.status === 'HASHED' && (
+                                            <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                                        )}
+                                        {(item.status === 'VERIFIED' || item.status === 'DONE') && (
                                             <CheckCircle2 className="h-4 w-4 text-green-500" />
                                         )}
-                                        {uploadFile.status === 'error' && (
+                                        {item.status === 'ERROR' && (
                                             <AlertCircle className="h-4 w-4 text-destructive" />
                                         )}
                                         <Button
                                             variant="ghost"
                                             size="icon"
                                             className="h-6 w-6"
-                                            onClick={() => removeFile(fileId)}
+                                            onClick={() => removeFile(item.id)}
                                         >
                                             <X className="h-3 w-3" />
                                         </Button>
                                     </div>
                                 </div>
-                                {uploadFile.status === 'uploading' && (
-                                    <Progress value={uploadFile.progress} className="h-1" />
+                                {(item.status === 'HASHING' || item.status === 'UPLOADING') && (
+                                    <Progress value={item.progress} className="h-1" />
                                 )}
-                                {uploadFile.status === 'error' && (
-                                    <p className="text-xs text-destructive">{uploadFile.error}</p>
-                                )}
-                                {uploadFile.status === 'success' && (
-                                    <p className="text-xs text-green-600">Upload complete</p>
+                                {item.status === 'ERROR' && (
+                                    <p className="text-xs text-destructive">{item.error}</p>
                                 )}
                             </div>
                         </div>

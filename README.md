@@ -1,5 +1,64 @@
-# Firebase Studio
+# Neup Drive
 
-This is a NextJS starter in Firebase Studio.
+A modern file storage solution with a distributed architecture.
 
-To get started, take a look at src/app/page.tsx.
+## Architecture
+
+Neup Drive consists of two separate applications:
+
+1.  **Main Application (Next.js)**: 
+    - Handles User Interface, Authentication, File Management, and Metadata.
+    - Generates signed tokens for uploads.
+    - Located in the root directory.
+
+2.  **CDN Gateway (Go)**:
+    - A high-performance, standalone microservice for handling file uploads and downloads.
+    - Located in `neupcdn/`.
+    - Accepts file chunks directly from the client.
+
+## Getting Started
+
+### 1. Run the Main Application
+
+```bash
+npm install
+npm run dev
+```
+Starts the Next.js app on `http://localhost:3000`.
+
+### 2. Run the CDN Gateway
+
+Open a new terminal:
+
+```bash
+cd neupcdn
+go mod tidy
+go run main.go
+```
+Starts the Go CDN on `http://localhost:3001` (ensure PORT is configured in `neupcdn/.env`).
+
+## Upload Flow
+
+1.  **Browser** -> **Main App**: Request upload (`POST /drive/api/upload/init`).
+2.  **Main App**: Validates request and returns a signed HMAC token.
+3.  **Browser** -> **CDN**: Uploads file chunks (`PUT /upload`) using the token.
+4.  **CDN** -> **Main App**: Calls webhook (`POST /drive/api/upload/callback`) upon completion.
+5.  **Main App**: Marks file as verified.
+
+## Environment Variables
+
+Ensure both applications share the same `UPLOAD_SECRET_KEY` for token verification.
+
+### Main App (`.env.local`)
+```env
+UPLOAD_SECRET_KEY=super-secret-key
+CDN_URL=http://localhost:3001/upload
+```
+
+### CDN (`neupcdn/.env`)
+```env
+PORT=3001
+UPLOAD_SECRET_KEY=super-secret-key
+CALLBACK_URL=http://localhost:3000/drive/api/upload/callback
+PUBLIC_ROOT=./uploads
+```
