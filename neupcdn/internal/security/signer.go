@@ -3,6 +3,7 @@ package security
 import (
 	"crypto/ed25519"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -25,8 +26,8 @@ type UploadSignaturePayload struct {
 
 // SignedUploadToken matches the client's token structure
 type SignedUploadToken struct {
-	Payload   UploadSignaturePayload `json:"payload"`
-	Signature string                 `json:"signature"`
+	Payload   string `json:"payload"`
+	Signature string `json:"signature"`
 }
 
 // CalculateHash returns the SHA256 hex string of the data
@@ -51,27 +52,43 @@ func VerifyEd25519Token(tokenJSON string, publicKeyHex string) (*UploadSignature
 	}
 
 	// 3. Verify signature
-	// The signature was created on the JSON representation of the payload
-	payloadBytes, err := json.Marshal(token.Payload)
-	if err != nil {
-		return nil, errors.New("failed to marshal payload")
-	}
-
+	// The signature was created on the raw Base64 string of the payload
+	// This ensures byte-for-byte consistency between signing and verification
 	sigBytes, err := hex.DecodeString(token.Signature)
 	if err != nil || len(sigBytes) != ed25519.SignatureSize {
 		return nil, errors.New("invalid signature format")
 	}
 
-	if !ed25519.Verify(pubKey, payloadBytes, sigBytes) {
+	if !ed25519.Verify(pubKey, []byte(token.Payload), sigBytes) {
 		return nil, errors.New("invalid signature")
 	}
 
-	// 4. Check expiration
-	if time.Now().Unix() > token.Payload.ExpiresAt {
+	// 4. Decode Payload
+	// Use RawURLEncoding because client strips padding
+	payloadBytes, err := base64.RawURLEncoding.DecodeString(token.Payload)
+	if err != nil {
+		// Fallback to standard URL encoding (with padding) just in case
+		payloadBytes, err = base64.URLEncoding.DecodeString(token.Payload)
+		if err != nil {
+			// Fallback to standard encoding
+			payloadBytes, err = base64.StdEncoding.DecodeString(token.Payload)
+			if err != nil {
+				return nil, errors.New("failed to decode base64 payload: " + err.Error())
+			}
+		}
+	}
+
+	var payload UploadSignaturePayload
+	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
+		return nil, errors.New("failed to unmarshal payload json")
+	}
+
+	// 5. Check expiration
+	if time.Now().Unix() > payload.ExpiresAt {
 		return nil, errors.New("token expired")
 	}
 
-	return &token.Payload, nil
+	return &payload, nil
 }
 
 // SignRequest signs the data using an Ed25519 private key (Keep legacy support)
