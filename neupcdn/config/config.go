@@ -11,21 +11,28 @@ type Config struct {
 	PublicRoot      string
 	UploadPublicKey string // Ed25519 Public Key
 	CallbackURL     string // URL to notify on upload completion
-	MaxUploadSize   int64
+	MaxUploadSize   int64  // Default 1000MB
 }
 
 var Cfg Config
 
 func Load() {
 	Cfg = Config{
-		Port:            getEnv("PORT", "3000"),
-		PublicRoot:      getEnv("PUBLIC_ROOT", "/home/ubuntu/public"),
+		PublicRoot:      "./public",
 		UploadPublicKey: getEnv("UPLOAD_SECRET_PUBLIC_KEY", ""),
-		CallbackURL:     getEnv("CALLBACK_URL", "https://neupgroup.com/drive/api/upload/callback"),
-		MaxUploadSize:   getEnvInt64("MAX_UPLOAD_SIZE", 100<<20), // Default 100MB
+		CallbackURL:     "https://neupgroup.com/drive/callback/v1/upload",
+		MaxUploadSize:   10000, // Default 1000MB
 	}
 
 	log.Printf("Config loaded. PublicRoot: %s, MaxSize: %d", Cfg.PublicRoot, Cfg.MaxUploadSize)
+
+	// Log public key status
+	if Cfg.UploadPublicKey != "" {
+		log.Printf("✅ UPLOAD_SECRET_PUBLIC_KEY loaded (length: %d chars)", len(Cfg.UploadPublicKey))
+		log.Printf("   Public Key: %s...", Cfg.UploadPublicKey[:4]) // Show first 4 chars
+	} else {
+		log.Printf("⚠️  WARNING: UPLOAD_SECRET_PUBLIC_KEY is NOT set! Uploads will fail!")
+	}
 }
 
 func getEnv(key, def string) string {
