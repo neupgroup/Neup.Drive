@@ -33,7 +33,7 @@ export function FileUpload({
     keyId,
     secretKey,
     uploadPath = 'uploads',
-    maxSize = 100 * 1024 * 1024, // 100MB default
+    maxSize = 6000 * 1024 * 1024, // 100MB default
     acceptedTypes,
     cdnUrl = '/api/upload', // Default to local API endpoint
     onUploadComplete,
@@ -112,7 +112,7 @@ export function FileUpload({
 
                 // Process hashing
                 console.log(`Starting hash for ${pendingItem.metadata.name}`);
-                
+
                 const hash = await hashFile(pendingItem.file, (progress) => {
                     updateQueueItem(pendingItem.id, { progress });
                 });
@@ -122,7 +122,7 @@ export function FileUpload({
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : 'Hashing failed';
                 console.error('Hashing failed:', error);
-                
+
                 logError({
                     action: 'hashing',
                     fileId: pendingItem.id,
@@ -130,9 +130,9 @@ export function FileUpload({
                     error: errorMessage
                 });
 
-                updateQueueItem(pendingItem.id, { 
-                    status: 'ERROR', 
-                    error: errorMessage 
+                updateQueueItem(pendingItem.id, {
+                    status: 'ERROR',
+                    error: errorMessage
                 });
             } finally {
                 processingRef.current = false;
@@ -141,7 +141,7 @@ export function FileUpload({
 
         // Run the processor whenever queue changes
         processQueue();
-        
+
         // Also set an interval to check for free slots if multiple files are pending
         const interval = setInterval(processQueue, 500);
         return () => clearInterval(interval);
@@ -165,14 +165,14 @@ export function FileUpload({
                 });
 
                 // Update state to TOKEN_ISSUED
-                updateQueueItem(hashedItem.id, { 
-                    status: 'TOKEN_ISSUED', 
-                    uploadInit: initResponse 
+                updateQueueItem(hashedItem.id, {
+                    status: 'TOKEN_ISSUED',
+                    uploadInit: initResponse
                 });
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : 'Authorization failed';
                 console.error('Authorization failed:', error);
-                
+
                 logError({
                     action: 'authorization',
                     fileId: hashedItem.id,
@@ -180,9 +180,9 @@ export function FileUpload({
                     error: errorMessage
                 });
 
-                updateQueueItem(hashedItem.id, { 
-                    status: 'ERROR', 
-                    error: errorMessage 
+                updateQueueItem(hashedItem.id, {
+                    status: 'ERROR',
+                    error: errorMessage
                 });
             }
         };
@@ -232,7 +232,7 @@ export function FileUpload({
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : 'Upload failed';
                 console.error('Upload failed:', error);
-                
+
                 logError({
                     action: 'uploading',
                     fileId: readyItem.id,
@@ -240,18 +240,18 @@ export function FileUpload({
                     error: errorMessage
                 });
 
-                updateQueueItem(readyItem.id, { 
-                    status: 'ERROR', 
-                    error: errorMessage 
+                updateQueueItem(readyItem.id, {
+                    status: 'ERROR',
+                    error: errorMessage
                 });
-                
+
                 onUploadError?.(errorMessage, readyItem.file);
             }
         };
 
         // Check for ready files periodically or when queue changes
         processUploads();
-        
+
         // Also set an interval to check for free slots
         const interval = setInterval(processUploads, 1000);
         return () => clearInterval(interval);
