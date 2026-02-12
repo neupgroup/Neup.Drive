@@ -24,10 +24,6 @@ interface FileUploadProps {
     className?: string;
 }
 
-// Remove local FileState/UploadQueueItem in favor of shared types
-// type FileState = 'PENDING' | 'HASHING' | 'HASHED' | 'TOKEN_ISSUED' | 'UPLOADING' | 'SUCCESS' | 'ERROR';
-// interface UploadQueueItem { ... }
-
 export function FileUpload({
     accountId,
     keyId,
@@ -289,7 +285,7 @@ export function FileUpload({
                 metadata: {
                     name: file.name,
                     size: file.size,
-                    type: file.type,
+                    type: file.type || 'application/octet-stream', // Default to octet-stream if undefined
                 },
                 status: 'PENDING',
                 progress: 0,

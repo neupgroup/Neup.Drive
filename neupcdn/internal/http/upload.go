@@ -27,7 +27,6 @@ func PrepareUploadHandler(w http.ResponseWriter, r *http.Request) {
 // Handler for Chunked Uploads with HMAC-SHA256 Token
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	// 0. System Check: Public Key must be configured
-	// "if the public/private key is not found... error: internal server and a random code."
 	if config.Cfg.UploadPublicKey == "" {
 		InternalServerError(w, "UploadPublicKey not configured in server", nil)
 		return
