@@ -14,7 +14,7 @@ export async function uploadFileChunks(
     fileHash: string,
     onProgress?: (progress: number) => void
 ): Promise<void> {
-    const CHUNK_SIZE = 8 * 1024 * 1024; // 8MB
+    const CHUNK_SIZE = 25 * 1024 * 1024; // 25MB (User requested: "Chunk size = 25 MB")
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
     let uploadedBytes = 0;
 

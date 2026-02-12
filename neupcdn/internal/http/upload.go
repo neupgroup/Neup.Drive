@@ -33,9 +33,14 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Method Check
+	// 1. Method Check & Size Check
 	if r.Method != http.MethodPut {
 		ClientError(w, http.StatusMethodNotAllowed, "Method not allowed. Use PUT for chunked uploads.", nil)
+		return
+	}
+
+	if r.ContentLength > config.Cfg.MaxChunkSize {
+		ClientError(w, http.StatusRequestEntityTooLarge, fmt.Sprintf("Chunk size exceeds limit of %d bytes", config.Cfg.MaxChunkSize), nil)
 		return
 	}
 
