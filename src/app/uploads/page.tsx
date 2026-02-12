@@ -1,27 +1,31 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, File, CheckCircle2, XCircle, Clock, Zap } from 'lucide-react';
+import { Upload, File, CheckCircle2, XCircle, Clock, Zap, Loader2 } from 'lucide-react';
+import { initializeUpload } from '@/lib/upload-client';
+import { uploadFileChunks } from '@/lib/chunked-upload';
+import { hashFile } from '@/lib/sha256';
+import type { UploadInitResponse } from '@/lib/upload-types';
 
 interface UploadProgress {
   id: string;
   file: File;
   progress: number;
-  status: 'pending' | 'uploading' | 'success' | 'error';
+  status: 'pending' | 'hashing' | 'initializing' | 'uploading' | 'success' | 'error';
   uploadedBytes: number;
   totalBytes: number;
   startTime: number;
   estimatedTimeRemaining: number | null;
   speed: number | null;
   error?: string;
+  hash?: string;
+  uploadInit?: UploadInitResponse;
 }
 
 export default function UploadsPage() {
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const API_URL = 'http://13.212.177.159:8080/upload';
 
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -54,81 +58,107 @@ export default function UploadsPage() {
 
     setUploads((prev) => [...prev, newUpload]);
 
-    const formData = new FormData();
-    formData.append('file', file);
+    try {
+      // Step 1: Hash the file
+      setUploads((prev) =>
+        prev.map((upload) =>
+          upload.id === uploadId
+            ? { ...upload, status: 'hashing' }
+            : upload
+        )
+      );
 
-    const xhr = new XMLHttpRequest();
-
-    xhr.upload.addEventListener('progress', (e) => {
-      if (e.lengthComputable) {
-        const progress = (e.loaded / e.total) * 100;
-        const elapsedTime = (Date.now() - newUpload.startTime) / 1000; // in seconds
-        const speed = e.loaded / elapsedTime; // bytes per second
-        const remainingBytes = e.total - e.loaded;
-        const estimatedTimeRemaining = remainingBytes / speed;
-
+      const hash = await hashFile(file, (progress) => {
         setUploads((prev) =>
           prev.map((upload) =>
             upload.id === uploadId
-              ? {
+              ? { ...upload, progress }
+              : upload
+          )
+        );
+      });
+
+      // Step 2: Initialize upload with server
+      setUploads((prev) =>
+        prev.map((upload) =>
+          upload.id === uploadId
+            ? { ...upload, status: 'initializing', hash, progress: 0 }
+            : upload
+        )
+      );
+
+      const uploadInit = await initializeUpload({
+        file_id: uploadId,
+        filename: file.name,
+        size: file.size,
+        mime: file.type || 'application/octet-stream',
+        file_hash: hash,
+      });
+
+      // Step 3: Upload file chunks to CDN
+      setUploads((prev) =>
+        prev.map((upload) =>
+          upload.id === uploadId
+            ? { ...upload, status: 'uploading', uploadInit, progress: 0 }
+            : upload
+        )
+      );
+
+      const uploadStartTime = Date.now();
+      await uploadFileChunks(
+        file,
+        uploadInit,
+        hash,
+        (progress) => {
+          const elapsedTime = (Date.now() - uploadStartTime) / 1000;
+          const uploadedBytes = (progress / 100) * file.size;
+          const speed = uploadedBytes / elapsedTime;
+          const remainingBytes = file.size - uploadedBytes;
+          const estimatedTimeRemaining = remainingBytes / speed;
+
+          setUploads((prev) =>
+            prev.map((upload) =>
+              upload.id === uploadId
+                ? {
                   ...upload,
                   progress,
-                  uploadedBytes: e.loaded,
-                  status: 'uploading',
+                  uploadedBytes,
                   speed,
                   estimatedTimeRemaining,
                 }
-              : upload
-          )
-        );
-      }
-    });
+                : upload
+            )
+          );
+        }
+      );
 
-    xhr.addEventListener('load', () => {
-      if (xhr.status === 200) {
-        setUploads((prev) =>
-          prev.map((upload) =>
-            upload.id === uploadId
-              ? {
-                  ...upload,
-                  progress: 100,
-                  status: 'success',
-                  estimatedTimeRemaining: 0,
-                }
-              : upload
-          )
-        );
-      } else {
-        setUploads((prev) =>
-          prev.map((upload) =>
-            upload.id === uploadId
-              ? {
-                  ...upload,
-                  status: 'error',
-                  error: `Upload failed: ${xhr.statusText}`,
-                }
-              : upload
-          )
-        );
-      }
-    });
-
-    xhr.addEventListener('error', () => {
+      // Success!
       setUploads((prev) =>
         prev.map((upload) =>
           upload.id === uploadId
             ? {
-                ...upload,
-                status: 'error',
-                error: 'Network error occurred',
-              }
+              ...upload,
+              progress: 100,
+              status: 'success',
+              estimatedTimeRemaining: 0,
+            }
             : upload
         )
       );
-    });
-
-    xhr.open('POST', API_URL);
-    xhr.send(formData);
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploads((prev) =>
+        prev.map((upload) =>
+          upload.id === uploadId
+            ? {
+              ...upload,
+              status: 'error',
+              error: error instanceof Error ? error.message : 'Upload failed',
+            }
+            : upload
+        )
+      );
+    }
   };
 
   const handleFileSelect = (files: FileList | null) => {
@@ -154,9 +184,21 @@ export default function UploadsPage() {
     handleFileSelect(e.dataTransfer.files);
   };
 
-  const totalUploading = uploads.filter((u) => u.status === 'uploading').length;
+  const totalUploading = uploads.filter((u) => u.status === 'uploading' || u.status === 'hashing' || u.status === 'initializing').length;
   const totalSuccess = uploads.filter((u) => u.status === 'success').length;
   const totalFailed = uploads.filter((u) => u.status === 'error').length;
+
+  const getStatusText = (upload: UploadProgress) => {
+    switch (upload.status) {
+      case 'pending': return 'Pending...';
+      case 'hashing': return `Hashing... ${upload.progress.toFixed(0)}%`;
+      case 'initializing': return 'Initializing...';
+      case 'uploading': return `Uploading... ${upload.progress.toFixed(0)}%`;
+      case 'success': return 'Complete';
+      case 'error': return 'Failed';
+      default: return '';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950">
@@ -173,7 +215,7 @@ export default function UploadsPage() {
             File Upload Center
           </h1>
           <p className="text-slate-400 text-lg">
-            Upload files with real-time progress tracking and speed analytics
+            Secure uploads with SHA-256 hashing and Ed25519 signed tokens
           </p>
         </div>
 
@@ -182,7 +224,7 @@ export default function UploadsPage() {
           <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-400 text-sm mb-1">Uploading</p>
+                <p className="text-slate-400 text-sm mb-1">Processing</p>
                 <p className="text-3xl font-bold text-blue-400">{totalUploading}</p>
               </div>
               <Zap className="w-10 h-10 text-blue-400 opacity-50" />
@@ -222,10 +264,9 @@ export default function UploadsPage() {
             border-2 border-dashed rounded-3xl p-16 mb-8
             transition-all duration-300 ease-out
             hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/20
-            ${
-              isDragging
-                ? 'border-purple-500 bg-purple-500/10 scale-[1.02]'
-                : 'border-slate-600/50 hover:border-purple-500/50'
+            ${isDragging
+              ? 'border-purple-500 bg-purple-500/10 scale-[1.02]'
+              : 'border-slate-600/50 hover:border-purple-500/50'
             }
           `}
         >
@@ -245,7 +286,7 @@ export default function UploadsPage() {
               Drop files here or click to browse
             </h3>
             <p className="text-slate-400">
-              Support for files up to 4GB • Multiple files supported
+              Multiple files supported • Secure chunked uploads
             </p>
           </div>
 
@@ -291,17 +332,17 @@ export default function UploadsPage() {
                         <span className="text-red-400 text-sm font-medium">Failed</span>
                       </div>
                     )}
-                    {upload.status === 'uploading' && (
+                    {(upload.status === 'hashing' || upload.status === 'initializing' || upload.status === 'uploading') && (
                       <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/50">
-                        <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
-                        <span className="text-blue-400 text-sm font-medium">Uploading</span>
+                        <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                        <span className="text-blue-400 text-sm font-medium">{getStatusText(upload)}</span>
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* Progress Bar */}
-                {(upload.status === 'uploading' || upload.status === 'pending') && (
+                {(upload.status === 'hashing' || upload.status === 'uploading' || upload.status === 'pending') && (
                   <div className="mb-4">
                     <div className="w-full h-2 bg-slate-700/50 rounded-full overflow-hidden">
                       <div

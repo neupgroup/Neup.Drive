@@ -1,50 +1,92 @@
 import { NextRequest, NextResponse } from 'next/server';
+import nodeCrypto from 'node:crypto';
 import { generateNonce } from '@/lib/upload-client';
 import type { UploadInitRequest, UploadInitResponse, UploadSignaturePayload } from '@/lib/upload-types';
 import { prisma } from '@/lib/db';
 
 // This should be stored securely in environment variables
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
-// Hardcoded CDN URL as per requirement
-const CDN_URL = 'https://neupcdn.com/upload';
+// Production CDN URL
+const CDN_URL = process.env.CDN_UPLOAD_URL || 'https://neupcdn.com/upload';
 
 /**
  * Generate Ed25519 signature for the upload token
  */
-async function createSignature(payload: UploadSignaturePayload, privateKeyHex: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(JSON.stringify(payload));
-    
-    // Convert hex string to Uint8Array
-    const privateKeyBytes = new Uint8Array(
-        privateKeyHex.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []
-    );
+/**
+ * Generate Ed25519 signature using Node.js native crypto
+ */
+async function createSignature(payloadBase64: string, privateKeyHex: string): Promise<string> {
+    const data = payloadBase64; // Sign the raw base64 string directly for consistency
 
-    if (privateKeyBytes.length !== 32 && privateKeyBytes.length !== 64) {
-        throw new Error("Invalid private key length");
+    // Convert hex string to Buffer
+    const privateKeyBytes = Buffer.from(privateKeyHex, 'hex');
+
+    let dBuffer: Buffer;
+    let xBuffer: Buffer | undefined;
+
+    // Handle 64-byte key (32-byte seed + 32-byte public key)
+    if (privateKeyBytes.length === 64) {
+        dBuffer = privateKeyBytes.subarray(0, 32);
+        xBuffer = privateKeyBytes.subarray(32, 64);
+    } else if (privateKeyBytes.length === 32) {
+        dBuffer = privateKeyBytes;
+        // Fallback for 32-byte keys (missing x)
+    } else {
+        throw new Error(`Invalid private key length: ${privateKeyBytes.length} bytes. Expected 64 bytes (seed+pub) or 32 bytes.`);
     }
 
-    const key = await crypto.subtle.importKey(
-        'raw',
-        privateKeyBytes,
-        { name: 'Ed25519' },
-        false,
-        ['sign']
-    );
+    try {
+        // Helper for Base64URL
+        const toBase64Url = (buf: Buffer) => buf.toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
 
-    const signature = await crypto.subtle.sign('Ed25519', key, data);
-    return Array.from(new Uint8Array(signature))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
+        const jwk: any = {
+            kty: "OKP",
+            crv: "Ed25519",
+            d: toBase64Url(dBuffer)
+        };
+
+        // Add public key 'x' if available (Node.js may require it)
+        if (xBuffer) {
+            jwk.x = toBase64Url(xBuffer);
+        }
+
+        const privateKey = nodeCrypto.createPrivateKey({
+            key: jwk,
+            format: 'jwk'
+        });
+
+        // Sign data (null algorithm for Ed25519)
+        const signature = nodeCrypto.sign(null, Buffer.from(data), privateKey);
+
+        return signature.toString('hex');
+    } catch (error) {
+        console.error('❌ Ed25519 signing error:', error);
+        throw new Error(`Ed25519 signing failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
 }
 
 export async function POST(request: NextRequest) {
     try {
+        // Validate private key exists
+        if (!PRIVATE_KEY) {
+            console.error('❌ UPLOAD_SECRET_PRIVATE_KEY is not configured');
+            return NextResponse.json(
+                { error: 'Server configuration error: Missing private key' },
+                { status: 500 }
+            );
+        }
+
         const body = await request.json();
         const { file_id, filename, size, mime, file_hash } = body as UploadInitRequest;
 
+        console.log('📤 Upload init request:', { file_id, filename, size, mime });
+
         // 1. Validate Input
         if (!file_id || !filename || !size || !mime || !file_hash) {
+            console.error('❌ Missing required metadata:', { file_id, filename, size, mime, file_hash });
             return NextResponse.json(
                 { error: 'Missing required metadata' },
                 { status: 400 }
@@ -58,7 +100,7 @@ export async function POST(request: NextRequest) {
         // - Check if user has enough storage quota
         // - Validate file type against allowed policy
         const userId = 'demo-user-123'; // Mocked user ID
-        
+
         // Ensure user exists (Mock logic)
         await prisma.user.upsert({
             where: { id: userId },
@@ -97,14 +139,26 @@ export async function POST(request: NextRequest) {
             key_id: 'demo-key', // Should come from config
         };
 
-        const signature = await createSignature(payload, PRIVATE_KEY);
+        // Create Base64URL encoded payload string
+        const payloadStr = JSON.stringify(payload);
+        const payloadBase64 = Buffer.from(payloadStr).toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
+
+        console.log('📝 Payload Base64:', payloadBase64);
+        console.log('🔐 Signing payload...');
+
+        // Sign the Base64 string directly
+        const signature = await createSignature(payloadBase64, PRIVATE_KEY);
+        console.log('✅ Signature created successfully');
 
         const response: UploadInitResponse = {
             upload_session_id,
             destination_path,
             upload_endpoint: CDN_URL,
             signed_upload_token: {
-                payload,
+                payload: payloadBase64, // Send Base64 string
                 signature
             },
             expires_at
@@ -113,9 +167,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(response);
 
     } catch (error) {
-        console.error('Upload init error:', error);
+        console.error('❌ Upload init error:', error);
+        console.error('Error details:', error instanceof Error ? error.message : String(error));
+        console.error('Stack:', error instanceof Error ? error.stack : 'No stack trace');
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: error instanceof Error ? error.message : 'Internal server error' },
             { status: 500 }
         );
     }
