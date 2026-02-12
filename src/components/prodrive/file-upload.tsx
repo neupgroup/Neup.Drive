@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { signAndUploadFile, initializeUpload } from '@/lib/upload-client';
 import { cn } from '@/lib/utils';
-import { hashFile } from '@/lib/sha256';
+import { hashFile } from '@/lib/blake3';
 import type { UploadInitResponse } from '@/lib/upload-types';
 import { uploadFileChunks } from '@/lib/chunked-upload';
 import { saveUpload, getUploads, deleteUpload, type UploadQueueItem } from '@/lib/upload-persistence';

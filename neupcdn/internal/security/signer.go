@@ -2,7 +2,6 @@ package security
 
 import (
 	"crypto/ed25519"
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -10,6 +9,8 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/zeebo/blake3"
 )
 
 // UploadSignaturePayload matches the TypeScript interface used by the client
@@ -30,9 +31,9 @@ type SignedUploadToken struct {
 	Signature string `json:"signature"`
 }
 
-// CalculateHash returns the SHA256 hex string of the data
+// CalculateHash returns the BLAKE3 hex string of the data
 func CalculateHash(data []byte) string {
-	h := sha256.New()
+	h := blake3.New()
 	h.Write(data)
 	return hex.EncodeToString(h.Sum(nil))
 }

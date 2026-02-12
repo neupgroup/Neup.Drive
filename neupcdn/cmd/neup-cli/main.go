@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"crypto/ed25519"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"flag"
@@ -15,6 +14,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/zeebo/blake3"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -47,7 +47,7 @@ func main() {
 
 	// 2. Upload Files
 	fmt.Printf("Uploading %d files to %s/%s...\n", len(files), *account, *category)
-	
+
 	successCount := 0
 	for _, fpath := range files {
 		err := uploadFile(*serverURL, *account, *category, fpath, privKey)
@@ -91,7 +91,7 @@ func uploadFile(url, account, category, fpath string, privKey ed25519.PrivateKey
 	}
 	defer f.Close()
 
-	hasher := sha256.New()
+	hasher := blake3.New()
 	if _, err := io.Copy(hasher, f); err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func uploadFile(url, account, category, fpath string, privKey ed25519.PrivateKey
 	timestamp := fmt.Sprintf("%d", time.Now().Unix())
 	path := "/upload"
 	method := "POST"
-	
+
 	// 3. Sign
 	stringToSign := fmt.Sprintf("%s\n%s\n%s\n%s", method, path, timestamp, contentHash)
 	signature := hex.EncodeToString(ed25519.Sign(privKey, []byte(stringToSign)))
@@ -115,7 +115,7 @@ func uploadFile(url, account, category, fpath string, privKey ed25519.PrivateKey
 	writer.WriteField("category", category)
 	// Use filename as path
 	writer.WriteField("path", filepath.Base(fpath))
-	
+
 	part, err := writer.CreateFormFile("file", filepath.Base(fpath))
 	if err != nil {
 		return err
@@ -151,6 +151,6 @@ func uploadFile(url, account, category, fpath string, privKey ed25519.PrivateKey
 	var res map[string]interface{}
 	json.NewDecoder(resp.Body).Decode(&res)
 	// fmt.Printf("Uploaded to: %v\n", res["path"])
-	
+
 	return nil
 }

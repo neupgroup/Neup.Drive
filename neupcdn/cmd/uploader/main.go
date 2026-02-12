@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"crypto/ed25519"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -12,8 +14,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/joho/godotenv"
 	"neupcdn/internal/security"
+
+	"github.com/joho/godotenv"
 )
 
 type UploadResponse struct {
@@ -80,7 +83,9 @@ func main() {
 
 	// 3. Generate Headers
 	timestamp := fmt.Sprintf("%d", time.Now().Unix())
-	signature := security.GenerateSignature(key, "POST", "/upload", timestamp, contentHash)
+	keyBytes, _ := hex.DecodeString(key)
+	privKey := ed25519.PrivateKey(keyBytes)
+	signature := security.SignRequest(privKey, "POST", "/upload", timestamp, contentHash)
 
 	// 4. Send Request
 	req, _ := http.NewRequest("POST", *host+"/upload", body)
