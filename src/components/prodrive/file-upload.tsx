@@ -322,6 +322,7 @@ export function FileUpload({
 
     const removeFile = (id: string) => {
         setQueue(prev => prev.filter(item => item.id !== id));
+        deleteUpload(id).catch(console.error); // Persist removal
     };
 
     const getStatusText = (item: UploadQueueItem) => {
