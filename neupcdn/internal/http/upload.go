@@ -26,74 +26,94 @@ func PrepareUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 // Handler for Chunked Uploads with HMAC-SHA256 Token
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
+	// 0. System Check: Public Key must be configured
+	// "if the public/private key is not found... error: internal server and a random code."
+	if config.Cfg.UploadPublicKey == "" {
+		InternalServerError(w, "UploadPublicKey not configured in server", nil)
+		return
+	}
+
 	// 1. Method Check
 	if r.Method != http.MethodPut {
-		LogUploadError("Method not allowed", nil)
-		JSONError(w, http.StatusMethodNotAllowed, "Method not allowed. Use PUT for chunked uploads.")
+		ClientError(w, http.StatusMethodNotAllowed, "Method not allowed. Use PUT for chunked uploads.", nil)
 		return
 	}
 
 	// 2. Security: Verify Token (Ed25519)
 	tokenJSON := r.Header.Get("x-upload-token")
 	if tokenJSON == "" {
-		LogUploadError("Missing x-upload-token header", nil)
-		JSONError(w, http.StatusUnauthorized, "Missing x-upload-token header")
+		// "if mime type, filename, path, file category, etc is not found error: ... not found."
+		ClientError(w, http.StatusUnauthorized, "x-upload-token header not found", nil)
 		return
 	}
 
 	claims, err := security.VerifyEd25519Token(tokenJSON, config.Cfg.UploadPublicKey)
 	if err != nil {
-		LogUploadError("Invalid upload token", err)
-		JSONError(w, http.StatusForbidden, "Invalid upload token: "+err.Error())
+		// Distinguish between configuration error and client error
+		if err.Error() == "invalid public key configuration" {
+			InternalServerError(w, "Invalid public key configuration during verification", err)
+			return
+		}
+		// "if something like client tries to manipulate the system like using expired keys, log that and also show an error."
+		// VerifyEd25519Token returns "token expired" or "invalid signature" etc.
+		ClientError(w, http.StatusForbidden, "Invalid upload token: "+err.Error(), err)
 		return
 	}
 
-	// 3. Verify Request Matches Token Constraints
-	// Check Content-Hash header (sent by client for the chunk or full file? Client sends x-file-hash)
+	// 3. Verify Metadata in Token
+	// "if mime type, filename, path, file category, etc is not found error: ... not found."
+
+	if claims.AccountID == "" {
+		ClientError(w, http.StatusBadRequest, "Account ID not found in upload token", nil)
+		return
+	}
+	if claims.Path == "" {
+		ClientError(w, http.StatusBadRequest, "Path not found in upload token", nil)
+		return
+	}
+	if claims.ContentType == "" {
+		ClientError(w, http.StatusBadRequest, "Content-Type not found in upload token", nil)
+		return
+	}
+
+	// 3.1 Verify Request Headers
 	fileHash := r.Header.Get("x-file-hash")
 	if fileHash == "" {
-		LogUploadError("Missing x-file-hash header", nil)
-		JSONError(w, http.StatusBadRequest, "Missing x-file-hash header")
+		ClientError(w, http.StatusBadRequest, "x-file-hash header not found", nil)
 		return
 	}
 
 	// 4. Handle Content-Range for Chunking
-	// Format: bytes start-end/total
 	contentRange := r.Header.Get("Content-Range")
 	if contentRange == "" {
-		LogUploadError("Missing Content-Range header", nil)
-		JSONError(w, http.StatusBadRequest, "Missing Content-Range header")
+		ClientError(w, http.StatusBadRequest, "Content-Range header not found", nil)
 		return
 	}
 
 	start, end, total, err := parseContentRange(contentRange)
 	if err != nil {
-		LogUploadError("Invalid Content-Range header", err)
-		JSONError(w, http.StatusBadRequest, "Invalid Content-Range header")
+		ClientError(w, http.StatusBadRequest, "Invalid Content-Range header", err)
 		return
 	}
 
 	if total > claims.MaxSize {
-		LogUploadError("File size exceeds token limit", nil)
-		JSONError(w, http.StatusForbidden, "File size exceeds token limit")
+		ClientError(w, http.StatusForbidden, "File size exceeds token limit", nil)
 		return
 	}
 
 	// 5. Determine File Paths
-	// We use a temporary file extension while uploading
 	relPath := claims.Path
 	finalPath := filepath.Join(config.Cfg.PublicRoot, relPath)
 	tempPath := finalPath + ".part"
 
 	// Ensure directory exists
+	// "if something is just to be saved on the server, save that on log, and say internal server."
 	if err := os.MkdirAll(filepath.Dir(finalPath), 0755); err != nil {
-		LogUploadError("Failed to create directory", err)
-		JSONError(w, http.StatusInternalServerError, "Failed to create directory")
+		InternalServerError(w, "Failed to create directory", err)
 		return
 	}
 
 	// 6. Write Chunk
-	// Open file in Append or Create mode
 	flags := os.O_WRONLY | os.O_CREATE
 	if start > 0 {
 		flags = os.O_WRONLY // Open existing
@@ -101,46 +121,32 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	f, err := os.OpenFile(tempPath, flags, 0644)
 	if err != nil {
-		LogUploadError("Failed to open file for writing", err)
-		JSONError(w, http.StatusInternalServerError, "Failed to open file for writing")
+		InternalServerError(w, "Failed to open file for writing", err)
 		return
 	}
 	defer f.Close()
 
-	// Seek to the correct offset
 	if _, err := f.Seek(start, 0); err != nil {
-		LogUploadError("Failed to seek file", err)
-		JSONError(w, http.StatusInternalServerError, "Failed to seek file")
+		InternalServerError(w, "Failed to seek file", err)
 		return
 	}
 
-	// Copy request body to file
 	written, err := io.Copy(f, r.Body)
 	if err != nil {
-		LogUploadError("Failed to write chunk", err)
-		JSONError(w, http.StatusInternalServerError, "Failed to write chunk")
+		InternalServerError(w, "Failed to write chunk", err)
 		return
 	}
 
-	if written != (end - start + 1) {
-		// Warning: wrote less than expected?
-	}
+	_ = written // We can use this to verify if full chunk was written
 
 	// 7. Check if Upload Complete
 	if end+1 == total {
-		// Close file handle before renaming
 		f.Close()
 
-		// Rename .part to final
 		if err := os.Rename(tempPath, finalPath); err != nil {
-			LogUploadError("Failed to finalize file", err)
-			JSONError(w, http.StatusInternalServerError, "Failed to finalize file")
+			InternalServerError(w, "Failed to finalize file", err)
 			return
 		}
-
-		// Verify Hash (Optional but recommended - requires reading full file back)
-		// For performance, we might skip this or do it asynchronously
-		// go verifyFileHash(finalPath, fileHash)
 
 		// 8. Trigger Callback
 		go triggerCallback(claims, fileHash, "verified")

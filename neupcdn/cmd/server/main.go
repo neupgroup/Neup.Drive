@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
+
+	"neupcdn/config"
+	internalHttp "neupcdn/internal/http"
 
 	"github.com/joho/godotenv"
-	"neupcdn/config"
-	"neupcdn/internal/http"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 	// Load config
 	config.Load()
 
-	mux := http.SetupRoutes()
+	mux := internalHttp.SetupRoutes()
 	log.Println("Starting Neup.CDN on port " + config.Cfg.Port)
 	log.Fatal(http.ListenAndServe(":"+config.Cfg.Port, mux))
 }
