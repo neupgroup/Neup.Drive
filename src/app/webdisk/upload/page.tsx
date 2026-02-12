@@ -10,7 +10,8 @@ export default function WebDiskUploadPage() {
     const accountId = 'demo-account';
     const keyId = 'demo-key';
     const secretKey = process.env.NEXT_PUBLIC_UPLOAD_SECRET || 'demo-secret-key';
-    const cdnUrl = 'https://neupcdn.com/upload';
+    // Use environment variable for CDN URL, fallback to localhost for development
+    const cdnUrl = process.env.NEXT_PUBLIC_CDN_UPLOAD_URL || 'https://neupcdn.com/upload';
 
     const [refreshTrigger, setRefreshTrigger] = React.useState(0);
 
