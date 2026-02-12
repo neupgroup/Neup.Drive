@@ -77,8 +77,14 @@ export async function signUploadRequest(
 
     const signature = await createSignature(payload, secretKey);
 
+    // Convert payload to Base64 to match SignedUploadRequest interface
+    const payloadStr = JSON.stringify(payload);
+    const payloadBase64 = typeof window !== 'undefined'
+        ? window.btoa(payloadStr).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+        : Buffer.from(payloadStr).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
     return {
-        payload,
+        payload: payloadBase64,
         signature,
     };
 }
@@ -93,21 +99,31 @@ export async function uploadFileToCDN(
     onProgress?: (progress: number) => void
 ): Promise<{ success: boolean; url?: string; error?: string }> {
     try {
+        // Decode payload from Base64 string
+        let payload: UploadSignaturePayload;
+        try {
+            // Basic Base64 decoding (handle URL-safe chars)
+            const jsonStr = atob(signedRequest.payload.replace(/-/g, '+').replace(/_/g, '/'));
+            payload = JSON.parse(jsonStr);
+        } catch (e) {
+            throw new Error('Invalid payload format');
+        }
+
         // Validate file size
-        if (file.size > signedRequest.payload.max_size) {
-            throw new Error(`File size exceeds maximum allowed size of ${signedRequest.payload.max_size} bytes`);
+        if (file.size > payload.max_size) {
+            throw new Error(`File size exceeds maximum allowed size of ${payload.max_size} bytes`);
         }
 
         // Validate expiration
         const now = Math.floor(Date.now() / 1000);
-        if (now > signedRequest.payload.expires_at) {
+        if (now > payload.expires_at) {
             throw new Error('Upload signature has expired');
         }
 
         // Create form data or use direct PUT based on your API requirements
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('payload', JSON.stringify(signedRequest.payload));
+        formData.append('payload', signedRequest.payload);
         formData.append('signature', signedRequest.signature);
 
         // Upload with progress tracking
@@ -130,12 +146,12 @@ export async function uploadFileToCDN(
                         const response = JSON.parse(xhr.responseText);
                         resolve({
                             success: true,
-                            url: response.url || `${cdnUrl}/${signedRequest.payload.path}`,
+                            url: response.url || `${cdnUrl}/${payload.path}`,
                         });
                     } catch {
                         resolve({
                             success: true,
-                            url: `${cdnUrl}/${signedRequest.payload.path}`,
+                            url: `${cdnUrl}/${payload.path}`,
                         });
                     }
                 } else {

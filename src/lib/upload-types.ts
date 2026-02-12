@@ -16,7 +16,7 @@ export interface UploadSignaturePayload {
  * Upload request with signature
  */
 export interface SignedUploadRequest {
-    payload: UploadSignaturePayload;
+    payload: string; // Base64 encoded JSON of UploadSignaturePayload
     signature: string;
 }
 
