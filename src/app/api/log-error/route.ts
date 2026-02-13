@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { logToDatabase } from '@/lib/error-server';
 
 export async function POST(request: NextRequest) {
     try {
@@ -13,20 +14,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const log = await prisma.errorLog.create({
-            data: {
-                on_page,
-                context: typeof context === 'string' ? context : JSON.stringify(context),
-            },
-        });
+        // Use the robust server logger which handles DB and File fallback
+        await logToDatabase(new Error('Client Error Reported'), JSON.stringify(context), on_page);
 
-        return NextResponse.json({ success: true, id: log.id });
+        return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('Failed to log error:', error);
-        return NextResponse.json(
-            { error: 'Internal server error' },
-            { status: 500 }
-        );
+        console.error('Critical error in log-error API:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 

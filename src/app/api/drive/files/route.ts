@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { handleServerError } from '@/lib/error-server';
 
 // Base URL for serving files. In production, this would be your CDN domain.
 const CDN_HOST = process.env.CDN_HOST || 'http://localhost:3001';
@@ -27,7 +28,6 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(mappedFiles);
     } catch (error) {
-        console.error('Error fetching files:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return handleServerError(error, 'api/drive/files');
     }
 }

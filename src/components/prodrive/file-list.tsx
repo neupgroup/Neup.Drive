@@ -1,8 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { FileIcon, ExternalLink, RefreshCw } from 'lucide-react';
+import { FileIcon, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { handleClientError } from '@/lib/error-client';
 import {
     Table,
     TableBody,
@@ -30,17 +31,23 @@ interface FileListProps {
 export function FileList({ refreshTrigger = 0 }: FileListProps) {
     const [files, setFiles] = React.useState<FileRecord[]>([]);
     const [loading, setLoading] = React.useState(true);
+    const [error, setError] = React.useState<string | null>(null);
 
     const fetchFiles = React.useCallback(async () => {
         setLoading(true);
+        setError(null);
         try {
             const res = await fetch('/api/drive/files');
             if (res.ok) {
                 const data = await res.json();
                 setFiles(data);
+            } else {
+                const errorData = await res.json();
+                setError(errorData.error || 'Failed to fetch files');
             }
         } catch (error) {
-            console.error('Failed to fetch files:', error);
+            const userMessage = await handleClientError(error, 'FileList');
+            setError(userMessage);
         } finally {
             setLoading(false);
         }
@@ -67,6 +74,13 @@ export function FileList({ refreshTrigger = 0 }: FileListProps) {
                     Refresh
                 </Button>
             </div>
+
+            {error && (
+                <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3 flex items-center gap-3 text-destructive text-sm">
+                    <AlertCircle className="h-4 w-4" />
+                    <p>{error}</p>
+                </div>
+            )}
 
             <div className="border rounded-md">
                 <Table>

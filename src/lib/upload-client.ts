@@ -16,8 +16,19 @@ export async function initializeUpload(
     });
 
     if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Upload initialization failed' }));
-        throw new Error(error.error || `Server error: ${response.status}`);
+        let errorMessage = `Server error: ${response.status}`;
+        try {
+            const error = await response.json();
+            if (error.error) {
+                errorMessage = error.error;
+                if (error.code) {
+                    errorMessage += ` (Code: ${error.code})`;
+                }
+            }
+        } catch {
+            // Fallback if not JSON
+        }
+        throw new Error(errorMessage);
     }
 
     return await response.json();
@@ -155,12 +166,24 @@ export async function uploadFileToCDN(
                         });
                     }
                 } else {
-                    reject(new Error(`Upload failed with status ${xhr.status}`));
+                    let errorMessage = `Upload failed with status ${xhr.status}`;
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        if (errorData.error) {
+                            errorMessage = errorData.error;
+                            if (errorData.code) {
+                                errorMessage += ` (Code: ${errorData.code})`;
+                            }
+                        }
+                    } catch {
+                        // Fallback
+                    }
+                    reject(new Error(errorMessage));
                 }
             });
 
             xhr.addEventListener('error', () => {
-                reject(new Error('Network error during upload'));
+                reject(new Error('CDN unreachable: Network error during upload. Please check your internet connection or CDN status.'));
             });
 
             xhr.addEventListener('abort', () => {

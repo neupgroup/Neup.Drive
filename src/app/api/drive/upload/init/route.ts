@@ -3,6 +3,7 @@ import nodeCrypto from 'node:crypto';
 import { generateNonce } from '@/lib/upload-client';
 import type { UploadInitRequest, UploadInitResponse, UploadSignaturePayload } from '@/lib/upload-types';
 import { prisma } from '@/lib/db';
+import { handleServerError } from '@/lib/error-server';
 
 // This should be stored securely in environment variables
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
@@ -69,6 +70,7 @@ async function createSignature(payloadBase64: string, privateKeyHex: string): Pr
 }
 
 export async function POST(request: NextRequest) {
+    let body: any;
     try {
         // Validate private key exists
         if (!PRIVATE_KEY) {
@@ -79,7 +81,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const body = await request.json();
+        try {
+            body = await request.json();
+        } catch (e) {
+            return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+        }
         const { file_id, filename, size, mime, file_hash } = body as UploadInitRequest;
 
         console.log('📤 Upload init request:', { file_id, filename, size, mime });
@@ -167,12 +173,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(response);
 
     } catch (error) {
-        console.error('❌ Upload init error:', error);
-        console.error('Error details:', error instanceof Error ? error.message : String(error));
-        console.error('Stack:', error instanceof Error ? error.stack : 'No stack trace');
-        return NextResponse.json(
-            { error: error instanceof Error ? error.message : 'Internal server error' },
-            { status: 500 }
-        );
+        return handleServerError(error, 'api/drive/upload/init', { body: body ? { ...body, file_hash: 'REDACTED' } : undefined });
     }
 }

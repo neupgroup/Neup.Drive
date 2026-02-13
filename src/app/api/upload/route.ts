@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateUploadWithReplayProtection } from '@/lib/upload-server';
 import type { UploadSignaturePayload } from '@/lib/upload-types';
+import { handleServerError } from '@/lib/error-server';
 
 // This should be stored securely in environment variables
 const PUBLIC_KEY = process.env.UPLOAD_SECRET_PUBLIC_KEY || '';
@@ -67,14 +68,7 @@ export async function POST(request: NextRequest) {
             message: 'File uploaded successfully',
         });
     } catch (error) {
-        console.error('Upload error:', error);
-        return NextResponse.json(
-            {
-                success: false,
-                error: error instanceof Error ? error.message : 'Internal server error'
-            },
-            { status: 500 }
-        );
+        return handleServerError(error, 'api/upload:POST');
     }
 }
 
@@ -123,13 +117,6 @@ export async function PUT(request: NextRequest) {
             message: 'File uploaded successfully',
         });
     } catch (error) {
-        console.error('Upload error:', error);
-        return NextResponse.json(
-            {
-                success: false,
-                error: error instanceof Error ? error.message : 'Internal server error'
-            },
-            { status: 500 }
-        );
+        return handleServerError(error, 'api/upload:PUT');
     }
 }

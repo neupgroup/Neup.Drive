@@ -40,9 +40,22 @@ export async function uploadFileChunks(
             });
 
             if (!response.ok) {
-                // Try to parse error message
-                const errorText = await response.text().catch(() => response.statusText);
-                throw new Error(`Upload failed for chunk ${chunkIndex + 1}/${totalChunks}: ${errorText}`);
+                // Try to parse error message as JSON
+                let errorMessage = `Status ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    if (errorData.error) {
+                        errorMessage = errorData.error;
+                        if (errorData.code) {
+                            errorMessage += ` (Code: ${errorData.code})`;
+                        }
+                    }
+                } catch {
+                    // Fallback to text if not JSON
+                    const errorText = await response.text().catch(() => response.statusText);
+                    if (errorText) errorMessage = errorText;
+                }
+                throw new Error(`Upload failed for chunk ${chunkIndex + 1}/${totalChunks}: ${errorMessage}`);
             }
 
             // Update progress
@@ -53,8 +66,10 @@ export async function uploadFileChunks(
             }
 
         } catch (error) {
+            if (error instanceof TypeError && error.message === 'Failed to fetch') {
+                throw new Error('CDN unreachable: Network error during chunk upload. Please check your internet connection or CDN status.');
+            }
             console.error(`Chunk upload error (chunk ${chunkIndex}):`, error);
-            // Simple retry logic could go here, for now we throw
             throw error;
         }
     }

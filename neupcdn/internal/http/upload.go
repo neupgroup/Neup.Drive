@@ -79,6 +79,10 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		ClientError(w, http.StatusBadRequest, "Content-Type not found in upload token", nil)
 		return
 	}
+	if claims.Nonce == "" {
+		ClientError(w, http.StatusBadRequest, "Nonce not found in upload token", nil)
+		return
+	}
 
 	// 3.1 Verify Request Headers
 	fileHash := r.Header.Get("x-file-hash")

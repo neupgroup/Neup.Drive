@@ -20,9 +20,11 @@ export function Sidebar() {
   return (
     <aside className="sticky top-16 h-[calc(100vh-4rem)] z-0 hidden w-64 flex-col border-r bg-white sm:flex">
       <nav className="flex flex-col gap-4 p-4 sm:py-5">
-        <Button className="font-semibold" size="lg">
-          <PlusCircle className="mr-2 h-5 w-5" />
-          New
+        <Button className="font-semibold" size="lg" asChild>
+          <Link href="/upload">
+            <PlusCircle className="mr-2 h-5 w-5" />
+            New
+          </Link>
         </Button>
         <NavLinks />
       </nav>

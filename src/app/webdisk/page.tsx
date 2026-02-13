@@ -9,7 +9,7 @@ export default function WebdiskPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold font-headline tracking-tight">WebDisk</h1>
         <Button asChild>
-          <Link href="/webdisk/upload">
+          <Link href="/upload">
             <Upload className="mr-2 h-4 w-4" />
             Upload File
           </Link>

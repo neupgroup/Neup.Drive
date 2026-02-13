@@ -10,6 +10,7 @@ import { hashFile } from '@/lib/blake3';
 import type { UploadInitResponse } from '@/lib/upload-types';
 import { uploadFileChunks } from '@/lib/chunked-upload';
 import { saveUpload, getUploads, deleteUpload, type UploadQueueItem } from '@/lib/upload-persistence';
+import { handleClientError } from '@/lib/error-client';
 
 interface FileUploadProps {
     accountId: string;
@@ -69,21 +70,6 @@ export function FileUpload({
         });
     };
 
-    // Helper to log errors to the database
-    const logError = async (context: any) => {
-        try {
-            await fetch('/api/log-error', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    on_page: 'FileUpload',
-                    context
-                }),
-            });
-        } catch (e) {
-            console.error('Failed to log error to DB:', e);
-        }
-    };
 
     // ========Step 2 Starts, Hashing ==============
     // Processing loop to handle queue transitions
@@ -116,19 +102,14 @@ export function FileUpload({
                 // Update state to HASHED
                 updateQueueItem(pendingItem.id, { status: 'HASHED', hash, progress: 100 });
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Hashing failed';
-                console.error('Hashing failed:', error);
-
-                logError({
-                    action: 'hashing',
+                const userMessage = await handleClientError(error, 'FileUpload:Hashing', {
                     fileId: pendingItem.id,
-                    fileName: pendingItem.metadata.name,
-                    error: errorMessage
+                    fileName: pendingItem.metadata.name
                 });
 
                 updateQueueItem(pendingItem.id, {
                     status: 'ERROR',
-                    error: errorMessage
+                    error: userMessage
                 });
             } finally {
                 processingRef.current = false;
@@ -166,19 +147,14 @@ export function FileUpload({
                     uploadInit: initResponse
                 });
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Authorization failed';
-                console.error('Authorization failed:', error);
-
-                logError({
-                    action: 'authorization',
+                const userMessage = await handleClientError(error, 'FileUpload:Authorization', {
                     fileId: hashedItem.id,
-                    fileName: hashedItem.metadata.name,
-                    error: errorMessage
+                    fileName: hashedItem.metadata.name
                 });
 
                 updateQueueItem(hashedItem.id, {
                     status: 'ERROR',
-                    error: errorMessage
+                    error: userMessage
                 });
             }
         };
@@ -226,22 +202,17 @@ export function FileUpload({
                 }, 1000);
 
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Upload failed';
-                console.error('Upload failed:', error);
-
-                logError({
-                    action: 'uploading',
+                const userMessage = await handleClientError(error, 'FileUpload:Uploading', {
                     fileId: readyItem.id,
-                    fileName: readyItem.metadata.name,
-                    error: errorMessage
+                    fileName: readyItem.metadata.name
                 });
 
                 updateQueueItem(readyItem.id, {
                     status: 'ERROR',
-                    error: errorMessage
+                    error: userMessage
                 });
 
-                onUploadError?.(errorMessage, readyItem.file);
+                onUploadError?.(userMessage, readyItem.file);
             }
         };
 

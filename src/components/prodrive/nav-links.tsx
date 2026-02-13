@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HardDrive, Share, Trash2, Globe, Clock, AlertCircle } from 'lucide-react';
+import { HardDrive, Share, Trash2, Globe, Clock, AlertCircle, Upload } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 const navLinksData = [
   { href: '/', icon: HardDrive, label: 'Drive' },
   { href: '/recents', icon: Clock, label: 'Recent' },
+  { href: '/upload', icon: Upload, label: 'Upload' },
   { href: '/shared', icon: Share, label: 'Shared' },
   { href: '/webdisk', icon: Globe, label: 'WebDisk' },
   { href: '/errors', icon: AlertCircle, label: 'System Errors' },
