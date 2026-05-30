@@ -3,5 +3,5 @@ CREATE TABLE "ErrorLog" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "on_page" TEXT NOT NULL,
     "context" TEXT NOT NULL,
-    "created_on" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "created_on" TIMESTAMPTZ NOT NULL DEFAULT now()
 );

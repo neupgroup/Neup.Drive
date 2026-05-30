@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -53,4 +53,16 @@ model WebDisk {
   mimeType    String   @default("application/octet-stream")
   uploaded_by String
   uploaded_on DateTime @default(now())
+}
+
+model Account {
+  id            String   @id @default(uuid())
+  account_type  String
+  connection_id String?
+  display_name  String?
+  display_image String?
+  neupid        String?
+  created_on    DateTime @default(now())
+  accessed_on   DateTime?
+  role_id       String?
 }
