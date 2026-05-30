@@ -26,8 +26,13 @@ export function identifyError(error: any): ErrorType {
     }
 
     // CDN errors
-    if (message.includes('CDN unreachable') || message.includes('Network error during upload') || message.includes('Failed to fetch')) {
+    if (message.includes('CDN unreachable') || message.includes('Network error during upload')) {
         return ErrorType.CDN_UNREACHABLE;
+    }
+
+    // Generic network/API errors
+    if (message.includes('Failed to fetch') || message.includes('NetworkError') || message.includes('fetch failed')) {
+        return ErrorType.UNKNOWN; // Or we could add API_ERROR
     }
 
     return ErrorType.UNKNOWN;

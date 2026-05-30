@@ -40,11 +40,28 @@ export default function UploadPage() {
                         secretKey={secretKey}
                         uploadPath="uploads"
                         cdnUrl={cdnUrl}
-                        onUploadComplete={(url, file) => {
+                        onUploadComplete={async (url, file) => {
                             console.log('✅ Upload complete:', {
                                 url,
                                 fileName: file.name,
                             });
+
+                            // Record the upload in the webdisk table
+                            try {
+                                await fetch('/api/webdisk/record', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        filename: file.name,
+                                        path: url,
+                                        mimeType: file.type,
+                                        uploaded_by: 'Admin'
+                                    }),
+                                });
+                            } catch (e) {
+                                console.error('Failed to record upload:', e);
+                            }
+
                             // Trigger file list refresh
                             setRefreshTrigger(prev => prev + 1);
                         }}

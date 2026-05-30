@@ -45,3 +45,12 @@ model ErrorLog {
   context     String   // JSON string of error details
   created_on  DateTime @default(now())
 }
+
+model WebDisk {
+  id          String   @id @default(uuid())
+  filename    String
+  path        String
+  mimeType    String   @default("application/octet-stream")
+  uploaded_by String
+  uploaded_on DateTime @default(now())
+}
