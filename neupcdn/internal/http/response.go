@@ -44,18 +44,22 @@ func InternalServerError(w http.ResponseWriter, logMsg string, err error) {
 
 // ClientError handles client-side errors (4xx)
 func ClientError(w http.ResponseWriter, statusCode int, userMsg string, internalErr error) {
+	ClientErrorCode(w, statusCode, userMsg, http.StatusText(statusCode), internalErr)
+}
+
+// ClientErrorCode handles client-side errors (4xx) using a stable machine-readable code.
+func ClientErrorCode(w http.ResponseWriter, statusCode int, code string, internalMsg string, internalErr error) {
 	if UploadLogger != nil && internalErr != nil {
-		UploadLogger.Printf("[CLIENT ERROR] %s: %v", userMsg, internalErr)
+		UploadLogger.Printf("[CLIENT ERROR] %s: %v", internalMsg, internalErr)
 	} else if UploadLogger != nil {
-		UploadLogger.Printf("[CLIENT ERROR] %s", userMsg)
+		UploadLogger.Printf("[CLIENT ERROR] %s", internalMsg)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(ErrorResponse{
 		Success: false,
-		Error:   userMsg,
-		Code:    statusCode,
+		Error:   code,
 	})
 }
 

@@ -1,4 +1,14 @@
 import type { UploadInitResponse } from './upload-types';
+import { handleClientError } from './error-client';
+
+function extractUploadErrorCode(errorData: unknown): string | undefined {
+    if (!errorData || typeof errorData !== 'object') return undefined;
+    const maybeError = errorData as { error?: unknown; code?: unknown };
+    if (typeof maybeError.error === 'string' && maybeError.error) return maybeError.error;
+    if (typeof maybeError.code === 'string' && maybeError.code) return maybeError.code;
+    if (typeof maybeError.code === 'number') return String(maybeError.code);
+    return undefined;
+}
 
 /**
  * Uploads a file in chunks to the specified endpoint.
@@ -39,23 +49,63 @@ export async function uploadFileChunks(
                 body: chunk,
             });
 
+            const responseText = await response.text();
+            let responseData: unknown = undefined;
+            if (responseText) {
+                try {
+                    responseData = JSON.parse(responseText);
+                } catch {
+                    responseData = responseText;
+                }
+            }
+
+            if (response.ok && responseData && typeof responseData === 'object' && 'success' in responseData && (responseData as { success?: unknown }).success === false) {
+                const errorCode = extractUploadErrorCode(responseData) || `upload_failed_${response.status}`;
+                await handleClientError(
+                    new Error(`CDN upload failed with code ${errorCode}`),
+                    'chunked-upload',
+                    {
+                        stage: 'chunk_upload',
+                        chunkIndex: chunkIndex + 1,
+                        totalChunks,
+                        status: response.status,
+                        response: responseData,
+                    }
+                );
+                throw new Error(errorCode);
+            }
+
             if (!response.ok) {
                 // Try to parse error message as JSON
-                let errorMessage = `Status ${response.status}`;
-                try {
-                    const errorData = await response.json();
-                    if (errorData.error) {
-                        errorMessage = errorData.error;
-                        if (errorData.code) {
-                            errorMessage += ` (Code: ${errorData.code})`;
-                        }
+                const errorCode = extractUploadErrorCode(responseData) || `upload_failed_${response.status}`;
+                await handleClientError(
+                    new Error(`CDN upload failed with code ${errorCode}`),
+                    'chunked-upload',
+                    {
+                        stage: 'chunk_upload',
+                        chunkIndex: chunkIndex + 1,
+                        totalChunks,
+                        status: response.status,
+                        response: responseData ?? responseText,
                     }
-                } catch {
-                    // Fallback to text if not JSON
-                    const errorText = await response.text().catch(() => response.statusText);
-                    if (errorText) errorMessage = errorText;
-                }
-                throw new Error(`Upload failed for chunk ${chunkIndex + 1}/${totalChunks}: ${errorMessage}`);
+                );
+                throw new Error(`Upload failed for chunk ${chunkIndex + 1}/${totalChunks}: ${errorCode}`);
+            }
+
+            if (responseData && typeof responseData === 'object' && 'success' in responseData && (responseData as { success?: unknown }).success === false) {
+                const errorCode = extractUploadErrorCode(responseData) || `upload_failed_${response.status}`;
+                await handleClientError(
+                    new Error(`CDN upload failed with code ${errorCode}`),
+                    'chunked-upload',
+                    {
+                        stage: 'chunk_upload',
+                        chunkIndex: chunkIndex + 1,
+                        totalChunks,
+                        status: response.status,
+                        response: responseData,
+                    }
+                );
+                throw new Error(`Upload failed for chunk ${chunkIndex + 1}/${totalChunks}: ${errorCode}`);
             }
 
             // Update progress

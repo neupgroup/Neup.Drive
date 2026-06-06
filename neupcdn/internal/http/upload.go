@@ -34,12 +34,12 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 1. Method Check & Size Check
 	if r.Method != http.MethodPut {
-		ClientError(w, http.StatusMethodNotAllowed, "Method not allowed. Use PUT for chunked uploads.", nil)
+		ClientErrorCode(w, http.StatusMethodNotAllowed, "method_not_allowed", "Method not allowed. Use PUT for chunked uploads.", nil)
 		return
 	}
 
 	if r.ContentLength > config.Cfg.MaxChunkSize {
-		ClientError(w, http.StatusRequestEntityTooLarge, fmt.Sprintf("Chunk size exceeds limit of %d bytes", config.Cfg.MaxChunkSize), nil)
+		ClientErrorCode(w, http.StatusRequestEntityTooLarge, "chunk_too_large", fmt.Sprintf("Chunk size exceeds limit of %d bytes", config.Cfg.MaxChunkSize), nil)
 		return
 	}
 
@@ -47,7 +47,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	tokenJSON := r.Header.Get("x-upload-token")
 	if tokenJSON == "" {
 		// "if mime type, filename, path, file category, etc is not found error: ... not found."
-		ClientError(w, http.StatusUnauthorized, "x-upload-token header not found", nil)
+		ClientErrorCode(w, http.StatusUnauthorized, "missing_upload_token", "x-upload-token header not found", nil)
 		return
 	}
 
@@ -60,7 +60,16 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		// "if something like client tries to manipulate the system like using expired keys, log that and also show an error."
 		// VerifyEd25519Token returns "token expired" or "invalid signature" etc.
-		ClientError(w, http.StatusForbidden, "Invalid upload token: "+err.Error(), err)
+		switch err.Error() {
+		case "invalid signature", "invalid signature format":
+			ClientErrorCode(w, http.StatusForbidden, "invalid_signature", "Invalid upload token signature", err)
+		case "token expired":
+			ClientErrorCode(w, http.StatusForbidden, "token_expired", "Upload token expired", err)
+		case "invalid token format":
+			ClientErrorCode(w, http.StatusBadRequest, "invalid_token_format", "Invalid upload token format", err)
+		default:
+			ClientErrorCode(w, http.StatusForbidden, "invalid_upload_token", "Invalid upload token", err)
+		}
 		return
 	}
 
@@ -68,44 +77,44 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	// "if mime type, filename, path, file category, etc is not found error: ... not found."
 
 	if claims.AccountID == "" {
-		ClientError(w, http.StatusBadRequest, "Account ID not found in upload token", nil)
+		ClientErrorCode(w, http.StatusBadRequest, "missing_account_id", "Account ID not found in upload token", nil)
 		return
 	}
 	if claims.Path == "" {
-		ClientError(w, http.StatusBadRequest, "Path not found in upload token", nil)
+		ClientErrorCode(w, http.StatusBadRequest, "missing_path", "Path not found in upload token", nil)
 		return
 	}
 	if claims.ContentType == "" {
-		ClientError(w, http.StatusBadRequest, "Content-Type not found in upload token", nil)
+		ClientErrorCode(w, http.StatusBadRequest, "missing_content_type", "Content-Type not found in upload token", nil)
 		return
 	}
 	if claims.Nonce == "" {
-		ClientError(w, http.StatusBadRequest, "Nonce not found in upload token", nil)
+		ClientErrorCode(w, http.StatusBadRequest, "missing_nonce", "Nonce not found in upload token", nil)
 		return
 	}
 
 	// 3.1 Verify Request Headers
 	fileHash := r.Header.Get("x-file-hash")
 	if fileHash == "" {
-		ClientError(w, http.StatusBadRequest, "x-file-hash header not found", nil)
+		ClientErrorCode(w, http.StatusBadRequest, "missing_file_hash", "x-file-hash header not found", nil)
 		return
 	}
 
 	// 4. Handle Content-Range for Chunking
 	contentRange := r.Header.Get("Content-Range")
 	if contentRange == "" {
-		ClientError(w, http.StatusBadRequest, "Content-Range header not found", nil)
+		ClientErrorCode(w, http.StatusBadRequest, "missing_content_range", "Content-Range header not found", nil)
 		return
 	}
 
 	start, end, total, err := parseContentRange(contentRange)
 	if err != nil {
-		ClientError(w, http.StatusBadRequest, "Invalid Content-Range header", err)
+		ClientErrorCode(w, http.StatusBadRequest, "invalid_content_range", "Invalid Content-Range header", err)
 		return
 	}
 
 	if total > claims.MaxSize {
-		ClientError(w, http.StatusForbidden, "File size exceeds token limit", nil)
+		ClientErrorCode(w, http.StatusForbidden, "file_size_exceeds_limit", "File size exceeds token limit", nil)
 		return
 	}
 

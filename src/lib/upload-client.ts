@@ -1,4 +1,14 @@
 import type { UploadSignaturePayload, SignedUploadRequest, UploadInitRequest, UploadInitResponse } from './upload-types';
+import { handleClientError } from './error-client';
+
+function extractUploadErrorCode(errorData: unknown): string | undefined {
+    if (!errorData || typeof errorData !== 'object') return undefined;
+    const maybeError = errorData as { error?: unknown; code?: unknown };
+    if (typeof maybeError.error === 'string' && maybeError.error) return maybeError.error;
+    if (typeof maybeError.code === 'string' && maybeError.code) return maybeError.code;
+    if (typeof maybeError.code === 'number') return String(maybeError.code);
+    return undefined;
+}
 
 /**
  * Initialize upload session with server (Step 3)
@@ -155,6 +165,20 @@ export async function uploadFileToCDN(
                 if (xhr.status >= 200 && xhr.status < 300) {
                     try {
                         const response = JSON.parse(xhr.responseText);
+                        if (response && typeof response === 'object' && response.success === false) {
+                            const errorCode = extractUploadErrorCode(response) || `upload_failed_${xhr.status}`;
+                            handleClientError(
+                                new Error(`CDN upload failed with code ${errorCode}`),
+                                'upload-client',
+                                {
+                                    stage: 'direct_upload',
+                                    status: xhr.status,
+                                    response,
+                                }
+                            ).catch(console.error);
+                            reject(new Error(errorCode));
+                            return;
+                        }
                         resolve({
                             success: true,
                             url: response.url || `${cdnUrl}/${payload.path}`,
@@ -166,19 +190,24 @@ export async function uploadFileToCDN(
                         });
                     }
                 } else {
-                    let errorMessage = `Upload failed with status ${xhr.status}`;
+                    let errorCode = `upload_failed_${xhr.status}`;
+                    let responseData: unknown = undefined;
                     try {
-                        const errorData = JSON.parse(xhr.responseText);
-                        if (errorData.error) {
-                            errorMessage = errorData.error;
-                            if (errorData.code) {
-                                errorMessage += ` (Code: ${errorData.code})`;
-                            }
-                        }
+                        responseData = JSON.parse(xhr.responseText);
+                        errorCode = extractUploadErrorCode(responseData) || errorCode;
                     } catch {
-                        // Fallback
+                        responseData = xhr.responseText;
                     }
-                    reject(new Error(errorMessage));
+                    handleClientError(
+                        new Error(`CDN upload failed with code ${errorCode}`),
+                        'upload-client',
+                        {
+                            stage: 'direct_upload',
+                            status: xhr.status,
+                            response: responseData,
+                        }
+                    ).catch(console.error);
+                    reject(new Error(errorCode));
                 }
             });
 
