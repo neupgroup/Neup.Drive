@@ -2,8 +2,9 @@
 
 import * as React from 'react';
 import { List, Grid3x3 } from 'lucide-react';
-import { files } from '@/lib/data';
+import type { FileOrFolder } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Tooltip,
   TooltipContent,
@@ -17,6 +18,7 @@ type ViewMode = 'list' | 'grid';
 
 export function FileManager() {
   const [viewMode, setViewMode] = React.useState<ViewMode>('list');
+  const files: FileOrFolder[] = [];
 
   return (
     <div className="space-y-4">
@@ -55,7 +57,17 @@ export function FileManager() {
           </TooltipProvider>
         </div>
       </div>
-      {viewMode === 'list' ? <FileListView data={files} /> : <FileGridView data={files} />}
+      {files.length === 0 ? (
+        <Card>
+          <CardContent className="flex min-h-48 items-center justify-center p-6 text-sm text-muted-foreground">
+            No files yet.
+          </CardContent>
+        </Card>
+      ) : viewMode === 'list' ? (
+        <FileListView data={files} />
+      ) : (
+        <FileGridView data={files} />
+      )}
     </div>
   );
 }
