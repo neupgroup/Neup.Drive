@@ -66,3 +66,15 @@ model Account {
   accessed_on   DateTime?
   role_id       String?
 }
+
+model SigninSession {
+  id         String   @id @default(uuid())
+  aid        String
+  sid        String
+  skey       String
+  accountId  String?
+  expires_at DateTime?
+  created_at DateTime @default(now())
+
+  @@index([aid, sid, skey])
+}
