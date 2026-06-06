@@ -5,6 +5,7 @@ export enum ErrorType {
     DATABASE_NOT_SETUP = 'DATABASE_NOT_SETUP',
     DATABASE_READ_ONLY = 'DATABASE_READ_ONLY',
     CDN_UNREACHABLE = 'CDN_UNREACHABLE',
+    CERTIFICATE_EXPIRED = 'CERTIFICATE_EXPIRED',
     UNKNOWN = 'UNKNOWN'
 }
 
@@ -14,6 +15,15 @@ export enum ErrorType {
 export function identifyError(error: any): ErrorType {
     const message = error instanceof Error ? error.message : String(error);
     const code = error?.code;
+
+    if (
+        code === ErrorType.DATABASE_NOT_SETUP ||
+        code === ErrorType.DATABASE_READ_ONLY ||
+        code === ErrorType.CDN_UNREACHABLE ||
+        code === ErrorType.CERTIFICATE_EXPIRED
+    ) {
+        return code;
+    }
 
     // Prisma Codes
     if (code === 'P1001' || code === 'P1002' || code === 'P1003' || message.includes('Can\'t reach database server')) {
@@ -26,8 +36,19 @@ export function identifyError(error: any): ErrorType {
     }
 
     // CDN errors
-    if (message.includes('CDN unreachable') || message.includes('Network error during upload')) {
+    if (message.includes('CDN unreachable') || message.includes('Network error during upload') || message.includes('Failed to fetch files')) {
         return ErrorType.CDN_UNREACHABLE;
+    }
+
+    // Certificate / TLS expiry errors
+    if (
+        message.includes('certificate expired') ||
+        message.includes('x509: certificate has expired') ||
+        message.includes('SSL certificate problem: certificate has expired') ||
+        message.includes('tls: failed to verify certificate') ||
+        message.includes('x509: certificate signed by unknown authority')
+    ) {
+        return ErrorType.CERTIFICATE_EXPIRED;
     }
 
     // Generic network/API errors

@@ -21,6 +21,14 @@ interface ErrorLog {
     created_on: string;
 }
 
+function parseLogContext(context: string) {
+    try {
+        return JSON.parse(context);
+    } catch {
+        return null;
+    }
+}
+
 export default function ErrorsPage() {
     const [errors, setErrors] = React.useState<ErrorLog[]>([]);
     const [loading, setLoading] = React.useState(true);
@@ -98,7 +106,7 @@ export default function ErrorsPage() {
                                             </TableCell>
                                             <TableCell className="font-mono text-xs text-muted-foreground">
                                                 <pre className="max-w-[600px] overflow-auto whitespace-pre-wrap">
-                                                    {error.context}
+                                                    {JSON.stringify(parseLogContext(error.context), null, 2) || error.context}
                                                 </pre>
                                             </TableCell>
                                         </TableRow>

@@ -1,5 +1,7 @@
 import type { UploadInitResponse } from './upload-types';
 import { handleClientError } from './error-client';
+import { identifyError } from './error-types';
+import { logUploadTrace } from './upload-trace';
 
 function extractUploadErrorCode(errorData: unknown): string | undefined {
     if (!errorData || typeof errorData !== 'object') return undefined;
@@ -8,6 +10,13 @@ function extractUploadErrorCode(errorData: unknown): string | undefined {
     if (typeof maybeError.code === 'string' && maybeError.code) return maybeError.code;
     if (typeof maybeError.code === 'number') return String(maybeError.code);
     return undefined;
+}
+
+function encodeUploadToken(token: UploadInitResponse['signed_upload_token']): string {
+    const json = JSON.stringify(token);
+    return typeof window !== 'undefined'
+        ? window.btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+        : Buffer.from(json).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
 /**
@@ -37,7 +46,7 @@ export async function uploadFileChunks(
         const headers: HeadersInit = {
             'x-upload-session-id': sessionData.upload_session_id,
             'x-file-hash': fileHash,
-            'x-upload-token': JSON.stringify(sessionData.signed_upload_token),
+            'x-upload-token': encodeUploadToken(sessionData.signed_upload_token),
             'Content-Range': `bytes ${start}-${end - 1}/${file.size}`,
             'Content-Type': 'application/octet-stream',
         };
@@ -58,11 +67,26 @@ export async function uploadFileChunks(
                     responseData = responseText;
                 }
             }
+            void logUploadTrace('chunked-upload', 'chunk_upload_response', {
+                chunkIndex: chunkIndex + 1,
+                totalChunks,
+                status: response.status,
+                ok: response.ok,
+                response: responseData,
+            });
 
             if (response.ok && responseData && typeof responseData === 'object' && 'success' in responseData && (responseData as { success?: unknown }).success === false) {
                 const errorCode = extractUploadErrorCode(responseData) || `upload_failed_${response.status}`;
+                const error = new Error(`CDN upload failed with code ${errorCode}`);
+                void logUploadTrace('chunked-upload', 'chunk_upload_failed', {
+                    chunkIndex: chunkIndex + 1,
+                    totalChunks,
+                    status: response.status,
+                    response: responseData,
+                    errorType: identifyError(error),
+                });
                 await handleClientError(
-                    new Error(`CDN upload failed with code ${errorCode}`),
+                    error,
                     'chunked-upload',
                     {
                         stage: 'chunk_upload',
@@ -78,8 +102,16 @@ export async function uploadFileChunks(
             if (!response.ok) {
                 // Try to parse error message as JSON
                 const errorCode = extractUploadErrorCode(responseData) || `upload_failed_${response.status}`;
+                const error = new Error(`CDN upload failed with code ${errorCode}`);
+                void logUploadTrace('chunked-upload', 'chunk_upload_failed', {
+                    chunkIndex: chunkIndex + 1,
+                    totalChunks,
+                    status: response.status,
+                    response: responseData ?? responseText,
+                    errorType: identifyError(error),
+                });
                 await handleClientError(
-                    new Error(`CDN upload failed with code ${errorCode}`),
+                    error,
                     'chunked-upload',
                     {
                         stage: 'chunk_upload',
@@ -94,8 +126,16 @@ export async function uploadFileChunks(
 
             if (responseData && typeof responseData === 'object' && 'success' in responseData && (responseData as { success?: unknown }).success === false) {
                 const errorCode = extractUploadErrorCode(responseData) || `upload_failed_${response.status}`;
+                const error = new Error(`CDN upload failed with code ${errorCode}`);
+                void logUploadTrace('chunked-upload', 'chunk_upload_failed', {
+                    chunkIndex: chunkIndex + 1,
+                    totalChunks,
+                    status: response.status,
+                    response: responseData,
+                    errorType: identifyError(error),
+                });
                 await handleClientError(
-                    new Error(`CDN upload failed with code ${errorCode}`),
+                    error,
                     'chunked-upload',
                     {
                         stage: 'chunk_upload',
@@ -117,7 +157,14 @@ export async function uploadFileChunks(
 
         } catch (error) {
             if (error instanceof TypeError && error.message === 'Failed to fetch') {
-                throw new Error('CDN unreachable: Network error during chunk upload. Please check your internet connection or CDN status.');
+                const networkError = new Error('CDN unreachable: Network error during chunk upload. Please check your internet connection or CDN status.');
+                void logUploadTrace('chunked-upload', 'chunk_upload_network_error', {
+                    chunkIndex: chunkIndex + 1,
+                    totalChunks,
+                    errorType: identifyError(networkError),
+                    message: networkError.message,
+                });
+                throw networkError;
             }
             console.error(`Chunk upload error (chunk ${chunkIndex}):`, error);
             throw error;

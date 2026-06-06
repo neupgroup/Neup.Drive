@@ -14,8 +14,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Use the robust server logger which handles DB and File fallback
-        await logToDatabase(new Error('Client Error Reported'), JSON.stringify(context), on_page);
+        const errorMessage = typeof context?.message === 'string' ? context.message : 'Client Error Reported';
+        const errorType = typeof context?.type === 'string' ? context.type : 'UNKNOWN';
+        const clientError = new Error(errorMessage) as Error & { code?: string };
+        clientError.code = errorType;
+
+        // Preserve the client-reported error type/message so logs are usable.
+        await logToDatabase(clientError, JSON.stringify(context), on_page);
 
         return NextResponse.json({ success: true });
     } catch (error) {

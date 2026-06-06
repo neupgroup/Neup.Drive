@@ -1,5 +1,7 @@
 import type { UploadSignaturePayload, SignedUploadRequest, UploadInitRequest, UploadInitResponse } from './upload-types';
 import { handleClientError } from './error-client';
+import { identifyError } from './error-types';
+import { logUploadTrace } from './upload-trace';
 
 function extractUploadErrorCode(errorData: unknown): string | undefined {
     if (!errorData || typeof errorData !== 'object') return undefined;
@@ -8,6 +10,13 @@ function extractUploadErrorCode(errorData: unknown): string | undefined {
     if (typeof maybeError.code === 'string' && maybeError.code) return maybeError.code;
     if (typeof maybeError.code === 'number') return String(maybeError.code);
     return undefined;
+}
+
+function encodeUploadToken(token: SignedUploadRequest): string {
+    const json = JSON.stringify(token);
+    return typeof window !== 'undefined'
+        ? window.btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+        : Buffer.from(json).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
 /**
@@ -25,10 +34,25 @@ export async function initializeUpload(
         body: JSON.stringify(metadata),
     });
 
+    const responseClone = response.clone();
+    const responseText = await responseClone.text().catch(() => '');
+    let parsedResponse: unknown = responseText;
+    try {
+        parsedResponse = responseText ? JSON.parse(responseText) : null;
+    } catch {
+        // keep raw text
+    }
+    void logUploadTrace('upload-client', 'initialize_upload_response', {
+        endpoint: apiEndpoint,
+        status: response.status,
+        ok: response.ok,
+        response: parsedResponse,
+    });
+
     if (!response.ok) {
         let errorMessage = `Server error: ${response.status}`;
         try {
-            const error = await response.json();
+            const error = parsedResponse && typeof parsedResponse === 'object' ? parsedResponse as any : await response.json();
             if (error.error) {
                 errorMessage = error.error;
                 if (error.code) {
@@ -165,6 +189,11 @@ export async function uploadFileToCDN(
                 if (xhr.status >= 200 && xhr.status < 300) {
                     try {
                         const response = JSON.parse(xhr.responseText);
+                        void logUploadTrace('upload-client', 'direct_upload_response', {
+                            status: xhr.status,
+                            ok: true,
+                            response,
+                        });
                         if (response && typeof response === 'object' && response.success === false) {
                             const errorCode = extractUploadErrorCode(response) || `upload_failed_${xhr.status}`;
                             handleClientError(
@@ -198,8 +227,14 @@ export async function uploadFileToCDN(
                     } catch {
                         responseData = xhr.responseText;
                     }
+                    const error = new Error(`CDN upload failed with code ${errorCode}`);
+                    void logUploadTrace('upload-client', 'direct_upload_failed', {
+                        status: xhr.status,
+                        response: responseData,
+                        errorType: identifyError(error),
+                    });
                     handleClientError(
-                        new Error(`CDN upload failed with code ${errorCode}`),
+                        error,
                         'upload-client',
                         {
                             stage: 'direct_upload',
@@ -207,12 +242,22 @@ export async function uploadFileToCDN(
                             response: responseData,
                         }
                     ).catch(console.error);
+                    void logUploadTrace('upload-client', 'direct_upload_response', {
+                        status: xhr.status,
+                        ok: false,
+                        response: responseData,
+                    });
                     reject(new Error(errorCode));
                 }
             });
 
             xhr.addEventListener('error', () => {
-                reject(new Error('CDN unreachable: Network error during upload. Please check your internet connection or CDN status.'));
+                const error = new Error('CDN unreachable: Network error during upload. Please check your internet connection or CDN status.');
+                void logUploadTrace('upload-client', 'direct_upload_network_error', {
+                    errorType: identifyError(error),
+                    message: error.message,
+                });
+                reject(error);
             });
 
             xhr.addEventListener('abort', () => {

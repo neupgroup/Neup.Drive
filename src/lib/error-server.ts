@@ -16,12 +16,14 @@ export function logToFile(data: {
     message: string;
     context: string;
     stack?: string;
+    response?: unknown;
 }) {
     const entry = `[${data.timestamp}]
 page: ${data.on_page}
 type: ${data.type}
 message: ${data.message}
 context: ${data.context}
+${data.response !== undefined ? `response: ${JSON.stringify(data.response, null, 2)}\n` : ''}
 ${data.stack ? `stack: ${data.stack}` : ''}
 
 
@@ -43,12 +45,26 @@ export async function logToDatabase(error: any, context: string, onPage: string)
     const errorType = identifyError(error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     const timestamp = new Date().toISOString();
+    let parsedContext: any = context;
+
+    if (typeof context === 'string') {
+        try {
+            parsedContext = JSON.parse(context);
+        } catch {
+            parsedContext = { raw: context };
+        }
+    }
+
+    const response = parsedContext && typeof parsedContext === 'object'
+        ? parsedContext.response ?? parsedContext.apiResponse ?? parsedContext.cdnResponse
+        : undefined;
 
     const logData = {
         type: errorType,
         originalError: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
-        context
+        context: parsedContext,
+        response,
     };
 
     console.error(`[${onPage}] ${errorType}: ${errorMessage}`, logData);
@@ -70,8 +86,9 @@ export async function logToDatabase(error: any, context: string, onPage: string)
             on_page: onPage,
             type: errorType,
             message: errorMessage,
-            context: context,
-            stack: error instanceof Error ? error.stack : undefined
+            context: typeof context === 'string' ? context : JSON.stringify(context),
+            stack: error instanceof Error ? error.stack : undefined,
+            response,
         });
     }
 }

@@ -11,6 +11,7 @@ import type { UploadInitResponse } from '@/lib/upload-types';
 import { uploadFileChunks } from '@/lib/chunked-upload';
 import { saveUpload, getUploads, deleteUpload, type UploadQueueItem } from '@/lib/upload-persistence';
 import { handleClientError } from '@/lib/error-client';
+import { logUploadTrace } from '@/lib/upload-trace';
 
 interface FileUploadProps {
     accountId: string;
@@ -51,6 +52,10 @@ export function FileUpload({
             if (activeItems.length > 0) {
                 setQueue(activeItems);
             }
+            void logUploadTrace('FileUpload', 'loaded_persisted_uploads', {
+                activeCount: activeItems.length,
+                totalCount: persistedUploads.length,
+            });
         });
     }, []);
 
@@ -91,6 +96,11 @@ export function FileUpload({
             try {
                 // Update state to HASHING
                 updateQueueItem(pendingItem.id, { status: 'HASHING' });
+                void logUploadTrace('FileUpload', 'hashing_started', {
+                    fileId: pendingItem.id,
+                    fileName: pendingItem.metadata.name,
+                    size: pendingItem.metadata.size,
+                });
 
                 // Process hashing
                 console.log(`Starting hash for ${pendingItem.metadata.name}`);
@@ -101,10 +111,20 @@ export function FileUpload({
 
                 // Update state to HASHED
                 updateQueueItem(pendingItem.id, { status: 'HASHED', hash, progress: 100 });
+                void logUploadTrace('FileUpload', 'hashing_completed', {
+                    fileId: pendingItem.id,
+                    fileName: pendingItem.metadata.name,
+                    hash,
+                });
             } catch (error) {
                 const userMessage = await handleClientError(error, 'FileUpload:Hashing', {
                     fileId: pendingItem.id,
                     fileName: pendingItem.metadata.name
+                });
+                void logUploadTrace('FileUpload', 'hashing_failed', {
+                    fileId: pendingItem.id,
+                    fileName: pendingItem.metadata.name,
+                    error: error instanceof Error ? error.message : String(error),
                 });
 
                 updateQueueItem(pendingItem.id, {
@@ -146,10 +166,20 @@ export function FileUpload({
                     status: 'TOKEN_ISSUED',
                     uploadInit: initResponse
                 });
+                void logUploadTrace('FileUpload', 'upload_init_response', {
+                    fileId: hashedItem.id,
+                    fileName: hashedItem.metadata.name,
+                    response: initResponse,
+                });
             } catch (error) {
                 const userMessage = await handleClientError(error, 'FileUpload:Authorization', {
                     fileId: hashedItem.id,
                     fileName: hashedItem.metadata.name
+                });
+                void logUploadTrace('FileUpload', 'upload_init_failed', {
+                    fileId: hashedItem.id,
+                    fileName: hashedItem.metadata.name,
+                    error: error instanceof Error ? error.message : String(error),
                 });
 
                 updateQueueItem(hashedItem.id, {
@@ -179,6 +209,11 @@ export function FileUpload({
 
             // Update state to UPLOADING
             updateQueueItem(readyItem.id, { status: 'UPLOADING', progress: 0 });
+            void logUploadTrace('FileUpload', 'chunk_upload_started', {
+                fileId: readyItem.id,
+                fileName: readyItem.metadata.name,
+                destinationPath: readyItem.uploadInit.destination_path,
+            });
 
             try {
                 await uploadFileChunks(
@@ -192,12 +227,22 @@ export function FileUpload({
 
                 // Update state to VERIFIED (Step 5)
                 updateQueueItem(readyItem.id, { status: 'VERIFIED', progress: 100 });
+                void logUploadTrace('FileUpload', 'chunk_upload_verified', {
+                    fileId: readyItem.id,
+                    fileName: readyItem.metadata.name,
+                    destinationPath: readyItem.uploadInit.destination_path,
+                });
 
                 // Step 6: Finalization - wait for callback or immediate completion
                 // In a real scenario, we might poll for status or wait for socket event
                 // Here we assume if chunk upload succeeded, we are verified
                 setTimeout(() => {
                     updateQueueItem(readyItem.id, { status: 'DONE' });
+                    void logUploadTrace('FileUpload', 'upload_completed', {
+                        fileId: readyItem.id,
+                        fileName: readyItem.metadata.name,
+                        destinationPath: readyItem.uploadInit!.destination_path,
+                    });
                     onUploadComplete?.(readyItem.uploadInit!.destination_path, readyItem.file);
                 }, 1000);
 
@@ -205,6 +250,11 @@ export function FileUpload({
                 const userMessage = await handleClientError(error, 'FileUpload:Uploading', {
                     fileId: readyItem.id,
                     fileName: readyItem.metadata.name
+                });
+                void logUploadTrace('FileUpload', 'chunk_upload_failed', {
+                    fileId: readyItem.id,
+                    fileName: readyItem.metadata.name,
+                    error: error instanceof Error ? error.message : String(error),
                 });
 
                 updateQueueItem(readyItem.id, {
@@ -261,6 +311,12 @@ export function FileUpload({
                 status: 'PENDING',
                 progress: 0,
                 createdAt: Date.now(),
+            });
+            void logUploadTrace('FileUpload', 'file_queued', {
+                fileId: id,
+                fileName: file.name,
+                size: file.size,
+                type: file.type,
             });
         }
 

@@ -31,6 +31,26 @@ type SignedUploadToken struct {
 	Signature string `json:"signature"`
 }
 
+func decodeUploadToken(tokenString string) (*SignedUploadToken, error) {
+	var token SignedUploadToken
+	decoded, err := base64.RawURLEncoding.DecodeString(tokenString)
+	if err != nil {
+		decoded, err = base64.URLEncoding.DecodeString(tokenString)
+		if err != nil {
+			decoded, err = base64.StdEncoding.DecodeString(tokenString)
+			if err != nil {
+				return nil, errors.New("invalid token format")
+			}
+		}
+	}
+
+	if err := json.Unmarshal(decoded, &token); err != nil {
+		return nil, errors.New("invalid token format")
+	}
+
+	return &token, nil
+}
+
 // CalculateHash returns the BLAKE3 hex string of the data
 func CalculateHash(data []byte) string {
 	h := blake3.New()
@@ -41,9 +61,9 @@ func CalculateHash(data []byte) string {
 // VerifyEd25519Token validates the token using Ed25519 public key
 func VerifyEd25519Token(tokenJSON string, publicKeyHex string) (*UploadSignaturePayload, error) {
 	// 1. Parse the token
-	var token SignedUploadToken
-	if err := json.Unmarshal([]byte(tokenJSON), &token); err != nil {
-		return nil, errors.New("invalid token format")
+	token, err := decodeUploadToken(tokenJSON)
+	if err != nil {
+		return nil, err
 	}
 
 	// 2. Decode Public Key
