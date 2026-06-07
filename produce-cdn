@@ -6,6 +6,11 @@
 # 2. Moves the CDN application (Go) content to the root.
 # 3. Cleans up.
 
+SOURCED=0
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+    SOURCED=1
+fi
+
 echo "Producing CDN standalone build..."
 
 # Ensure we are in the root and neupcdn exists
@@ -46,5 +51,9 @@ rmdir "$TEMP_DIR"
 
 echo "CDN standalone build produced."
 
-# Self destruct
-rm -- "$0"
+if [[ "$SOURCED" -eq 0 ]]; then
+    # Self destruct only when executed directly, not when sourced.
+    rm -- "${BASH_SOURCE[0]}"
+fi
+
+return 0 2>/dev/null || exit 0

@@ -6,6 +6,11 @@
 # 2. Removes the produce-cdn script.
 # 3. Cleans up.
 
+SOURCED=0
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+    SOURCED=1
+fi
+
 echo "Producing Drive standalone build..."
 
 # Remove the CDN folder
@@ -22,5 +27,9 @@ fi
 
 echo "Drive standalone build produced."
 
-# Self destruct
-rm -- "$0"
+if [[ "$SOURCED" -eq 0 ]]; then
+    # Self destruct only when executed directly, not when sourced.
+    rm -- "${BASH_SOURCE[0]}"
+fi
+
+return 0 2>/dev/null || exit 0
