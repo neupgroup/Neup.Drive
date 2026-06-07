@@ -16,7 +16,7 @@ This implementation provides a secure file upload system using HMAC-SHA256 signa
 - Prevents replay attacks using nonces
 - Sanitizes file paths
 
-### 3. **API Route** (`/api/upload/route.ts`)
+### 3. **API Route** (`/bridge/api.v1/upload/init`)
 - Handles POST and PUT upload requests
 - Validates signatures and payloads
 - Stores files to CDN storage
@@ -87,7 +87,7 @@ async function uploadFile(file: File) {
     {
       maxSize: 100 * 1024 * 1024,
       expiresInMinutes: 15,
-      cdnUrl: '/api/upload',
+      cdnUrl: '/bridge/api.v1/upload/init',
       onProgress: (progress) => {
         console.log(`Upload progress: ${progress}%`);
       },
@@ -213,7 +213,7 @@ await s3.send(new PutObjectCommand({
 ### Test Upload Signature
 
 ```bash
-curl -X POST http://localhost:3000/api/upload \
+curl -X GET http://localhost:3000/bridge/api.v1/upload/init \
   -F "file=@test.pdf" \
   -F "payload={...}" \
   -F "signature=abc123..."

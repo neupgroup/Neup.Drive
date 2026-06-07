@@ -161,7 +161,7 @@ export function FileUpload({
                     size: hashedItem.metadata.size,
                     mime: hashedItem.metadata.type,
                     file_hash: hashedItem.hash,
-                }, uploadInitEndpoint || `/api/drive/upload/init?mode=${uploadMode}`);
+                }, uploadInitEndpoint || `/bridge/api.v1/drive/upload/init?mode=${uploadMode}`);
 
                 // Update state to TOKEN_ISSUED
                 updateQueueItem(hashedItem.id, {

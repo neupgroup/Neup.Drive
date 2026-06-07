@@ -62,7 +62,7 @@ export async function handleClientError(error: any, onPage: string, context: Err
 
     // Try to notify the server about this client error
     try {
-        await fetch('/api/log-error', {
+        await fetch('/bridge/api.v1/log-error', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

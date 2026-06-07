@@ -112,6 +112,6 @@ export async function GET() {
 
         return NextResponse.json(mappedFiles);
     } catch (error) {
-        return handleServerError(error, '/api/webdisk/files', { method: 'GET' });
+        return handleServerError(error, '/bridge/api.v1/webdisk/files', { method: 'GET' });
     }
 }

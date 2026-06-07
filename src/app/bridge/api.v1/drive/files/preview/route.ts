@@ -68,6 +68,6 @@ export async function GET(request: NextRequest) {
             view_url: `${CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/${encodeURIComponent(folderType)}/${encodedPath}?token=${encodeURIComponent(token)}`,
         });
     } catch (error) {
-        return handleServerError(error, 'api/drive/files/preview');
+        return handleServerError(error, 'bridge/api.v1/drive/files/preview');
     }
 }

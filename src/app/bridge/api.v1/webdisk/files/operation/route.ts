@@ -139,6 +139,6 @@ export async function POST(request: NextRequest) {
         const cdn = await callCdnOperation(body.action, encodeSignedCdnToken(signedToken));
         return NextResponse.json({ success: true, action: body.action, cdn });
     } catch (error) {
-        return handleServerError(error, '/api/webdisk/files/operation', { body });
+        return handleServerError(error, '/bridge/api.v1/webdisk/files/operation', { body });
     }
 }

@@ -37,7 +37,7 @@ export function FileList({ refreshTrigger = 0 }: FileListProps) {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch('/api/drive/files');
+            const res = await fetch('/bridge/api.v1/drive/files');
             if (res.ok) {
                 const data = await res.json();
                 setFiles(data);

@@ -233,6 +233,6 @@ export async function POST(request: NextRequest) {
             cdn: cdnResult,
         });
     } catch (error) {
-        return handleServerError(error, 'api/drive/files/operation', { body });
+        return handleServerError(error, 'bridge/api.v1/drive/files/operation', { body });
     }
 }

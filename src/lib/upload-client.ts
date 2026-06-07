@@ -6,7 +6,7 @@ import { logUploadTrace } from './upload-trace';
  */
 export async function initializeUpload(
     metadata: UploadInitRequest,
-    apiEndpoint: string = '/api/drive/upload/init'
+    apiEndpoint: string = '/bridge/api.v1/drive/upload/init'
 ): Promise<UploadInitResponse> {
     const response = await fetch(apiEndpoint, {
         method: 'POST',

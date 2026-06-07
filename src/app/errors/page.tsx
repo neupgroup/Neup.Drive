@@ -36,7 +36,7 @@ export default function ErrorsPage() {
     const fetchErrors = React.useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/log-error');
+            const res = await fetch('/bridge/api.v1/log-error');
             if (res.ok) {
                 const data = await res.json();
                 setErrors(data);

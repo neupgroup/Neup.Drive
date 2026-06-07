@@ -82,6 +82,6 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true, id: record.id, filefolder_id: filefolder.id });
     } catch (error) {
-        return handleServerError(error, '/api/webdisk/record', { method: 'POST' });
+        return handleServerError(error, '/bridge/api.v1/webdisk/record', { method: 'POST' });
     }
 }

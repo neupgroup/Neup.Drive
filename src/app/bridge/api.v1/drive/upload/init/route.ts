@@ -170,6 +170,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(response);
 
     } catch (error) {
-        return handleServerError(error, 'api/drive/upload/init', { body: body ? { ...body, file_hash: 'REDACTED' } : undefined });
+        return handleServerError(error, 'bridge/api.v1/drive/upload/init', { body: body ? { ...body, file_hash: 'REDACTED' } : undefined });
     }
 }

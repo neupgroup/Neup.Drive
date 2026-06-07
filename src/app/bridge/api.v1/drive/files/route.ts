@@ -84,6 +84,6 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(mappedFiles);
     } catch (error) {
-        return handleServerError(error, 'api/drive/files');
+        return handleServerError(error, 'bridge/api.v1/drive/files');
     }
 }

@@ -33,7 +33,7 @@ function UploadContent() {
             if (webdiskPath) params.set('path', webdiskPath);
         }
 
-        return `/api/drive/upload/init?${params.toString()}`;
+        return `/bridge/api.v1/drive/upload/init?${params.toString()}`;
     }, [saveTo, uploadMode, webdiskPath, webdiskType]);
 
     return (

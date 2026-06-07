@@ -219,7 +219,7 @@ function WebdiskContent() {
   const fetchFiles = React.useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/webdisk/files');
+      const response = await fetch('/bridge/api.v1/webdisk/files');
       if (!response.ok) {
         let responseData: unknown = null;
         try {
@@ -345,7 +345,7 @@ function WebdiskContent() {
 
     try {
       setOperatingPath(file.cdn_path || file.id);
-      const response = await fetch('/api/webdisk/files/operation', {
+      const response = await fetch('/bridge/api.v1/webdisk/files/operation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
