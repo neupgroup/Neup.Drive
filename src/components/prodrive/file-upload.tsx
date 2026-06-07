@@ -125,10 +125,12 @@ export function FileUpload({
                 });
             } catch (error) {
                 const userMessage = await handleClientError(error, 'FileUpload:Hashing', {
+                    accountId,
                     fileId: pendingItem.id,
                     fileName: pendingItem.metadata.name
                 });
                 void logUploadTrace('FileUpload', 'hashing_failed', {
+                    accountId,
                     fileId: pendingItem.id,
                     fileName: pendingItem.metadata.name,
                     error: error instanceof Error ? error.message : String(error),
@@ -185,10 +187,12 @@ export function FileUpload({
                 });
             } catch (error) {
                 const userMessage = await handleClientError(error, 'FileUpload:Authorization', {
+                    accountId,
                     fileId: hashedItem.id,
                     fileName: hashedItem.metadata.name
                 });
                 void logUploadTrace('FileUpload', 'upload_init_failed', {
+                    accountId,
                     fileId: hashedItem.id,
                     fileName: hashedItem.metadata.name,
                     error: error instanceof Error ? error.message : String(error),
@@ -254,14 +258,25 @@ export function FileUpload({
                 }, 1000);
 
             } catch (error) {
+                const uploadError = error as {
+                    status?: number;
+                    response?: unknown;
+                };
                 const userMessage = await handleClientError(error, 'FileUpload:Uploading', {
+                    accountId,
                     fileId: readyItem.id,
-                    fileName: readyItem.metadata.name
+                    fileName: readyItem.metadata.name,
+                    stage: 'chunk_upload',
+                    status: uploadError.status,
+                    response: uploadError.response,
                 });
                 void logUploadTrace('FileUpload', 'chunk_upload_failed', {
+                    accountId,
                     fileId: readyItem.id,
                     fileName: readyItem.metadata.name,
                     error: error instanceof Error ? error.message : String(error),
+                    status: uploadError.status,
+                    response: uploadError.response,
                 });
 
                 updateQueueItem(readyItem.id, {

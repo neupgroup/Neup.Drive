@@ -15,7 +15,7 @@ export async function logUploadTrace(onPage: string, message: string, context: R
                 },
             }),
         });
-    } catch (error) {
-        console.error('Failed to report upload trace:', error);
+    } catch {
+        console.log(`Error happened of type "UPLOAD_TRACE": ${message}`);
     }
 }

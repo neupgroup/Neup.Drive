@@ -60,11 +60,8 @@ function UploadContent() {
                         fileName: file.name,
                     });
                 }}
-                onUploadError={(error, file) => {
-                    console.error('❌ Upload error:', {
-                        error,
-                        fileName: file.name,
-                    });
+                onUploadError={(error) => {
+                    console.log(error);
                 }}
             />
         </div>

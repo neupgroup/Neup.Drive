@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { logToDatabase } from '@/lib/error-server';
+import { identifyError } from '@/lib/error-types';
+
+function getSystemErrorAccount(context: Record<string, unknown>) {
+    const value = context.accountId || context.account_id || context.owner || context.uploaded_by || context.on_account;
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -18,6 +24,22 @@ export async function POST(request: NextRequest) {
         const errorType = typeof context?.type === 'string' ? context.type : 'UNKNOWN';
         const clientError = new Error(errorMessage) as Error & { code?: string };
         clientError.code = errorType;
+
+        if (errorType === 'UPLOAD_TRACE') {
+            const detailError = typeof context?.error === 'string' ? new Error(context.error) : clientError;
+            const systemErrorType = identifyError(detailError);
+            await prisma.systemError.create({
+                data: {
+                    on_account: getSystemErrorAccount(context),
+                    type: systemErrorType,
+                    log: errorMessage,
+                    details: context,
+                },
+            });
+
+            console.log(`Error happened of type "${systemErrorType}": ${errorMessage}`);
+            return NextResponse.json({ success: true });
+        }
 
         // Preserve the client-reported error type/message so logs are usable.
         await logToDatabase(clientError, JSON.stringify(context), on_page);

@@ -44,6 +44,16 @@ function isNotFoundError(error: any, context: ErrorContext, response: unknown) {
     );
 }
 
+function isChunkUploadError(onPage: string, error: any, context: ErrorContext, status?: number) {
+    const message = error instanceof Error ? error.message : String(error);
+    return (
+        onPage === 'FileUpload:Uploading' ||
+        context.stage === 'chunk_upload' ||
+        status === 413 ||
+        message.includes('upload_failed_413')
+    );
+}
+
 /**
  * Handles client-side errors
  */
@@ -52,32 +62,48 @@ export async function handleClientError(error: any, onPage: string, context: Err
     const errorMessage = error instanceof Error ? error.message : String(error);
     const response = getResponseFromContext(context) ?? getAttachedResponse(error);
     const status = context.status ?? getAttachedStatus(error);
+    const chunkUploadError = isChunkUploadError(onPage, error, context, status);
 
-    console.error(`[Client: ${onPage}] ${errorType}: ${errorMessage}`, {
-        error,
-        status,
-        context,
-        response,
-    });
+    if (!chunkUploadError) {
+        console.error(`[Client: ${onPage}] ${errorType}: ${errorMessage}`, {
+            error,
+            status,
+            context,
+            response,
+        });
+    }
 
     // Try to notify the server about this client error
-    try {
-        await fetch('/bridge/api.v1/log-error', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                on_page: onPage,
-                context: {
-                    type: errorType,
-                    message: errorMessage,
-                    status,
-                    response,
-                    ...context
-                }
-            }),
+    if (!chunkUploadError) {
+        try {
+            await fetch('/bridge/api.v1/log-error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    on_page: onPage,
+                    context: {
+                        type: errorType,
+                        message: errorMessage,
+                        status,
+                        response,
+                        ...context
+                    }
+                }),
+            });
+        } catch (e) {
+            console.error('Failed to report client error to server:', e);
+        }
+    }
+
+    if (chunkUploadError) {
+        const uploadErrorMessage = 'Wait a while, something went wrong. The error has been reported to the management.';
+        console.log(uploadErrorMessage);
+        toast({
+            variant: 'destructive',
+            title: 'Wait a while, something went wrong.',
+            description: 'The error has been reported to the management.',
         });
-    } catch (e) {
-        console.error('Failed to report client error to server:', e);
+        return uploadErrorMessage;
     }
 
     if (isNotFoundError(error, { ...context, status }, response)) {

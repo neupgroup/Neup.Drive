@@ -79,6 +79,19 @@ model ErrorLog {
   created_on  DateTime @default(now())
 }
 
+model SystemError {
+  id         String   @id @default(uuid())
+  on_account String?
+  type       String
+  log        String
+  details    Json     @default("{}")
+  logged_on  DateTime @default(now())
+
+  @@index([on_account])
+  @@index([type])
+  @@map("system_error")
+}
+
 model WebDisk {
   id          String   @id @default(uuid())
   filename    String
