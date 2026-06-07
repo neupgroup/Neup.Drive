@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Copy, Download, Edit3, FolderInput, Grid3x3, List, MoreHorizontal, Share2, Trash2 } from 'lucide-react';
+import { Copy, Download, Edit3, Eye, FolderInput, Grid3x3, List, MoreHorizontal, Share2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { FileOrFolder } from '@/core/lib/types';
 import { Button } from '@/components/ui/button';
@@ -52,7 +52,7 @@ export function FileManager({ initialFiles = [] }: { initialFiles?: FileOrFolder
     event.stopPropagation();
 
     const menuWidth = 224;
-    const menuHeight = 320;
+    const menuHeight = 360;
     const x = Math.min(event.clientX, window.innerWidth - menuWidth - 8);
     const y = Math.min(event.clientY, window.innerHeight - menuHeight - 8);
 
@@ -114,6 +114,11 @@ export function FileManager({ initialFiles = [] }: { initialFiles?: FileOrFolder
     }
     void runOperation(item, { action: 'delete' });
   }, [runOperation]);
+
+  const openItem = React.useCallback((item: FileOrFolder) => {
+    setMenu(null);
+    router.push(`/viewer/${encodeURIComponent(item.id)}`);
+  }, [router]);
 
   return (
     <div className="space-y-4" onContextMenu={(event) => {
@@ -177,6 +182,8 @@ export function FileManager({ initialFiles = [] }: { initialFiles?: FileOrFolder
           <div className="truncate px-2 py-1.5 text-xs font-medium text-muted-foreground">
             {menu.item.name}
           </div>
+          <ContextMenuButton icon={Eye} label="Open" onClick={() => openItem(menu.item)} disabled={busyItemId === menu.item.id} />
+          <div className="-mx-1 my-1 h-px bg-muted" />
           <ContextMenuButton icon={Edit3} label="Rename" onClick={() => renameItem(menu.item)} disabled={busyItemId === menu.item.id} />
           <ContextMenuButton icon={FolderInput} label="Move to Drive" onClick={() => moveItem(menu.item, 'drive')} disabled={busyItemId === menu.item.id} />
           <ContextMenuButton icon={FolderInput} label="Move to Assets" onClick={() => moveItem(menu.item, 'assets')} disabled={busyItemId === menu.item.id} />

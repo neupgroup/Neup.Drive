@@ -218,6 +218,11 @@ export function createBridgeFileUrl(
         return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/private/${encodedPath}?${tokenQuery}`;
     }
 
+    if (folderType === 'drive') {
+        const encodedStoragePath = filefolder.path.split('/').filter(Boolean).map(encodeURIComponent).join('/');
+        return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/drive/${encodedStoragePath}?${tokenQuery}`;
+    }
+
     return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/${encodeURIComponent(folderType)}/${encodedPath}?${tokenQuery}`;
 }
 

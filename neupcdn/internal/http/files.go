@@ -68,17 +68,23 @@ func parseFileRoute(pathValue string) (accountID, accessType, relPath string, ok
 		accessType = "signed"
 		relPath = routeParts[2]
 	case "private":
-		if len(routeParts) < 2 || strings.TrimSpace(routeParts[1]) == "" {
+		relPath = strings.TrimPrefix(remainder, "private/")
+		if strings.TrimSpace(relPath) == "" {
 			return "", "", "", false
 		}
 		accessType = "private"
-		relPath = routeParts[1]
+	case "drive":
+		relPath = strings.TrimPrefix(remainder, "drive/")
+		if strings.TrimSpace(relPath) == "" {
+			return "", "", "", false
+		}
+		accessType = "drive"
 	case "assets":
-		if len(routeParts) < 2 || strings.TrimSpace(routeParts[1]) == "" {
+		relPath = strings.TrimPrefix(remainder, "assets/")
+		if strings.TrimSpace(relPath) == "" {
 			return "", "", "", false
 		}
 		accessType = "assets"
-		relPath = routeParts[1]
 	default:
 		accessType = "assets"
 		relPath = remainder
