@@ -16,9 +16,9 @@ import { FileGridView } from './file-grid-view';
 
 type ViewMode = 'list' | 'grid';
 
-export function FileManager() {
+export function FileManager({ initialFiles = [] }: { initialFiles?: FileOrFolder[] }) {
   const [viewMode, setViewMode] = React.useState<ViewMode>('list');
-  const files: FileOrFolder[] = [];
+  const files = initialFiles;
 
   return (
     <div className="space-y-4">

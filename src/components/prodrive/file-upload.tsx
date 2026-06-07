@@ -225,11 +225,6 @@ export function FileUpload({
 
             // Update state to UPLOADING
             updateQueueItem(readyItem.id, { status: 'UPLOADING', progress: 0 });
-            void logUploadTrace('FileUpload', 'chunk_upload_started', {
-                fileId: readyItem.id,
-                fileName: readyItem.metadata.name,
-                destinationPath: readyItem.uploadInit.destination_path,
-            });
 
             try {
                 await uploadFileChunks(
@@ -243,11 +238,6 @@ export function FileUpload({
 
                 // Update state to VERIFIED (Step 5)
                 updateQueueItem(readyItem.id, { status: 'VERIFIED', progress: 100 });
-                void logUploadTrace('FileUpload', 'chunk_upload_verified', {
-                    fileId: readyItem.id,
-                    fileName: readyItem.metadata.name,
-                    destinationPath: readyItem.uploadInit.destination_path,
-                });
 
                 // Step 6: Finalization - wait for callback or immediate completion
                 // In a real scenario, we might poll for status or wait for socket event
@@ -258,11 +248,6 @@ export function FileUpload({
                 setTimeout(() => {
                     updateQueueItem(readyItem.id, { status: 'DONE' });
                     deleteUpload(readyItem.id).catch(console.error);
-                    void logUploadTrace('FileUpload', 'upload_completed', {
-                        fileId: readyItem.id,
-                        fileName: readyItem.metadata.name,
-                        destinationPath: readyItem.uploadInit!.destination_path,
-                    });
                     onUploadComplete?.(readyItem.uploadInit!.destination_path, readyItem.file);
                     uploadingIdsRef.current.delete(readyItem.id);
                     completionTimerIdsRef.current.delete(readyItem.id);

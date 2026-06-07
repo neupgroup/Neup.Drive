@@ -1,7 +1,5 @@
 import type { UploadInitResponse } from './upload-types';
 import { handleClientError } from './error-client';
-import { identifyError } from './error-types';
-import { logUploadTrace } from './upload-trace';
 
 function extractUploadErrorCode(errorData: unknown): string | undefined {
     if (!errorData || typeof errorData !== 'object') return undefined;
@@ -26,6 +24,7 @@ const MAX_CHUNK_SIZE = 50 * MB;
 const FAST_CHUNK_MS = 1000;
 const SLOW_SPEED_DROP_RATIO = 0.75;
 const SLOW_SPEED_HOLD_MS = 3000;
+const BROWSER_UPLOAD_LOG_INTERVAL_MS = 10_000;
 
 function clampChunkSize(size: number, remainingBytes: number): number {
     return Math.min(Math.max(size, 1), remainingBytes);
@@ -37,6 +36,45 @@ function increaseChunkSize(currentSize: number): number {
 
 function decreaseChunkSize(currentSize: number): number {
     return Math.max(Math.floor(currentSize / 2), MIN_CHUNK_SIZE);
+}
+
+function formatMegabytes(bytes: number): string {
+    const megabytes = bytes / MB;
+    return `${megabytes >= 10 ? megabytes.toFixed(0) : megabytes.toFixed(2)}mb`;
+}
+
+function formatSpeed(bytesPerSecond: number | null): string {
+    if (!bytesPerSecond || !Number.isFinite(bytesPerSecond)) return 'calculating';
+    const megabytesPerSecond = bytesPerSecond / MB;
+    return `${megabytesPerSecond >= 10 ? megabytesPerSecond.toFixed(0) : megabytesPerSecond.toFixed(2)}mb/s`;
+}
+
+function logUploadToBrowser(message: string) {
+    if (typeof window === 'undefined') return;
+    console.info(message);
+}
+
+function chunkUploadMessage(params: {
+    chunkNumber: number;
+    chunkSize: number;
+    filename: string;
+    speedBytesPerSecond: number | null;
+}) {
+    return [
+        `uploading chunk ${params.chunkNumber} of size ${formatMegabytes(params.chunkSize)} of file: "${params.filename}".`,
+        `speed: ${formatSpeed(params.speedBytesPerSecond)}`,
+    ].join('\n');
+}
+
+function fileUploadMessage(params: {
+    filename: string;
+    fileSize: number;
+    speedBytesPerSecond: number | null;
+}) {
+    return [
+        `uploading file: "${params.filename}" of size ${formatMegabytes(params.fileSize)}`,
+        `speed: ${formatSpeed(params.speedBytesPerSecond)}`,
+    ].join('\n');
 }
 
 /**
@@ -57,7 +95,9 @@ export async function uploadFileChunks(
     let chunkIndex = 0;
     let chunkSize = file.size <= MIN_CHUNK_SIZE ? Math.max(file.size, 1) : MIN_CHUNK_SIZE;
     let bestBytesPerSecond = 0;
+    let lastBytesPerSecond: number | null = null;
     let lowSpeedSince: number | null = null;
+    let lastBrowserLogAt = 0;
 
     while (uploadedBytes < file.size) {
         const start = uploadedBytes;
@@ -76,15 +116,40 @@ export async function uploadFileChunks(
             'Content-Type': 'application/octet-stream',
         };
 
+        let statusLogInterval: number | undefined;
+
         try {
             const chunkStartedAt = performance.now();
+            const shouldLogChunkStart = chunkIndex === 0 || chunkStartedAt - lastBrowserLogAt >= BROWSER_UPLOAD_LOG_INTERVAL_MS;
+            if (shouldLogChunkStart) {
+                logUploadToBrowser(chunkUploadMessage({
+                    chunkNumber: chunkIndex + 1,
+                    chunkSize: chunk.size,
+                    filename: file.name,
+                    speedBytesPerSecond: lastBytesPerSecond,
+                }));
+                lastBrowserLogAt = chunkStartedAt;
+            }
+
+            statusLogInterval = typeof window !== 'undefined'
+                ? window.setInterval(() => {
+                    logUploadToBrowser(fileUploadMessage({
+                        filename: file.name,
+                        fileSize: file.size,
+                        speedBytesPerSecond: lastBytesPerSecond,
+                    }));
+                }, BROWSER_UPLOAD_LOG_INTERVAL_MS)
+                : undefined;
+
             const response = await fetch(sessionData.upload_endpoint, {
                 method: 'PUT',
                 headers,
                 body: chunk,
             });
+
             const uploadDurationMs = Math.max(performance.now() - chunkStartedAt, 1);
             const bytesPerSecond = (chunk.size / uploadDurationMs) * 1000;
+            lastBytesPerSecond = bytesPerSecond;
 
             const responseText = await response.text();
             let responseData: unknown = undefined;
@@ -95,27 +160,16 @@ export async function uploadFileChunks(
                     responseData = responseText;
                 }
             }
-            void logUploadTrace('chunked-upload', 'chunk_upload_response', {
-                chunkIndex: chunkIndex + 1,
-                totalChunks: estimatedTotalChunks,
+            logUploadToBrowser(chunkUploadMessage({
+                chunkNumber: chunkIndex + 1,
                 chunkSize: chunk.size,
-                uploadDurationMs,
-                bytesPerSecond,
-                status: response.status,
-                ok: response.ok,
-                response: responseData,
-            });
+                filename: file.name,
+                speedBytesPerSecond: bytesPerSecond,
+            }));
 
             if (response.ok && responseData && typeof responseData === 'object' && 'success' in responseData && (responseData as { success?: unknown }).success === false) {
                 const errorCode = extractUploadErrorCode(responseData) || `upload_failed_${response.status}`;
                 const error = new Error(`CDN upload failed with code ${errorCode}`);
-                void logUploadTrace('chunked-upload', 'chunk_upload_failed', {
-                    chunkIndex: chunkIndex + 1,
-                    totalChunks: estimatedTotalChunks,
-                    status: response.status,
-                    response: responseData,
-                    errorType: identifyError(error),
-                });
                 await handleClientError(
                     error,
                     'chunked-upload',
@@ -134,13 +188,6 @@ export async function uploadFileChunks(
                 // Try to parse error message as JSON
                 const errorCode = extractUploadErrorCode(responseData) || `upload_failed_${response.status}`;
                 const error = new Error(`CDN upload failed with code ${errorCode}`);
-                void logUploadTrace('chunked-upload', 'chunk_upload_failed', {
-                    chunkIndex: chunkIndex + 1,
-                    totalChunks: estimatedTotalChunks,
-                    status: response.status,
-                    response: responseData ?? responseText,
-                    errorType: identifyError(error),
-                });
                 await handleClientError(
                     error,
                     'chunked-upload',
@@ -158,13 +205,6 @@ export async function uploadFileChunks(
             if (responseData && typeof responseData === 'object' && 'success' in responseData && (responseData as { success?: unknown }).success === false) {
                 const errorCode = extractUploadErrorCode(responseData) || `upload_failed_${response.status}`;
                 const error = new Error(`CDN upload failed with code ${errorCode}`);
-                void logUploadTrace('chunked-upload', 'chunk_upload_failed', {
-                    chunkIndex: chunkIndex + 1,
-                    totalChunks: estimatedTotalChunks,
-                    status: response.status,
-                    response: responseData,
-                    errorType: identifyError(error),
-                });
                 await handleClientError(
                     error,
                     'chunked-upload',
@@ -186,7 +226,6 @@ export async function uploadFileChunks(
                 onProgress(progress);
             }
 
-            const previousChunkSize = chunkSize;
             if (bytesPerSecond > bestBytesPerSecond) {
                 bestBytesPerSecond = bytesPerSecond;
                 lowSpeedSince = null;
@@ -207,32 +246,19 @@ export async function uploadFileChunks(
                 lowSpeedSince = null;
             }
 
-            if (chunkSize !== previousChunkSize) {
-                void logUploadTrace('chunked-upload', 'adaptive_chunk_size_changed', {
-                    chunkIndex: chunkIndex + 1,
-                    previousChunkSize,
-                    nextChunkSize: chunkSize,
-                    uploadDurationMs,
-                    bytesPerSecond,
-                    bestBytesPerSecond,
-                });
-            }
-
             chunkIndex += 1;
 
         } catch (error) {
             if (error instanceof TypeError && error.message === 'Failed to fetch') {
                 const networkError = new Error('CDN unreachable: Network error during chunk upload. Please check your internet connection or CDN status.');
-                void logUploadTrace('chunked-upload', 'chunk_upload_network_error', {
-                    chunkIndex: chunkIndex + 1,
-                    totalChunks: estimatedTotalChunks,
-                    errorType: identifyError(networkError),
-                    message: networkError.message,
-                });
                 throw networkError;
             }
             console.error(`Chunk upload error (chunk ${chunkIndex}):`, error);
             throw error;
+        } finally {
+            if (statusLogInterval !== undefined && typeof window !== 'undefined') {
+                window.clearInterval(statusLogInterval);
+            }
         }
     }
 }
