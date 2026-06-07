@@ -45,6 +45,7 @@ model FileFolder {
   path       String
   type       String
   owner      String
+  stored_as  String          @default("drivefile")
   size       BigInt          @default(0)
   details    Json            @default("{}")
   created_on DateTime        @default(now())
@@ -53,6 +54,7 @@ model FileFolder {
 
   @@index([owner])
   @@index([path])
+  @@index([stored_as])
   @@map("filefolder")
 }
 

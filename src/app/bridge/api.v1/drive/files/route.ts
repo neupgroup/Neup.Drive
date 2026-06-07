@@ -46,10 +46,7 @@ export async function GET(request: NextRequest) {
         const files = await prisma.fileFolder.findMany({
             where: {
                 owner: userId,
-                details: {
-                    path: ['mode'],
-                    equals: 'drive',
-                },
+                stored_as: 'drivefile',
             },
             orderBy: {
                 created_on: 'desc'
@@ -70,6 +67,7 @@ export async function GET(request: NextRequest) {
                 ? file.details.mimeType
                 : 'application/octet-stream',
             path: file.path,
+            stored_as: file.stored_as,
             status: typeof file.details === 'object' && file.details && !Array.isArray(file.details) && typeof file.details.status === 'string'
                 ? file.details.status
                 : 'PENDING',

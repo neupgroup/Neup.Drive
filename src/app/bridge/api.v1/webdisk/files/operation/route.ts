@@ -1,7 +1,9 @@
 import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
 import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/lib/cdn-token';
+import { prisma } from '@/lib/db';
 import { handleServerError } from '@/lib/error-server';
+import { webdiskStoredAs } from '@/lib/filefolder';
 
 type WebdiskOperationAction = 'rename' | 'move' | 'delete';
 
@@ -95,6 +97,71 @@ async function callCdnOperation(action: WebdiskOperationAction, token: string) {
     return data as { success: true; action: WebdiskOperationAction; path?: string; destination_path?: string; deleted_path?: string };
 }
 
+function isMissingFileFolderTableError(error: unknown) {
+    return Boolean(
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        (error as { code?: unknown }).code === 'P2021' &&
+        String((error as { message?: unknown }).message ?? '').includes('filefolder')
+    );
+}
+
+async function syncFilefolderOperation(params: {
+    action: WebdiskOperationAction;
+    sourcePath: string;
+    currentType: string;
+    nextType: string;
+    nextName?: string;
+    finalPath: string;
+    cdn: Awaited<ReturnType<typeof callCdnOperation>>;
+}) {
+    try {
+        const filefolder = await prisma.fileFolder.findFirst({
+            where: { path: params.sourcePath },
+            orderBy: { created_on: 'desc' },
+        });
+        if (!filefolder) return;
+
+        const details = filefolder.details && typeof filefolder.details === 'object' && !Array.isArray(filefolder.details)
+            ? filefolder.details
+            : {};
+
+        if (params.action === 'delete') {
+            await prisma.fileFolder.update({
+                where: { id: filefolder.id },
+                data: {
+                    details: {
+                        ...details,
+                        status: 'DELETED',
+                        deleted_on: new Date().toISOString(),
+                        deleted_path: params.cdn.deleted_path ?? params.sourcePath,
+                    },
+                },
+            });
+            return;
+        }
+
+        await prisma.fileFolder.update({
+            where: { id: filefolder.id },
+            data: {
+                name: params.nextName ?? filefolder.name,
+                path: params.finalPath,
+                stored_as: webdiskStoredAs(params.nextType),
+                details: {
+                    ...details,
+                    mode: 'webdisk',
+                    folder_type: params.nextType,
+                    previous_path: params.sourcePath,
+                    status: typeof details.status === 'string' ? details.status : 'VERIFIED',
+                },
+            },
+        });
+    } catch (error) {
+        if (!isMissingFileFolderTableError(error)) throw error;
+    }
+}
+
 export async function POST(request: NextRequest) {
     let body: WebdiskOperationRequest | undefined;
 
@@ -137,6 +204,15 @@ export async function POST(request: NextRequest) {
         }), PRIVATE_KEY);
 
         const cdn = await callCdnOperation(body.action, encodeSignedCdnToken(signedToken));
+        await syncFilefolderOperation({
+            action: body.action,
+            sourcePath,
+            currentType,
+            nextType: body.action === 'move' ? normalizeType(body.to_type) : currentType,
+            nextName: newName,
+            finalPath: cdn.destination_path || cdn.path || destinationPath || sourcePath,
+            cdn,
+        });
         return NextResponse.json({ success: true, action: body.action, cdn });
     } catch (error) {
         return handleServerError(error, '/bridge/api.v1/webdisk/files/operation', { body });

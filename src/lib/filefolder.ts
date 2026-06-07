@@ -2,6 +2,14 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 
 export type FileFolderMode = 'drive' | 'webdisk';
+export type WebdiskStoredType = 'assets' | 'brand' | 'private' | 'signed';
+export type FileFolderStoredAs =
+    | 'webfile'
+    | 'webfile_signed'
+    | 'webfile_private'
+    | 'drivefile';
+
+const WEBDISK_STORED_TYPES = new Set<WebdiskStoredType>(['assets', 'brand', 'private', 'signed']);
 
 export function parseFileFolderMode(mode: string | null): FileFolderMode {
     if (mode === 'webdisk' || mode === 'drive') return mode;
@@ -15,6 +23,17 @@ export function fileFolderTypeFromMime(mimeType?: string | null): string {
     if (category === 'image' && subtype) return `file:${subtype}`;
     if (subtype) return `file:${subtype}`;
     return 'file:unknown';
+}
+
+export function normalizeWebdiskStoredType(value?: string | null): WebdiskStoredType {
+    return WEBDISK_STORED_TYPES.has(value as WebdiskStoredType) ? value as WebdiskStoredType : 'assets';
+}
+
+export function webdiskStoredAs(folderType?: string | null): FileFolderStoredAs {
+    const type = normalizeWebdiskStoredType(folderType);
+    if (type === 'signed') return 'webfile_signed';
+    if (type === 'private') return 'webfile_private';
+    return 'webfile';
 }
 
 export async function createFileFolderLog(params: {
@@ -40,6 +59,7 @@ export async function recordFileFolderUpload(params: {
     owner: string;
     size?: number | bigint | null;
     mode: FileFolderMode;
+    storedAs?: FileFolderStoredAs;
     details: Prisma.InputJsonObject;
     doneBy?: string;
 }) {
@@ -53,6 +73,7 @@ export async function recordFileFolderUpload(params: {
             path: params.path,
             type: fileFolderTypeFromMime(params.mimeType),
             owner: params.owner,
+            stored_as: params.storedAs ?? (params.mode === 'drive' ? 'drivefile' : webdiskStoredAs()),
             size,
             details: {
                 ...params.details,

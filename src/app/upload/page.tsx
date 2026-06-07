@@ -22,7 +22,7 @@ function UploadContent() {
     const saveTo = searchParams.get('saveto');
     const webdiskType = normalizeWebdiskType(searchParams.get('type'));
     const webdiskPath = normalizeUploadPath(searchParams.get('path'));
-    const uploadMode = 'webdisk' as const;
+    const uploadMode = saveTo === 'webdisk' ? 'webdisk' as const : 'drive' as const;
     const uploadInitEndpoint = React.useMemo(() => {
         const params = new URLSearchParams();
         params.set('folder_type', saveTo === 'webdisk' ? webdiskType : uploadMode);

@@ -194,6 +194,7 @@ export async function POST(request: NextRequest) {
                 data: {
                     name: nextName,
                     path: finalPath,
+                    stored_as: 'drivefile',
                     details: {
                         ...details,
                         mode: nextFolderType,
@@ -228,6 +229,7 @@ export async function POST(request: NextRequest) {
                 path: updatedFilefolder.path,
                 type: updatedFilefolder.type,
                 owner: updatedFilefolder.owner,
+                stored_as: updatedFilefolder.stored_as,
                 details: updatedFilefolder.details,
             },
             cdn: cdnResult,

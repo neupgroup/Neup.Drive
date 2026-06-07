@@ -4,7 +4,7 @@ import type { Prisma } from '@prisma/client';
 
 import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/lib/cdn-token';
 import { prisma } from '@/lib/db';
-import { createFileFolderLog, fileFolderTypeFromMime, recordFileFolderUpload } from '@/lib/filefolder';
+import { createFileFolderLog, fileFolderTypeFromMime, recordFileFolderUpload, webdiskStoredAs } from '@/lib/filefolder';
 import { generateNonce } from '@/lib/upload-client';
 import type { UploadInitResponse, UploadSignaturePayload } from '@/lib/upload-types';
 import { signCdnPayloadBase64 } from '@/lib/cdn-token';
@@ -199,7 +199,8 @@ export async function createBridgeUploadInit(params: {
             mimeType: params.mime,
             owner,
             size: params.size,
-            mode: 'drive',
+            mode: folderType === 'drive' ? 'drive' : 'webdisk',
+            storedAs: folderType === 'drive' ? 'drivefile' : webdiskStoredAs(folderType),
             details: {
                 file_id: params.fileId,
                 file_hash: params.fileHash,
@@ -368,6 +369,7 @@ export async function organizeBridgeFile(params: {
                 name: nextName,
                 path: finalPath,
                 type: fileFolderTypeFromMime(typeof details.mimeType === 'string' ? details.mimeType : undefined),
+                stored_as: 'drivefile',
                 details: {
                     ...details,
                     mode: 'drive',

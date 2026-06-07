@@ -4,7 +4,7 @@ import { generateNonce } from '@/lib/upload-client';
 import type { UploadInitRequest, UploadInitResponse, UploadSignaturePayload } from '@/lib/upload-types';
 import { prisma } from '@/lib/db';
 import { handleServerError } from '@/lib/error-server';
-import { parseFileFolderMode, recordFileFolderUpload } from '@/lib/filefolder';
+import { parseFileFolderMode, recordFileFolderUpload, webdiskStoredAs } from '@/lib/filefolder';
 import { signCdnPayloadBase64 } from '@/lib/cdn-token';
 
 // This should be stored securely in environment variables
@@ -148,24 +148,23 @@ export async function POST(request: NextRequest) {
             expires_at
         };
 
-        if (mode === 'drive') {
-            await recordFileFolderUpload({
-                name: filename,
-                path: destination_path,
-                mimeType: mime,
-                owner: userId,
-                size,
-                mode,
-                details: {
-                    file_id,
-                    file_hash,
-                    upload_session_id,
-                    destination_path,
-                    status: 'PENDING',
-                    api_response: response as any,
-                },
-            });
-        }
+        await recordFileFolderUpload({
+            name: filename,
+            path: destination_path,
+            mimeType: mime,
+            owner: userId,
+            size,
+            mode,
+            storedAs: mode === 'drive' ? 'drivefile' : webdiskStoredAs(request.nextUrl.searchParams.get('type')),
+            details: {
+                file_id,
+                file_hash,
+                upload_session_id,
+                destination_path,
+                status: 'PENDING',
+                api_response: response as any,
+            },
+        });
 
         return NextResponse.json(response);
 

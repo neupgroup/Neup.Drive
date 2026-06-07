@@ -11,6 +11,7 @@ import {
 } from '@/lib/bridge-api';
 import { prisma } from '@/lib/db';
 import { handleServerError } from '@/lib/error-server';
+import { webdiskStoredAs } from '@/lib/filefolder';
 
 export async function GET(request: NextRequest) {
     try {
@@ -20,25 +21,14 @@ export async function GET(request: NextRequest) {
 
         const owner = getBridgeOwner(request);
         const folderType = normalizeFolderType(getParam(request, 'folder_type') || getParam(request, 'type'));
+        const storedAs = folderType === 'drive' ? 'drivefile' : webdiskStoredAs(folderType);
         const limitValue = Number(getParam(request, 'limit') || 100);
         const limit = Number.isFinite(limitValue) ? Math.min(Math.max(limitValue, 1), 500) : 100;
 
         const files = await prisma.fileFolder.findMany({
             where: {
                 owner,
-                OR: [
-                    {
-                        details: {
-                            path: ['folder_type'],
-                            equals: folderType,
-                        },
-                    },
-                    {
-                        path: {
-                            startsWith: `uploads/${owner}/${folderType}/`,
-                        },
-                    },
-                ],
+                stored_as: storedAs,
             },
             orderBy: { created_on: 'desc' },
             take: limit,
@@ -57,6 +47,7 @@ export async function GET(request: NextRequest) {
                     name: file.name,
                     path: file.path,
                     type: file.type,
+                    stored_as: file.stored_as,
                     folder_type: getFolderType(file),
                     size: Number(file.size),
                     mimeType: typeof details.mimeType === 'string' ? details.mimeType : 'application/octet-stream',

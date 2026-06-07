@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { handleServerError } from '@/lib/error-server';
-import { createFileFolderLog, recordFileFolderUpload } from '@/lib/filefolder';
+import { createFileFolderLog, recordFileFolderUpload, webdiskStoredAs } from '@/lib/filefolder';
+
+const WEBDISK_TYPES = ['assets', 'brand', 'private', 'signed'];
+
+function getWebdiskTypeFromPath(filePath: string) {
+    const parts = filePath.replace(/^\/+/, '').split('/');
+    const type = parts.length >= 3 ? parts[2] : undefined;
+    return type && WEBDISK_TYPES.includes(type) ? type : 'assets';
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -34,12 +42,14 @@ export async function POST(request: NextRequest) {
             success: true,
             id: record.id,
         };
+        const storedAs = webdiskStoredAs(getWebdiskTypeFromPath(path));
 
         const filefolder = existingFilefolder
             ? await prisma.fileFolder.update({
                 where: { id: existingFilefolder.id },
                 data: {
                     owner: uploaded_by,
+                    stored_as: storedAs,
                     details: {
                         ...(existingFilefolder.details && typeof existingFilefolder.details === 'object' && !Array.isArray(existingFilefolder.details)
                             ? existingFilefolder.details
@@ -59,6 +69,7 @@ export async function POST(request: NextRequest) {
                 owner: uploaded_by,
                 size,
                 mode: 'webdisk',
+                storedAs,
                 doneBy: uploaded_by,
                 details: {
                     legacy_webdisk_id: record.id,
