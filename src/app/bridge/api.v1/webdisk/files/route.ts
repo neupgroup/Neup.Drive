@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import path from 'node:path';
-import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/lib/cdn-token';
+import { getRequestDeviceIp } from '@/lib/bridge-api';
+import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken, formatDurationToken, parseDurationSeconds } from '@/lib/cdn-token';
 import { handleServerError } from '@/lib/error-server';
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
@@ -32,7 +33,17 @@ function getCdnBaseUrl() {
     return 'http://localhost:3001';
 }
 
-function fileUrl(filePath: string) {
+function getWebdiskType(relativePath: string) {
+    const [type] = relativePath.split('/');
+    return type === 'signed' || type === 'private' ? type : 'assets';
+}
+
+function stripWebdiskType(relativePath: string, folderType: string) {
+    const prefix = `${folderType}/`;
+    return relativePath.startsWith(prefix) ? relativePath.slice(prefix.length) : relativePath;
+}
+
+function fileUrl(filePath: string, request: NextRequest) {
     const cleanPath = filePath.replace(/^\/+/, '');
     const accountPrefix = `uploads/${WEBDISK_ACCOUNT_ID}/`;
     const relativePath = cleanPath.startsWith(accountPrefix)
@@ -40,18 +51,36 @@ function fileUrl(filePath: string) {
         : cleanPath.startsWith('uploads/')
             ? cleanPath.slice('uploads/'.length)
             : cleanPath;
+    const folderType = getWebdiskType(relativePath);
+    const exposedPath = stripWebdiskType(relativePath, folderType);
+    const encodedPath = exposedPath.split('/').filter(Boolean).map(encodeURIComponent).join('/');
+
+    if (folderType === 'assets') {
+        return `${CDN_BASE_URL}/files/${encodeURIComponent(WEBDISK_ACCOUNT_ID)}/${encodedPath}`;
+    }
+    const expiresIn = request.nextUrl.searchParams.get('expires_in') || request.nextUrl.searchParams.get('expires');
+    const expiresInSeconds = parseDurationSeconds(expiresIn, {
+        min: 60,
+        max: folderType === 'private' ? 60 * 60 : 24 * 60 * 60,
+        fallback: 15 * 60,
+    });
 
     const signedToken = createSignedCdnToken(createExpiringOperationPayload({
         action: 'view',
         account_id: WEBDISK_ACCOUNT_ID,
         account_folder: WEBDISK_ACCOUNT_ID,
-        folder_type: 'webdisk',
+        folder_type: folderType,
         path: cleanPath,
         method: 'GET',
-    }), PRIVATE_KEY);
+        device_ip: folderType === 'private' ? getRequestDeviceIp(request) : undefined,
+        user_agent: folderType === 'private' ? request.headers.get('user-agent') || '' : undefined,
+    }, expiresInSeconds), PRIVATE_KEY);
 
-    const encodedPath = relativePath.split('/').map(encodeURIComponent).join('/');
-    return `${CDN_BASE_URL}/files/${encodeURIComponent(WEBDISK_ACCOUNT_ID)}/webdisk/${encodedPath}?token=${encodeURIComponent(encodeSignedCdnToken(signedToken))}`;
+    if (folderType === 'signed') {
+        return `${CDN_BASE_URL}/files/${encodeURIComponent(WEBDISK_ACCOUNT_ID)}/signed/${formatDurationToken(expiresInSeconds)}/${encodedPath}?token=${encodeURIComponent(encodeSignedCdnToken(signedToken))}`;
+    }
+
+    return `${CDN_BASE_URL}/files/${encodeURIComponent(WEBDISK_ACCOUNT_ID)}/private/${encodedPath}?token=${encodeURIComponent(encodeSignedCdnToken(signedToken))}`;
 }
 
 async function listCdnFiles() {
@@ -87,7 +116,7 @@ async function listCdnFiles() {
     return data.files as CdnListedFile[];
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
         if (!PRIVATE_KEY) {
             return NextResponse.json({ error: 'Server configuration error: Missing private key' }, { status: 500 });
@@ -97,7 +126,7 @@ export async function GET() {
         const mappedFiles = files.map((file) => ({
             id: file.path,
             filename: file.name,
-            path: fileUrl(file.path),
+            path: fileUrl(file.path, request),
             cdn_path: file.path,
             mimeType: file.mime_type || 'application/octet-stream',
             uploaded_by: WEBDISK_ACCOUNT_ID,

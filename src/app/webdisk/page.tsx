@@ -37,7 +37,6 @@ interface WebDiskFolder {
 
 const WEBDISK_TYPES = [
   { id: 'assets', label: 'Assets' },
-  { id: 'brand', label: 'Brand' },
   { id: 'private', label: 'Private' },
   { id: 'signed', label: 'Signed' },
 ];
@@ -324,12 +323,12 @@ function WebdiskContent() {
     }
 
     if (action === 'move') {
-      const destinationType = window.prompt('Organize into type: assets, brand, private, or signed', selectedType);
+      const destinationType = window.prompt('Organize into type: assets, private, or signed', selectedType);
       if (!destinationType) return;
 
       const normalizedType = destinationType.trim();
       if (!WEBDISK_TYPES.some((type) => type.id === normalizedType)) {
-        setError('Invalid type. Use assets, brand, private, or signed.');
+        setError('Invalid type. Use assets, private, or signed.');
         return;
       }
 

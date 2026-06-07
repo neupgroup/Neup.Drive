@@ -20,6 +20,7 @@ interface FileOperationRequest {
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 const CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
 const CDN_OPERATION_BASE = getCdnOperationBase();
+const FOLDER_TYPES = new Set(['drive', 'assets', 'private', 'signed']);
 
 function getDetails(details: Prisma.JsonValue): Prisma.JsonObject {
     return details && typeof details === 'object' && !Array.isArray(details) ? details : {};
@@ -62,6 +63,9 @@ function normalizeInternalPath(value: string) {
 
 function makeDestinationPath(owner: string, toFolderType: string, filename: string, destinationInternalPath?: string) {
     const safeFolderType = assertSafePathSegment(toFolderType, 'to_folder_type');
+    if (!FOLDER_TYPES.has(safeFolderType)) {
+        throw new Error('Invalid to_folder_type');
+    }
     const internalPath = destinationInternalPath
         ? normalizeInternalPath(destinationInternalPath)
         : path.posix.join(safeFolderType, filename);

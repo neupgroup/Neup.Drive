@@ -2,7 +2,13 @@ import path from 'node:path';
 import type { NextRequest } from 'next/server';
 import type { Prisma } from '@prisma/client';
 
-import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/lib/cdn-token';
+import {
+    createExpiringOperationPayload,
+    createSignedCdnToken,
+    encodeSignedCdnToken,
+    formatDurationToken,
+    parseDurationSeconds,
+} from '@/lib/cdn-token';
 import { prisma } from '@/lib/db';
 import { createFileFolderLog, fileFolderTypeFromMime, recordFileFolderUpload, webdiskStoredAs } from '@/lib/filefolder';
 import { generateNonce } from '@/lib/upload-client';
@@ -16,6 +22,7 @@ export const BRIDGE_UPLOAD_URL = process.env.CDN_UPLOAD_URL || 'https://neupcdn.
 export const BRIDGE_CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
 export const BRIDGE_CDN_OPERATION_BASE = getCdnOperationBase();
 export const DEFAULT_BRIDGE_OWNER = 'demo-user-123';
+const BRIDGE_FOLDER_TYPES = new Set(['drive', 'assets', 'private', 'signed']);
 
 export function getBridgeOwner(request: NextRequest) {
     return (
@@ -29,6 +36,12 @@ export function getBridgeOwner(request: NextRequest) {
 
 export function getParam(request: NextRequest, name: string) {
     return request.nextUrl.searchParams.get(name) || request.headers.get(`x-${name.replace(/_/g, '-')}`);
+}
+
+export function getRequestDeviceIp(request: NextRequest) {
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    if (forwardedFor) return forwardedFor.split(',')[0]?.trim() || '';
+    return request.headers.get('cf-connecting-ip') || request.headers.get('x-real-ip') || (request as unknown as { ip?: string }).ip || '';
 }
 
 export function getDetails(details: Prisma.JsonValue): Prisma.JsonObject {
@@ -58,7 +71,11 @@ export function sanitizeFilename(filename: string) {
 }
 
 export function normalizeFolderType(folderType?: string | null) {
-    return assertSafePathSegment((folderType || 'drive').trim(), 'folder_type');
+    const safeFolderType = assertSafePathSegment((folderType || 'drive').trim(), 'folder_type');
+    if (!BRIDGE_FOLDER_TYPES.has(safeFolderType)) {
+        throw new Error('Invalid folder_type');
+    }
+    return safeFolderType;
 }
 
 export function buildBridgeStoragePath(params: {
@@ -93,7 +110,15 @@ export function getFolderType(filefolder: { path: string; details: Prisma.JsonVa
     return parts.length >= 3 ? parts[2] : 'drive';
 }
 
-export function createBridgeViewToken(filefolder: { owner: string; path: string; details: Prisma.JsonValue }, action: 'view' | 'download' = 'view') {
+export function createBridgeViewToken(
+    filefolder: { owner: string; path: string; details: Prisma.JsonValue },
+    action: 'view' | 'download' = 'view',
+    options: {
+        expiresInSeconds?: number;
+        deviceIp?: string;
+        userAgent?: string;
+    } = {},
+) {
     const folderType = getFolderType(filefolder);
     return encodeSignedCdnToken(createSignedCdnToken(createExpiringOperationPayload({
         action: 'view',
@@ -102,16 +127,60 @@ export function createBridgeViewToken(filefolder: { owner: string; path: string;
         folder_type: folderType,
         path: filefolder.path,
         method: 'GET',
-    }), BRIDGE_PRIVATE_KEY));
+        device_ip: options.deviceIp,
+        user_agent: options.userAgent,
+    }, options.expiresInSeconds), BRIDGE_PRIVATE_KEY));
 }
 
-export function createBridgeFileUrl(filefolder: { owner: string; path: string; details: Prisma.JsonValue }, action: 'view' | 'download' = 'view') {
+function stripFolderType(relativePath: string, folderType: string) {
+    const prefix = `${folderType}/`;
+    return relativePath === folderType ? '' : relativePath.startsWith(prefix) ? relativePath.slice(prefix.length) : relativePath;
+}
+
+export function createBridgeFileUrl(
+    filefolder: { owner: string; path: string; details: Prisma.JsonValue },
+    action: 'view' | 'download' = 'view',
+    options: {
+        expiresIn?: string | null;
+        expiresInSeconds?: number;
+        deviceIp?: string;
+        userAgent?: string;
+    } = {},
+) {
     const folderType = getFolderType(filefolder);
     const relativePath = toAccountRelativePath(filefolder.path, filefolder.owner);
-    const encodedPath = relativePath.split('/').map(encodeURIComponent).join('/');
-    const token = createBridgeViewToken(filefolder, action);
+    const exposedPath = folderType === 'assets' || folderType === 'signed' || folderType === 'private'
+        ? stripFolderType(relativePath, folderType)
+        : relativePath;
+    const encodedPath = exposedPath.split('/').filter(Boolean).map(encodeURIComponent).join('/');
+
+    if (folderType === 'assets') {
+        return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/${encodedPath}`;
+    }
+
+    const maxSeconds = folderType === 'private' ? 60 * 60 : 24 * 60 * 60;
+    const expiresInSeconds = options.expiresInSeconds ?? parseDurationSeconds(options.expiresIn, {
+        min: folderType === 'private' ? 60 : 60,
+        max: maxSeconds,
+        fallback: 15 * 60,
+    });
+    const token = createBridgeViewToken(filefolder, action, {
+        expiresInSeconds,
+        deviceIp: options.deviceIp,
+        userAgent: options.userAgent,
+    });
     const disposition = action === 'download' ? '&download=1' : '';
-    return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/${encodeURIComponent(folderType)}/${encodedPath}?token=${encodeURIComponent(token)}${disposition}`;
+    const tokenQuery = `token=${encodeURIComponent(token)}${disposition}`;
+
+    if (folderType === 'signed') {
+        return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/signed/${formatDurationToken(expiresInSeconds)}/${encodedPath}?${tokenQuery}`;
+    }
+
+    if (folderType === 'private') {
+        return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/private/${encodedPath}?${tokenQuery}`;
+    }
+
+    return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/${encodeURIComponent(folderType)}/${encodedPath}?${tokenQuery}`;
 }
 
 export async function createBridgeUploadInit(params: {

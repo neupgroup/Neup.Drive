@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useSearchParams } from 'next/navigation';
 import { FileUpload } from '@/components/prodrive/file-upload';
 
-const WEBDISK_TYPES = ['assets', 'brand', 'private', 'signed'];
+const WEBDISK_TYPES = ['assets', 'private', 'signed'];
 
 function normalizeWebdiskType(value: string | null) {
     return value && WEBDISK_TYPES.includes(value) ? value : 'assets';

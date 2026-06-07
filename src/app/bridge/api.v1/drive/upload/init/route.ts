@@ -11,7 +11,7 @@ import { signCdnPayloadBase64 } from '@/lib/cdn-token';
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 // Production CDN URL
 const CDN_URL = process.env.CDN_UPLOAD_URL || 'https://neupcdn.com/upload';
-const WEBDISK_TYPES = ['assets', 'brand', 'private', 'signed'];
+const WEBDISK_TYPES = ['assets', 'private', 'signed'];
 
 async function createSignature(payloadBase64: string, privateKeyHex: string): Promise<string> {
     return signCdnPayloadBase64(payloadBase64, privateKeyHex);

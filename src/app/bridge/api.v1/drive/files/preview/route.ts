@@ -1,35 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 
-import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/lib/cdn-token';
+import { createBridgeFileUrl, getFolderType, getParam, getRequestDeviceIp } from '@/lib/bridge-api';
+import { parseDurationSeconds } from '@/lib/cdn-token';
 import { prisma } from '@/lib/db';
 import { handleServerError } from '@/lib/error-server';
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
-const CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
 
 function getDetails(details: Prisma.JsonValue): Prisma.JsonObject {
     return details && typeof details === 'object' && !Array.isArray(details) ? details : {};
 }
 
-function toAccountRelativePath(filePath: string, owner: string) {
-    const cleanPath = filePath.replace(/^\/+/, '');
-    const prefix = `uploads/${owner}/`;
-    if (cleanPath.startsWith(prefix)) {
-        return cleanPath.slice(prefix.length);
-    }
-    if (cleanPath.startsWith('uploads/')) {
-        return cleanPath.slice('uploads/'.length);
-    }
-    return cleanPath;
-}
-
 export async function GET(request: NextRequest) {
     try {
-        if (!PRIVATE_KEY) {
-            return NextResponse.json({ error: 'Server configuration error: Missing private key' }, { status: 500 });
-        }
-
         const filefolderId = request.nextUrl.searchParams.get('filefolder_id');
         if (!filefolderId) {
             return NextResponse.json({ error: 'filefolder_id is required' }, { status: 400 });
@@ -48,24 +32,28 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'File is deleted' }, { status: 410 });
         }
 
-        const folderType = typeof details.mode === 'string' ? details.mode : 'drive';
-        const relativePath = toAccountRelativePath(filefolder.path, filefolder.owner);
-        const signedToken = createSignedCdnToken(createExpiringOperationPayload({
-            action: 'view',
-            account_id: filefolder.owner,
-            account_folder: filefolder.owner,
-            folder_type: folderType,
-            path: filefolder.path,
-            method: 'GET',
-        }), PRIVATE_KEY);
-        const token = encodeSignedCdnToken(signedToken);
-        const encodedPath = relativePath.split('/').map(encodeURIComponent).join('/');
+        const folderType = getFolderType(filefolder);
+        if (folderType !== 'assets' && !PRIVATE_KEY) {
+            return NextResponse.json({ error: 'Server configuration error: Missing private key' }, { status: 500 });
+        }
+
+        const expiresIn = getParam(request, 'expires_in') || getParam(request, 'expires');
+        const expiresInSeconds = parseDurationSeconds(expiresIn, {
+            min: 60,
+            max: folderType === 'private' ? 60 * 60 : 24 * 60 * 60,
+            fallback: 15 * 60,
+        });
 
         return NextResponse.json({
             success: true,
             filefolder_id: filefolder.id,
-            expires_at: Math.floor(Date.now() / 1000) + 15 * 60,
-            view_url: `${CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/${encodeURIComponent(folderType)}/${encodedPath}?token=${encodeURIComponent(token)}`,
+            expires_at: Math.floor(Date.now() / 1000) + expiresInSeconds,
+            view_url: createBridgeFileUrl(filefolder, 'view', {
+                expiresIn,
+                expiresInSeconds,
+                deviceIp: getParam(request, 'device_ip') || getRequestDeviceIp(request),
+                userAgent: getParam(request, 'user_agent') || request.headers.get('user-agent') || '',
+            }),
         });
     } catch (error) {
         return handleServerError(error, 'bridge/api.v1/drive/files/preview');

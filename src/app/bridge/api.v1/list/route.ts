@@ -7,6 +7,7 @@ import {
     getDetails,
     getFolderType,
     getParam,
+    getRequestDeviceIp,
     normalizeFolderType,
 } from '@/lib/bridge-api';
 import { prisma } from '@/lib/db';
@@ -15,13 +16,17 @@ import { webdiskStoredAs } from '@/lib/filefolder';
 
 export async function GET(request: NextRequest) {
     try {
-        if (!BRIDGE_PRIVATE_KEY) {
+        const owner = getBridgeOwner(request);
+        const folderType = normalizeFolderType(getParam(request, 'folder_type') || getParam(request, 'type'));
+        if (folderType !== 'assets' && !BRIDGE_PRIVATE_KEY) {
             return NextResponse.json({ error: 'Server configuration error: Missing private key' }, { status: 500 });
         }
 
-        const owner = getBridgeOwner(request);
-        const folderType = normalizeFolderType(getParam(request, 'folder_type') || getParam(request, 'type'));
         const storedAs = folderType === 'drive' ? 'drivefile' : webdiskStoredAs(folderType);
+        const tokenOptions = {
+            deviceIp: getRequestDeviceIp(request),
+            userAgent: request.headers.get('user-agent') || '',
+        };
         const limitValue = Number(getParam(request, 'limit') || 100);
         const limit = Number.isFinite(limitValue) ? Math.min(Math.max(limitValue, 1), 500) : 100;
 
@@ -54,7 +59,7 @@ export async function GET(request: NextRequest) {
                     status: typeof details.status === 'string' ? details.status : 'PENDING',
                     created_on: file.created_on,
                     updated_on: file.updated_on,
-                    url: createBridgeFileUrl(file, 'view'),
+                    url: createBridgeFileUrl(file, 'view', tokenOptions),
                     details,
                 };
             }),

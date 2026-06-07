@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"mime"
+	"net"
 	"net/http"
 	"os"
 	"path"
@@ -19,12 +20,26 @@ func routeNotFound(w http.ResponseWriter) {
 }
 
 func isPublicAccessType(accessType string) bool {
-	switch accessType {
-	case "public", "direct":
-		return true
-	default:
+	return accessType == "assets" || accessType == "public" || accessType == "direct"
+}
+
+func isSignedDuration(value string) bool {
+	if len(value) < 2 {
 		return false
 	}
+
+	unit := value[len(value)-1]
+	if unit != 'm' && unit != 'h' {
+		return false
+	}
+
+	for _, char := range value[:len(value)-1] {
+		if char < '0' || char > '9' {
+			return false
+		}
+	}
+
+	return true
 }
 
 func parseFileRoute(pathValue string) (accountID, accessType, relPath string, ok bool) {
@@ -33,23 +48,46 @@ func parseFileRoute(pathValue string) (accountID, accessType, relPath string, ok
 		return "", "", "", false
 	}
 
-	parts := strings.SplitN(cleaned, "/", 3)
-	if len(parts) != 3 {
+	parts := strings.SplitN(cleaned, "/", 2)
+	if len(parts) != 2 {
 		return "", "", "", false
 	}
 
 	accountID = strings.TrimSpace(parts[0])
-	accessType = strings.TrimSpace(parts[1])
-	relPath = strings.TrimSpace(parts[2])
-
-	if accountID == "" || accessType == "" || relPath == "" {
+	remainder := strings.TrimSpace(parts[1])
+	if accountID == "" || remainder == "" {
 		return "", "", "", false
+	}
+
+	routeParts := strings.SplitN(remainder, "/", 3)
+	switch routeParts[0] {
+	case "signed":
+		if len(routeParts) != 3 || !isSignedDuration(routeParts[1]) || routeParts[2] == "" {
+			return "", "", "", false
+		}
+		accessType = "signed"
+		relPath = routeParts[2]
+	case "private":
+		if len(routeParts) < 2 || strings.TrimSpace(routeParts[1]) == "" {
+			return "", "", "", false
+		}
+		accessType = "private"
+		relPath = routeParts[1]
+	case "assets":
+		if len(routeParts) < 2 || strings.TrimSpace(routeParts[1]) == "" {
+			return "", "", "", false
+		}
+		accessType = "assets"
+		relPath = routeParts[1]
+	default:
+		accessType = "assets"
+		relPath = remainder
 	}
 
 	return accountID, accessType, relPath, true
 }
 
-func resolveStorageRelativePath(accountID, relPath string) (string, bool) {
+func resolveStorageRelativePath(accountID, accessType, relPath string) (string, bool) {
 	cleaned := filepath.ToSlash(strings.TrimPrefix(strings.TrimSpace(relPath), "/"))
 	if cleaned == "" {
 		return "", false
@@ -67,7 +105,35 @@ func resolveStorageRelativePath(accountID, relPath string) (string, bool) {
 		return "", false
 	}
 
+	typePrefix := accessType + "/"
+	if accessType != "" && accessType != "drive" && !strings.HasPrefix(cleaned, typePrefix) {
+		cleaned = path.Join(accessType, cleaned)
+	}
+
 	return path.Join("uploads", accountID, cleaned), true
+}
+
+func requestDeviceIP(r *http.Request) string {
+	for _, header := range []string{"CF-Connecting-IP", "X-Real-IP", "X-Forwarded-For"} {
+		value := strings.TrimSpace(r.Header.Get(header))
+		if value == "" {
+			continue
+		}
+		if header == "X-Forwarded-For" {
+			value = strings.TrimSpace(strings.Split(value, ",")[0])
+		}
+		if value != "" {
+			return value
+		}
+	}
+
+	host := r.RemoteAddr
+	if strings.Contains(host, ":") {
+		if withoutPort, _, err := net.SplitHostPort(host); err == nil {
+			return withoutPort
+		}
+	}
+	return host
 }
 
 func FileOperationHandler(w http.ResponseWriter, r *http.Request) {
@@ -168,7 +234,7 @@ func FileServeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resolvedRelPath, ok := resolveStorageRelativePath(accountID, relPath)
+	resolvedRelPath, ok := resolveStorageRelativePath(accountID, accessType, relPath)
 	if !ok {
 		routeNotFound(w)
 		return
@@ -194,6 +260,17 @@ func FileServeHandler(w http.ResponseWriter, r *http.Request) {
 		if claims.AccountFolder != accountID || claims.FolderType != accessType {
 			TokenNotFound(w, "Token does not match the requested file path", nil)
 			return
+		}
+
+		if accessType == "private" {
+			if claims.DeviceIP == "" || claims.UserAgent == "" {
+				TokenNotFound(w, "Private file token is missing device claims", nil)
+				return
+			}
+			if claims.DeviceIP != requestDeviceIP(r) || claims.UserAgent != r.UserAgent() {
+				TokenNotFound(w, "Private file token does not match this device", nil)
+				return
+			}
 		}
 
 		tokenPath, err := safePublicPath(claims.Path)

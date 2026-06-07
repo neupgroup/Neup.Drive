@@ -2,14 +2,14 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 
 export type FileFolderMode = 'drive' | 'webdisk';
-export type WebdiskStoredType = 'assets' | 'brand' | 'private' | 'signed';
+export type WebdiskStoredType = 'assets' | 'private' | 'signed';
 export type FileFolderStoredAs =
     | 'webfile'
     | 'webfile_signed'
     | 'webfile_private'
     | 'drivefile';
 
-const WEBDISK_STORED_TYPES = new Set<WebdiskStoredType>(['assets', 'brand', 'private', 'signed']);
+const WEBDISK_STORED_TYPES = new Set<WebdiskStoredType>(['assets', 'private', 'signed']);
 
 export function parseFileFolderMode(mode: string | null): FileFolderMode {
     if (mode === 'webdisk' || mode === 'drive') return mode;

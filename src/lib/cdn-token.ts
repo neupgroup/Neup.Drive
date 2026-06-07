@@ -12,6 +12,8 @@ export interface CdnFileOperationPayload {
     new_name?: string;
     method: 'GET' | 'POST';
     expires_at: number;
+    device_ip?: string;
+    user_agent?: string;
     nonce: string;
     key_id: string;
 }
@@ -81,10 +83,30 @@ export function createSignedCdnToken(payload: CdnFileOperationPayload, privateKe
     };
 }
 
-export function createExpiringOperationPayload(params: Omit<CdnFileOperationPayload, 'expires_at' | 'nonce' | 'key_id'>): CdnFileOperationPayload {
+export function parseDurationSeconds(value?: string | null, defaults = { min: 60, max: 15 * 60, fallback: 15 * 60 }) {
+    const cleaned = (value || '').trim().toLowerCase();
+    if (!cleaned) return defaults.fallback;
+
+    const match = cleaned.match(/^(\d+)(m|h)$/);
+    if (!match) return defaults.fallback;
+
+    const amount = Number(match[1]);
+    const seconds = match[2] === 'h' ? amount * 60 * 60 : amount * 60;
+    return Math.min(Math.max(seconds, defaults.min), defaults.max);
+}
+
+export function formatDurationToken(seconds: number) {
+    if (seconds % 3600 === 0) return `${seconds / 3600}h`;
+    return `${Math.ceil(seconds / 60)}m`;
+}
+
+export function createExpiringOperationPayload(
+    params: Omit<CdnFileOperationPayload, 'expires_at' | 'nonce' | 'key_id'>,
+    expiresInSeconds = 15 * 60,
+): CdnFileOperationPayload {
     return {
         ...params,
-        expires_at: Math.floor(Date.now() / 1000) + 15 * 60,
+        expires_at: Math.floor(Date.now() / 1000) + expiresInSeconds,
         nonce: crypto.randomUUID(),
         key_id: process.env.CDN_SIGNING_KEY_ID || 'drive-key',
     };

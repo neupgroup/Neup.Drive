@@ -82,9 +82,12 @@ Requires a signed file-operation token and returns the file listing as JSON.
 Each endpoint requires a matching signed file-operation token.
 
 ### 4. File Access
-**Endpoint**: `GET /files/{accountId}/{type}/{relativePath}`
+**Endpoints**:
+- Public assets: `GET /files/{accountId}/{relativePath}`
+- Signed files: `GET /files/{accountId}/signed/{duration}/{relativePath}` with `duration` like `9m` or `24h`
+- Private files: `GET /files/{accountId}/private/{relativePath}`
 
-This is the canonical file-access route. Non-public access types require a short-lived signed token.
+Assets do not require tokens. Signed and private files require a short-lived signed token; private tokens are also bound to the request IP and user agent.
 
 ### 5. Not Found Response
 Any unknown route returns:

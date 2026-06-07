@@ -41,6 +41,8 @@ type FileOperationPayload struct {
 	NewName         string `json:"new_name,omitempty"`
 	Method          string `json:"method"`
 	ExpiresAt       int64  `json:"expires_at"`
+	DeviceIP        string `json:"device_ip,omitempty"`
+	UserAgent       string `json:"user_agent,omitempty"`
 	Nonce           string `json:"nonce"`
 	KeyID           string `json:"key_id"`
 }
