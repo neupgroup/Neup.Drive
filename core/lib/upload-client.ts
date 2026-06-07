@@ -49,9 +49,16 @@ export async function initializeUpload(
         const error = new Error(errorMessage) as Error & {
             status?: number;
             response?: unknown;
+            code?: string;
+            suggestedFilename?: string;
         };
         error.status = response.status;
         error.response = parsedResponse;
+        if (parsedResponse && typeof parsedResponse === 'object') {
+            const responseData = parsedResponse as Record<string, unknown>;
+            if (typeof responseData.code === 'string') error.code = responseData.code;
+            if (typeof responseData.suggested_filename === 'string') error.suggestedFilename = responseData.suggested_filename;
+        }
         throw error;
     }
 

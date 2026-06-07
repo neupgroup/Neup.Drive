@@ -4,8 +4,10 @@ import {
     BRIDGE_PRIVATE_KEY,
     createBridgeUploadInit,
     DEFAULT_BRIDGE_OWNER,
+    getDuplicateWebdiskFilename,
     getBridgeOwner,
     getParam,
+    normalizeFolderType,
 } from '@/core/lib/bridge-api';
 import { handleServerError } from '@/core/lib/error-server';
 import type { UploadInitRequest } from '@/core/lib/upload-types';
@@ -39,12 +41,31 @@ export async function GET(request: NextRequest) {
         const fileHash = getParam(request, 'file_hash') || getParam(request, 'hash');
         const folderType = getParam(request, 'folder_type') || getParam(request, 'type');
         const internalPath = getParam(request, 'path') || getParam(request, 'folder_path');
+        const normalizedFolderType = normalizeFolderType(folderType);
 
         const size = Number(sizeValue);
         if (!filename || !sizeValue || !Number.isFinite(size) || size <= 0 || !fileHash) {
             return NextResponse.json({
                 error: 'filename, size, and file_hash are required',
             }, { status: 400 });
+        }
+
+        if (normalizedFolderType !== 'drive') {
+            const duplicate = await getDuplicateWebdiskFilename({
+                owner,
+                folderType: normalizedFolderType,
+                filename,
+                internalPath,
+            });
+            if (duplicate) {
+                return NextResponse.json({
+                    success: false,
+                    code: 'duplicate_webdisk_filename',
+                    error: `A file named "${filename}" already exists in this WebDisk folder.`,
+                    filename,
+                    suggested_filename: duplicate.suggestedFilename,
+                }, { status: 409 });
+            }
         }
 
         const response = await createBridgeUploadInit({
@@ -54,7 +75,7 @@ export async function GET(request: NextRequest) {
             size,
             mime,
             fileHash,
-            folderType,
+            folderType: normalizedFolderType,
             internalPath,
         });
 
@@ -90,11 +111,30 @@ export async function POST(request: NextRequest) {
         const fileHash = getBodyValue(body, 'file_hash') || getBodyValue(body, 'hash');
         const folderType = getParam(request, 'folder_type') || getParam(request, 'type') || getBodyValue(body, 'folder_type') || getBodyValue(body, 'type');
         const internalPath = getParam(request, 'path') || getParam(request, 'folder_path') || getBodyValue(body, 'path') || getBodyValue(body, 'folder_path');
+        const normalizedFolderType = normalizeFolderType(folderType);
 
         if (!filename || !Number.isFinite(size) || size <= 0 || !fileHash) {
             return NextResponse.json({
                 error: 'filename, size, and file_hash are required',
             }, { status: 400 });
+        }
+
+        if (normalizedFolderType !== 'drive') {
+            const duplicate = await getDuplicateWebdiskFilename({
+                owner,
+                folderType: normalizedFolderType,
+                filename,
+                internalPath,
+            });
+            if (duplicate) {
+                return NextResponse.json({
+                    success: false,
+                    code: 'duplicate_webdisk_filename',
+                    error: `A file named "${filename}" already exists in this WebDisk folder.`,
+                    filename,
+                    suggested_filename: duplicate.suggestedFilename,
+                }, { status: 409 });
+            }
         }
 
         const response = await createBridgeUploadInit({
@@ -104,7 +144,7 @@ export async function POST(request: NextRequest) {
             size,
             mime,
             fileHash,
-            folderType,
+            folderType: normalizedFolderType,
             internalPath,
         });
 

@@ -6,6 +6,7 @@ import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
 import { parseFileFolderMode, recordFileFolderUpload, webdiskStoredAs } from '@/core/lib/filefolder';
 import { signCdnPayloadBase64 } from '@/core/lib/cdn-token';
+import { getDuplicateWebdiskFilename, sanitizeFilename } from '@/core/lib/bridge-api';
 
 // This should be stored securely in environment variables
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
@@ -87,15 +88,31 @@ export async function POST(request: NextRequest) {
         // 3. Generate Upload Session & Token
         const upload_session_id = crypto.randomUUID();
         const timestamp = Date.now();
-        const sanitizedName = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const destination_path = mode === 'webdisk' && saveTo === 'webdisk'
-            ? path.posix.join(
-                'uploads',
-                userId,
-                normalizeWebdiskType(request.nextUrl.searchParams.get('type')),
-                normalizeWebdiskPath(request.nextUrl.searchParams.get('path')),
-                `${timestamp}-${sanitizedName}`,
-            )
+        const sanitizedName = sanitizeFilename(filename);
+        const webdiskType = normalizeWebdiskType(request.nextUrl.searchParams.get('type'));
+        const webdiskPath = normalizeWebdiskPath(request.nextUrl.searchParams.get('path'));
+        const isWebdiskUpload = mode === 'webdisk' && saveTo === 'webdisk';
+
+        if (isWebdiskUpload) {
+            const duplicate = await getDuplicateWebdiskFilename({
+                owner: userId,
+                folderType: webdiskType,
+                filename: sanitizedName,
+                internalPath: webdiskPath,
+            });
+            if (duplicate) {
+                return NextResponse.json({
+                    success: false,
+                    code: 'duplicate_webdisk_filename',
+                    error: `A file named "${filename}" already exists in this WebDisk folder.`,
+                    filename,
+                    suggested_filename: duplicate.suggestedFilename,
+                }, { status: 409 });
+            }
+        }
+
+        const destination_path = isWebdiskUpload
+            ? path.posix.join('uploads', userId, webdiskType, webdiskPath, sanitizedName)
             : `uploads/${userId}/${timestamp}-${sanitizedName}`;
         const expires_at = Math.floor(Date.now() / 1000) + (15 * 60); // 15 minutes expiration
 

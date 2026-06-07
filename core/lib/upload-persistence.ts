@@ -4,7 +4,7 @@ const DB_NAME = 'neupdrive_uploads';
 const DB_VERSION = 1;
 const STORE_NAME = 'uploads';
 
-export type FileState = 'PENDING' | 'HASHING' | 'HASHED' | 'TOKEN_ISSUED' | 'UPLOADING' | 'VERIFIED' | 'DONE' | 'ERROR';
+export type FileState = 'PENDING' | 'HASHING' | 'HASHED' | 'DUPLICATE_NAME' | 'TOKEN_ISSUED' | 'UPLOADING' | 'VERIFIED' | 'DONE' | 'ERROR';
 
 export interface UploadQueueItem {
     id: string; // Client-side UUID
@@ -16,6 +16,7 @@ export interface UploadQueueItem {
     };
     hash?: string;
     uploadInit?: UploadInitResponse;
+    suggestedName?: string;
     progress: number;
     status: FileState;
     error?: string;

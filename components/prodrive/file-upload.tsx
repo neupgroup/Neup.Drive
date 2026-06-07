@@ -186,6 +186,27 @@ export function FileUpload({
                     response: initResponse,
                 });
             } catch (error) {
+                const uploadInitError = error as {
+                    status?: number;
+                    response?: unknown;
+                    code?: string;
+                    suggestedFilename?: string;
+                };
+
+                if (
+                    uploadMode === 'webdisk' &&
+                    uploadInitError.status === 409 &&
+                    uploadInitError.code === 'duplicate_webdisk_filename' &&
+                    uploadInitError.suggestedFilename
+                ) {
+                    updateQueueItem(hashedItem.id, {
+                        status: 'DUPLICATE_NAME',
+                        suggestedName: uploadInitError.suggestedFilename,
+                        error: `A file named "${hashedItem.metadata.name}" already exists in this folder.`,
+                    });
+                    return;
+                }
+
                 const userMessage = await handleClientError(error, 'FileUpload:Authorization', {
                     accountId,
                     fileId: hashedItem.id,
@@ -378,11 +399,26 @@ export function FileUpload({
         deleteUpload(id).catch(console.error); // Persist removal
     };
 
+    const continueWithSuggestedName = (item: UploadQueueItem) => {
+        if (!item.suggestedName) return;
+
+        updateQueueItem(item.id, {
+            status: 'HASHED',
+            metadata: {
+                ...item.metadata,
+                name: item.suggestedName,
+            },
+            suggestedName: undefined,
+            error: undefined,
+        });
+    };
+
     const getStatusText = (item: UploadQueueItem) => {
         switch (item.status) {
             case 'PENDING': return 'Pending...';
             case 'HASHING': return `Hashing... ${item.progress.toFixed(0)}%`;
             case 'HASHED': return 'Ready (Hashed)';
+            case 'DUPLICATE_NAME': return 'Duplicate filename';
             case 'TOKEN_ISSUED': return 'Authorized';
             case 'UPLOADING': return `Uploading... ${item.progress.toFixed(0)}%`;
             case 'VERIFIED': return 'Verified (Processing)';
@@ -472,6 +508,22 @@ export function FileUpload({
                                 )}
                                 {item.status === 'ERROR' && (
                                     <p className="text-xs text-destructive">{item.error}</p>
+                                )}
+                                {item.status === 'DUPLICATE_NAME' && item.suggestedName && (
+                                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                                        <p className="text-xs text-muted-foreground">
+                                            Upload as <span className="font-medium text-foreground">{item.suggestedName}</span>?
+                                        </p>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="secondary"
+                                            className="h-7 px-2 text-xs"
+                                            onClick={() => continueWithSuggestedName(item)}
+                                        >
+                                            Use unique name
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
                         </div>

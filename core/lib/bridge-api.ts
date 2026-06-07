@@ -93,6 +93,44 @@ export function buildBridgeStoragePath(params: {
     return path.posix.join('uploads', safeOwner, safeFolderType, internalPath, prefix);
 }
 
+export function addUniqueFilenameSuffix(filename: string, suffix = Date.now().toString()) {
+    const dotIndex = filename.lastIndexOf('.');
+    if (dotIndex > 0) {
+        return `${filename.slice(0, dotIndex)}.${suffix}${filename.slice(dotIndex)}`;
+    }
+    return `${filename}.${suffix}`;
+}
+
+async function findActiveFileFolderByPath(owner: string, filePath: string) {
+    return prisma.fileFolder.findFirst({
+        where: {
+            owner,
+            path: filePath,
+        },
+        orderBy: { created_on: 'desc' },
+    });
+}
+
+export async function getDuplicateWebdiskFilename(params: {
+    owner: string;
+    folderType: string;
+    filename: string;
+    internalPath?: string | null;
+}) {
+    const destinationPath = buildBridgeStoragePath(params);
+    const existing = await findActiveFileFolderByPath(params.owner, destinationPath);
+    if (!existing) return null;
+
+    const details = getDetails(existing.details);
+    if (details.status === 'DELETED') return null;
+
+    return {
+        existing,
+        destinationPath,
+        suggestedFilename: addUniqueFilenameSuffix(sanitizeFilename(params.filename)),
+    };
+}
+
 export function toAccountRelativePath(filePath: string, owner: string) {
     const cleanPath = filePath.replace(/^\/+/, '');
     const prefix = `uploads/${owner}/`;
@@ -196,12 +234,14 @@ export async function createBridgeUploadInit(params: {
     const owner = assertSafePathSegment(params.owner, 'owner');
     const timestamp = Date.now();
     const folderType = normalizeFolderType(params.folderType);
+    const isWebdiskUpload = folderType !== 'drive';
+    const filename = sanitizeFilename(params.filename);
     const destinationPath = buildBridgeStoragePath({
         owner,
         folderType,
-        filename: params.filename,
+        filename,
         internalPath: params.internalPath,
-        timestamp,
+        timestamp: isWebdiskUpload ? undefined : timestamp,
     });
     const expiresAt = Math.floor(Date.now() / 1000) + 15 * 60;
     const uploadSessionId = crypto.randomUUID();
@@ -214,7 +254,7 @@ export async function createBridgeUploadInit(params: {
 
     await prisma.file.create({
         data: {
-            name: params.filename,
+            name: filename,
             size: BigInt(params.size),
             mimeType: params.mime,
             hash: params.fileHash,
@@ -252,7 +292,7 @@ export async function createBridgeUploadInit(params: {
     };
 
     const filefolder = await recordFileFolderUpload({
-        name: params.filename,
+        name: filename,
         path: destinationPath,
         mimeType: params.mime,
         owner,
