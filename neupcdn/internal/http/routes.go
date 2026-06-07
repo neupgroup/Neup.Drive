@@ -7,8 +7,8 @@ func enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Allow any origin for now (restrict in production)
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Range, Authorization, x-upload-session-id, x-file-hash, x-upload-token, x-chunk-index")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, POST, PUT, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Range, Authorization, x-upload-session-id, x-file-hash, x-upload-token, x-file-operation-token, x-chunk-index")
 		w.Header().Set("Access-Control-Expose-Headers", "Content-Range")
 
 		// Handle preflight requests
@@ -26,9 +26,11 @@ func SetupRoutes() http.Handler {
 
 	// Legacy route (kept for reference, but client now uses main app for token generation)
 	// mux.HandleFunc("/upload/prepare", PrepareUploadHandler)
-	
+
 	mux.HandleFunc("/upload", UploadHandler)
-	
+	mux.HandleFunc("/api/files/operation", FileOperationHandler)
+	mux.HandleFunc("/api/files/view", FileViewHandler)
+
 	// Serve static files (if needed, or disable if purely API)
 	mux.HandleFunc("/", ServeHandler)
 

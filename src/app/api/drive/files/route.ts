@@ -23,7 +23,12 @@ export async function GET(request: NextRequest) {
         });
 
         // Map files to include full URL and handle BigInt
-        const mappedFiles = files.map(file => ({
+        const visibleFiles = files.filter((file) => {
+            const details = typeof file.details === 'object' && file.details && !Array.isArray(file.details) ? file.details : {};
+            return details.status !== 'DELETED';
+        });
+
+        const mappedFiles = visibleFiles.map(file => ({
             id: file.id,
             name: file.name,
             size: Number(file.size), // Convert BigInt to Number for JSON

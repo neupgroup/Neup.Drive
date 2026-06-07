@@ -16,7 +16,12 @@ export async function GET() {
             }
         });
 
-        const mappedFiles = files.map(file => ({
+        const visibleFiles = files.filter((file) => {
+            const details = typeof file.details === 'object' && file.details && !Array.isArray(file.details) ? file.details : {};
+            return details.status !== 'DELETED';
+        });
+
+        const mappedFiles = visibleFiles.map(file => ({
             id: file.id,
             filename: file.name,
             path: file.path,

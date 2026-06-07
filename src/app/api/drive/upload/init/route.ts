@@ -1,73 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import nodeCrypto from 'node:crypto';
 import { generateNonce } from '@/lib/upload-client';
 import type { UploadInitRequest, UploadInitResponse, UploadSignaturePayload } from '@/lib/upload-types';
 import { prisma } from '@/lib/db';
 import { handleServerError } from '@/lib/error-server';
 import { parseFileFolderMode, recordFileFolderUpload } from '@/lib/filefolder';
+import { signCdnPayloadBase64 } from '@/lib/cdn-token';
 
 // This should be stored securely in environment variables
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 // Production CDN URL
 const CDN_URL = process.env.CDN_UPLOAD_URL || 'https://neupcdn.com/upload';
 
-/**
- * Generate Ed25519 signature for the upload token
- */
-/**
- * Generate Ed25519 signature using Node.js native crypto
- */
 async function createSignature(payloadBase64: string, privateKeyHex: string): Promise<string> {
-    const data = payloadBase64; // Sign the raw base64 string directly for consistency
-
-    // Convert hex string to Buffer
-    const privateKeyBytes = Buffer.from(privateKeyHex, 'hex');
-
-    let dBuffer: Buffer;
-    let xBuffer: Buffer | undefined;
-
-    // Handle 64-byte key (32-byte seed + 32-byte public key)
-    if (privateKeyBytes.length === 64) {
-        dBuffer = privateKeyBytes.subarray(0, 32);
-        xBuffer = privateKeyBytes.subarray(32, 64);
-    } else if (privateKeyBytes.length === 32) {
-        dBuffer = privateKeyBytes;
-        // Fallback for 32-byte keys (missing x)
-    } else {
-        throw new Error(`Invalid private key length: ${privateKeyBytes.length} bytes. Expected 64 bytes (seed+pub) or 32 bytes.`);
-    }
-
-    try {
-        // Helper for Base64URL
-        const toBase64Url = (buf: Buffer) => buf.toString('base64')
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=/g, '');
-
-        const jwk: any = {
-            kty: "OKP",
-            crv: "Ed25519",
-            d: toBase64Url(dBuffer)
-        };
-
-        // Add public key 'x' if available (Node.js may require it)
-        if (xBuffer) {
-            jwk.x = toBase64Url(xBuffer);
-        }
-
-        const privateKey = nodeCrypto.createPrivateKey({
-            key: jwk,
-            format: 'jwk'
-        });
-
-        // Sign data (null algorithm for Ed25519)
-        const signature = nodeCrypto.sign(null, Buffer.from(data), privateKey);
-
-        return signature.toString('hex');
-    } catch (error) {
-        console.error('❌ Ed25519 signing error:', error);
-        throw new Error(`Ed25519 signing failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
+    return signCdnPayloadBase64(payloadBase64, privateKeyHex);
 }
 
 export async function POST(request: NextRequest) {

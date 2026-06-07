@@ -31,6 +31,20 @@ type SignedUploadToken struct {
 	Signature string `json:"signature"`
 }
 
+type FileOperationPayload struct {
+	Action          string `json:"action"`
+	AccountID       string `json:"account_id"`
+	AccountFolder   string `json:"account_folder"`
+	FolderType      string `json:"folder_type"`
+	Path            string `json:"path"`
+	DestinationPath string `json:"destination_path,omitempty"`
+	NewName         string `json:"new_name,omitempty"`
+	Method          string `json:"method"`
+	ExpiresAt       int64  `json:"expires_at"`
+	Nonce           string `json:"nonce"`
+	KeyID           string `json:"key_id"`
+}
+
 func decodeUploadToken(tokenString string) (*SignedUploadToken, error) {
 	var token SignedUploadToken
 	decoded, err := base64.RawURLEncoding.DecodeString(tokenString)
@@ -105,6 +119,57 @@ func VerifyEd25519Token(tokenJSON string, publicKeyHex string) (*UploadSignature
 	}
 
 	// 5. Check expiration
+	if time.Now().Unix() > payload.ExpiresAt {
+		return nil, errors.New("token expired")
+	}
+
+	return &payload, nil
+}
+
+func verifySignedPayload(tokenString string, publicKeyHex string, target any) error {
+	token, err := decodeUploadToken(tokenString)
+	if err != nil {
+		return err
+	}
+
+	pubKey, err := hex.DecodeString(publicKeyHex)
+	if err != nil || len(pubKey) != ed25519.PublicKeySize {
+		return errors.New("invalid public key configuration")
+	}
+
+	sigBytes, err := hex.DecodeString(token.Signature)
+	if err != nil || len(sigBytes) != ed25519.SignatureSize {
+		return errors.New("invalid signature format")
+	}
+
+	if !ed25519.Verify(pubKey, []byte(token.Payload), sigBytes) {
+		return errors.New("invalid signature")
+	}
+
+	payloadBytes, err := base64.RawURLEncoding.DecodeString(token.Payload)
+	if err != nil {
+		payloadBytes, err = base64.URLEncoding.DecodeString(token.Payload)
+		if err != nil {
+			payloadBytes, err = base64.StdEncoding.DecodeString(token.Payload)
+			if err != nil {
+				return errors.New("failed to decode base64 payload: " + err.Error())
+			}
+		}
+	}
+
+	if err := json.Unmarshal(payloadBytes, target); err != nil {
+		return errors.New("failed to unmarshal payload json")
+	}
+
+	return nil
+}
+
+func VerifyFileOperationToken(tokenString string, publicKeyHex string) (*FileOperationPayload, error) {
+	var payload FileOperationPayload
+	if err := verifySignedPayload(tokenString, publicKeyHex, &payload); err != nil {
+		return nil, err
+	}
+
 	if time.Now().Unix() > payload.ExpiresAt {
 		return nil, errors.New("token expired")
 	}
