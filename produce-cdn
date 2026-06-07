@@ -24,10 +24,16 @@ shopt -s dotglob
 mv neupcdn/* "$TEMP_DIR/"
 shopt -u dotglob
 
-# Remove everything in the current directory except this script
+# Remove everything in the current directory except this script and VCS metadata
 # We use find to avoid errors with argument list too long and handle hidden files correctly
 echo "Removing Drive application files..."
-find . -maxdepth 1 ! -name 'produce-cdn' ! -name '.' ! -name '..' -exec rm -rf {} +
+find . -maxdepth 1 \
+    ! -name 'produce-cdn' \
+    ! -name '.git' \
+    ! -name '.github' \
+    ! -name '.' \
+    ! -name '..' \
+    -exec rm -rf {} +
 
 # Move CDN files back to root
 echo "Moving CDN files to root..."
