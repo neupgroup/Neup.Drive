@@ -30,11 +30,6 @@ func SetupRoutes() http.Handler {
 	mux.HandleFunc("/files/", FileServeHandler)
 	mux.HandleFunc("/", ServeHandler)
 
-	// Legacy aliases kept so the existing app can be migrated gradually.
-	mux.HandleFunc("/api/files/list", FileListHandler)
-	mux.HandleFunc("/api/files/operation", FileOperationHandler)
-	mux.HandleFunc("/api/files/view", FileViewHandler)
-
 	// Return the mux wrapped with CORS middleware
 	return enableCORS(mux)
 }

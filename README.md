@@ -56,8 +56,6 @@ The CDN is API-only. Hitting `https://neupcdn.com/` returns a JSON 404 response.
 - `POST /operate/delete`
 - `GET /files/{accountId}/{type}/{relativePath}`
 
-Legacy aliases under `/api/files/*` are still accepted during migration.
-
 ## Environment Variables
 
 Ensure both applications share the same `UPLOAD_SECRET_KEY` for token verification.
