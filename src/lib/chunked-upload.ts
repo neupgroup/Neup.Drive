@@ -33,13 +33,15 @@ export async function uploadFileChunks(
     fileHash: string,
     onProgress?: (progress: number) => void
 ): Promise<void> {
-    const CHUNK_SIZE = 25 * 1024 * 1024; // 25MB (User requested: "Chunk size = 25 MB")
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024;
+    const STREAM_CHUNK_SIZE = 800 * 1024;
+    const chunkSize = file.size > LARGE_FILE_THRESHOLD ? STREAM_CHUNK_SIZE : Math.max(file.size, 1);
+    const totalChunks = Math.ceil(file.size / chunkSize);
     let uploadedBytes = 0;
 
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-        const start = chunkIndex * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const start = chunkIndex * chunkSize;
+        const end = Math.min(start + chunkSize, file.size);
         const chunk = file.slice(start, end);
 
         // Prepare headers
@@ -47,6 +49,7 @@ export async function uploadFileChunks(
             'x-upload-session-id': sessionData.upload_session_id,
             'x-file-hash': fileHash,
             'x-upload-token': encodeUploadToken(sessionData.signed_upload_token),
+            'x-chunk-index': String(chunkIndex),
             'Content-Range': `bytes ${start}-${end - 1}/${file.size}`,
             'Content-Type': 'application/octet-stream',
         };
@@ -70,6 +73,7 @@ export async function uploadFileChunks(
             void logUploadTrace('chunked-upload', 'chunk_upload_response', {
                 chunkIndex: chunkIndex + 1,
                 totalChunks,
+                chunkSize: chunk.size,
                 status: response.status,
                 ok: response.ok,
                 response: responseData,
