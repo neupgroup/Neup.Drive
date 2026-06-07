@@ -3,11 +3,21 @@ import type { FileOrFolder } from '@/core/lib/types';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { FileIcon } from '@/components/file-icon';
 
-export function FileGridView({ data }: { data: FileOrFolder[] }) {
+export function FileGridView({
+  data,
+  onItemContextMenu,
+}: {
+  data: FileOrFolder[];
+  onItemContextMenu?: (event: React.MouseEvent, item: FileOrFolder) => void;
+}) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {data.map((item) => (
-        <Card key={item.id} className="overflow-hidden transition-all hover:shadow-md">
+        <Card
+          key={item.id}
+          onContextMenu={(event) => onItemContextMenu?.(event, item)}
+          className="cursor-default overflow-hidden transition-all hover:shadow-md"
+        >
           <CardContent className="p-0">
             <div className="relative aspect-video">
               {item.thumbnail ? (

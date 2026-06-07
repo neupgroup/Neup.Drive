@@ -17,7 +17,13 @@ import {
 import { FileIcon } from '@/components/file-icon';
 import { Card } from '@/components/ui/card';
 
-export function FileListView({ data }: { data: FileOrFolder[] }) {
+export function FileListView({
+  data,
+  onItemContextMenu,
+}: {
+  data: FileOrFolder[];
+  onItemContextMenu?: (event: React.MouseEvent, item: FileOrFolder) => void;
+}) {
   return (
     <Card>
       <Table>
@@ -31,7 +37,11 @@ export function FileListView({ data }: { data: FileOrFolder[] }) {
         </TableHeader>
         <TableBody>
           {data.map((item) => (
-            <TableRow key={item.id}>
+            <TableRow
+              key={item.id}
+              onContextMenu={(event) => onItemContextMenu?.(event, item)}
+              className="cursor-default"
+            >
               <TableCell className="font-medium">
                 <div className="flex items-center gap-3">
                   <FileIcon type={item.type} className="h-5 w-5 text-muted-foreground" />
