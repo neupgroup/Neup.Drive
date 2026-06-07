@@ -44,6 +44,10 @@ export function FileUpload({
     const [isDragging, setIsDragging] = React.useState(false);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const processingRef = React.useRef(false);
+    const hashingIdsRef = React.useRef(new Set<string>());
+    const authorizingIdsRef = React.useRef(new Set<string>());
+    const uploadingIdsRef = React.useRef(new Set<string>());
+    const completionTimerIdsRef = React.useRef(new Set<string>());
 
     // Step 7: Load persisted uploads on mount
     React.useEffect(() => {
@@ -90,10 +94,11 @@ export function FileUpload({
             const activeHashing = queue.filter(item => item.status === 'HASHING').length;
             if (activeHashing >= 2) return;
 
-            const pendingItem = queue.find(item => item.status === 'PENDING');
+            const pendingItem = queue.find(item => item.status === 'PENDING' && !hashingIdsRef.current.has(item.id));
             if (!pendingItem) return;
 
             processingRef.current = true;
+            hashingIdsRef.current.add(pendingItem.id);
 
             try {
                 // Update state to HASHING
@@ -134,6 +139,7 @@ export function FileUpload({
                     error: userMessage
                 });
             } finally {
+                hashingIdsRef.current.delete(pendingItem.id);
                 processingRef.current = false;
             }
         };
@@ -151,8 +157,10 @@ export function FileUpload({
     // Process files that are HASHED and need authorization
     React.useEffect(() => {
         const authorizeFile = async () => {
-            const hashedItem = queue.find(item => item.status === 'HASHED');
+            const hashedItem = queue.find(item => item.status === 'HASHED' && !authorizingIdsRef.current.has(item.id));
             if (!hashedItem || !hashedItem.hash) return;
+
+            authorizingIdsRef.current.add(hashedItem.id);
 
             try {
                 const initResponse = await initializeUpload({
@@ -188,6 +196,8 @@ export function FileUpload({
                     status: 'ERROR',
                     error: userMessage
                 });
+            } finally {
+                authorizingIdsRef.current.delete(hashedItem.id);
             }
         };
 
@@ -203,11 +213,13 @@ export function FileUpload({
     React.useEffect(() => {
         const processUploads = async () => {
             // Limit concurrent uploads (3-5 max)
-            const activeUploads = queue.filter(item => item.status === 'UPLOADING').length;
+            const activeUploads = queue.filter(item => item.status === 'UPLOADING').length + uploadingIdsRef.current.size;
             if (activeUploads >= 3) return;
 
-            const readyItem = queue.find(item => item.status === 'TOKEN_ISSUED');
+            const readyItem = queue.find(item => item.status === 'TOKEN_ISSUED' && !uploadingIdsRef.current.has(item.id));
             if (!readyItem || !readyItem.uploadInit || !readyItem.hash) return;
+
+            uploadingIdsRef.current.add(readyItem.id);
 
             // Update state to UPLOADING
             updateQueueItem(readyItem.id, { status: 'UPLOADING', progress: 0 });
@@ -238,14 +250,20 @@ export function FileUpload({
                 // Step 6: Finalization - wait for callback or immediate completion
                 // In a real scenario, we might poll for status or wait for socket event
                 // Here we assume if chunk upload succeeded, we are verified
+                if (completionTimerIdsRef.current.has(readyItem.id)) return;
+                completionTimerIdsRef.current.add(readyItem.id);
+
                 setTimeout(() => {
                     updateQueueItem(readyItem.id, { status: 'DONE' });
+                    deleteUpload(readyItem.id).catch(console.error);
                     void logUploadTrace('FileUpload', 'upload_completed', {
                         fileId: readyItem.id,
                         fileName: readyItem.metadata.name,
                         destinationPath: readyItem.uploadInit!.destination_path,
                     });
                     onUploadComplete?.(readyItem.uploadInit!.destination_path, readyItem.file);
+                    uploadingIdsRef.current.delete(readyItem.id);
+                    completionTimerIdsRef.current.delete(readyItem.id);
                 }, 1000);
 
             } catch (error) {
@@ -265,6 +283,7 @@ export function FileUpload({
                 });
 
                 onUploadError?.(userMessage, readyItem.file);
+                uploadingIdsRef.current.delete(readyItem.id);
             }
         };
 
@@ -323,8 +342,7 @@ export function FileUpload({
         }
 
         // Add to queue and persist
-        const newQueue = [...queue, ...newItems];
-        setQueue(newQueue);
+        setQueue(prev => [...prev, ...newItems]);
         newItems.forEach(item => saveUpload(item).catch(console.error));
         // ======== Step 1 Ends, Pending ==============
     };
@@ -350,6 +368,10 @@ export function FileUpload({
     };
 
     const removeFile = (id: string) => {
+        hashingIdsRef.current.delete(id);
+        authorizingIdsRef.current.delete(id);
+        uploadingIdsRef.current.delete(id);
+        completionTimerIdsRef.current.delete(id);
         setQueue(prev => prev.filter(item => item.id !== id));
         deleteUpload(id).catch(console.error); // Persist removal
     };
