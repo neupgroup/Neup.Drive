@@ -39,6 +39,37 @@ model File {
   @@index([hash])
 }
 
+model FileFolder {
+  id         String          @id @default(uuid())
+  name       String
+  path       String
+  type       String
+  owner      String
+  size       BigInt          @default(0)
+  details    Json            @default("{}")
+  created_on DateTime        @default(now())
+  updated_on DateTime        @updatedAt
+  logs       FileFolderLog[]
+
+  @@index([owner])
+  @@index([path])
+  @@map("filefolder")
+}
+
+model FileFolderLog {
+  id            String     @id @default(uuid())
+  filefolder_id String
+  action        String
+  details       Json       @default("{}")
+  done_by       String
+  done_on       DateTime   @default(now())
+  filefolder    FileFolder @relation(fields: [filefolder_id], references: [id], onDelete: Cascade)
+
+  @@index([filefolder_id])
+  @@index([done_by])
+  @@map("filefolder_log")
+}
+
 model ErrorLog {
   id          String   @id @default(uuid())
   on_page     String   // Page/Component where error occurred

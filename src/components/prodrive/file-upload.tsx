@@ -21,6 +21,7 @@ interface FileUploadProps {
     maxSize?: number; // Max file size in bytes
     acceptedTypes?: string[]; // Accepted MIME types
     cdnUrl?: string; // CDN API endpoint URL
+    uploadMode?: 'drive' | 'webdisk';
     onUploadComplete?: (url: string, file: File) => void;
     onUploadError?: (error: string, file: File) => void;
     className?: string;
@@ -34,6 +35,7 @@ export function FileUpload({
     maxSize = 6000 * 1024 * 1024, // 100MB default
     acceptedTypes,
     cdnUrl = '/api/upload', // Default to local API endpoint
+    uploadMode = 'drive',
     onUploadComplete,
     onUploadError,
     className,
@@ -159,7 +161,7 @@ export function FileUpload({
                     size: hashedItem.metadata.size,
                     mime: hashedItem.metadata.type,
                     file_hash: hashedItem.hash,
-                });
+                }, `/api/drive/upload/init?mode=${uploadMode}`);
 
                 // Update state to TOKEN_ISSUED
                 updateQueueItem(hashedItem.id, {

@@ -4,6 +4,7 @@ import { generateNonce } from '@/lib/upload-client';
 import type { UploadInitRequest, UploadInitResponse, UploadSignaturePayload } from '@/lib/upload-types';
 import { prisma } from '@/lib/db';
 import { handleServerError } from '@/lib/error-server';
+import { parseFileFolderMode, recordFileFolderUpload } from '@/lib/filefolder';
 
 // This should be stored securely in environment variables
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
@@ -72,6 +73,8 @@ async function createSignature(payloadBase64: string, privateKeyHex: string): Pr
 export async function POST(request: NextRequest) {
     let body: any;
     try {
+        const mode = parseFileFolderMode(request.nextUrl.searchParams.get('mode'));
+
         // Validate private key exists
         if (!PRIVATE_KEY) {
             console.error('❌ UPLOAD_SECRET_PRIVATE_KEY is not configured');
@@ -169,6 +172,23 @@ export async function POST(request: NextRequest) {
             },
             expires_at
         };
+
+        await recordFileFolderUpload({
+            name: filename,
+            path: destination_path,
+            mimeType: mime,
+            owner: userId,
+            size,
+            mode,
+            details: {
+                file_id,
+                file_hash,
+                upload_session_id,
+                destination_path,
+                status: 'PENDING',
+                api_response: response as any,
+            },
+        });
 
         return NextResponse.json(response);
 

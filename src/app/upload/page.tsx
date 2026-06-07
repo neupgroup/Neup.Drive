@@ -24,6 +24,7 @@ export default function UploadPage() {
                 secretKey={secretKey}
                 uploadPath="uploads"
                 cdnUrl={cdnUrl}
+                uploadMode="webdisk"
                 onUploadComplete={async (url, file) => {
                     console.log('✅ Upload complete:', {
                         url,
@@ -38,6 +39,7 @@ export default function UploadPage() {
                                 filename: file.name,
                                 path: url,
                                 mimeType: file.type,
+                                size: file.size,
                                 uploaded_by: 'Admin',
                             }),
                         });

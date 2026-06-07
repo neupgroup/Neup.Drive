@@ -2,13 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateUploadWithReplayProtection } from '@/lib/upload-server';
 import type { UploadSignaturePayload } from '@/lib/upload-types';
 import { handleServerError } from '@/lib/error-server';
+import { parseFileFolderMode, recordFileFolderUpload } from '@/lib/filefolder';
 
 // This should be stored securely in environment variables
 const PUBLIC_KEY = process.env.UPLOAD_SECRET_PUBLIC_KEY || '';
 const CDN_STORAGE_PATH = process.env.CDN_STORAGE_PATH || './uploads';
 
+function parseUploadPayload(payloadStr: string): UploadSignaturePayload {
+    try {
+        return JSON.parse(payloadStr);
+    } catch {
+        const normalized = payloadStr.replace(/-/g, '+').replace(/_/g, '/');
+        return JSON.parse(Buffer.from(normalized, 'base64').toString('utf8'));
+    }
+}
+
 export async function POST(request: NextRequest) {
     try {
+        const mode = parseFileFolderMode(request.nextUrl.searchParams.get('mode'));
         const formData = await request.formData();
         const file = formData.get('file') as File;
         const payloadStr = formData.get('payload') as string;
@@ -22,7 +33,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Parse payload
-        const payload: UploadSignaturePayload = JSON.parse(payloadStr);
+        const payload = parseUploadPayload(payloadStr);
 
         // Validate the upload request
         const validation = await validateUploadWithReplayProtection(
@@ -61,12 +72,26 @@ export async function POST(request: NextRequest) {
 
         // For now, we'll simulate a successful upload
         const fileUrl = `https://neupcdn.com/${payload.path}`;
-
-        return NextResponse.json({
+        const apiResponse = {
             success: true,
             url: fileUrl,
             message: 'File uploaded successfully',
+        };
+
+        await recordFileFolderUpload({
+            name: file.name,
+            path: payload.path,
+            mimeType: file.type || payload.content_type,
+            owner: payload.account_id,
+            size: file.size,
+            mode,
+            details: {
+                upload_payload: payload as any,
+                api_response: apiResponse,
+            },
         });
+
+        return NextResponse.json(apiResponse);
     } catch (error) {
         return handleServerError(error, 'api/upload:POST');
     }
@@ -75,6 +100,7 @@ export async function POST(request: NextRequest) {
 // Optional: Handle direct PUT requests
 export async function PUT(request: NextRequest) {
     try {
+        const mode = parseFileFolderMode(request.nextUrl.searchParams.get('mode'));
         // Extract signature and payload from headers
         const signature = request.headers.get('x-upload-signature');
         const payloadStr = request.headers.get('x-upload-payload');
@@ -86,7 +112,7 @@ export async function PUT(request: NextRequest) {
             );
         }
 
-        const payload: UploadSignaturePayload = JSON.parse(payloadStr);
+        const payload = parseUploadPayload(payloadStr);
         const contentLength = parseInt(request.headers.get('content-length') || '0');
 
         // Validate the upload request
@@ -110,12 +136,26 @@ export async function PUT(request: NextRequest) {
         // Save file to storage
         // Implementation depends on your storage solution
         const fileUrl = `https://neupcdn.com/${payload.path}`;
-
-        return NextResponse.json({
+        const apiResponse = {
             success: true,
             url: fileUrl,
             message: 'File uploaded successfully',
+        };
+
+        await recordFileFolderUpload({
+            name: payload.path.split('/').pop() || payload.path,
+            path: payload.path,
+            mimeType: payload.content_type,
+            owner: payload.account_id,
+            size: contentLength,
+            mode,
+            details: {
+                upload_payload: payload as any,
+                api_response: apiResponse,
+            },
         });
+
+        return NextResponse.json(apiResponse);
     } catch (error) {
         return handleServerError(error, 'api/upload:PUT');
     }

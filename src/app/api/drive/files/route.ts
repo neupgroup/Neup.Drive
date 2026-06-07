@@ -9,21 +9,36 @@ export async function GET(request: NextRequest) {
     try {
         const userId = 'demo-user-123'; // Mocked user ID
 
-        const files = await prisma.file.findMany({
+        const files = await prisma.fileFolder.findMany({
             where: {
-                userId: userId,
-                status: 'VERIFIED'
+                owner: userId,
+                details: {
+                    path: ['mode'],
+                    equals: 'drive',
+                },
             },
             orderBy: {
-                createdAt: 'desc'
+                created_on: 'desc'
             }
         });
 
         // Map files to include full URL and handle BigInt
         const mappedFiles = files.map(file => ({
-            ...file,
+            id: file.id,
+            name: file.name,
             size: Number(file.size), // Convert BigInt to Number for JSON
-            url: `${CDN_HOST}/${file.path}`
+            mimeType: typeof file.details === 'object' && file.details && !Array.isArray(file.details) && typeof file.details.mimeType === 'string'
+                ? file.details.mimeType
+                : 'application/octet-stream',
+            path: file.path,
+            status: typeof file.details === 'object' && file.details && !Array.isArray(file.details) && typeof file.details.status === 'string'
+                ? file.details.status
+                : 'PENDING',
+            userId,
+            createdAt: file.created_on,
+            updatedAt: file.updated_on,
+            url: `${CDN_HOST}/${file.path}`,
+            details: file.details,
         }));
 
         return NextResponse.json(mappedFiles);
