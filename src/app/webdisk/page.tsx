@@ -97,12 +97,29 @@ export default function WebdiskPage() {
     try {
       setLoading(true);
       const response = await fetch('/api/webdisk/files');
-      if (!response.ok) throw new Error('Failed to fetch files');
+      if (!response.ok) {
+        let responseData: unknown = null;
+        try {
+          responseData = await response.json();
+        } catch {
+          responseData = await response.text().catch(() => '');
+        }
+        const error = new Error('Failed to fetch files') as Error & {
+          status?: number;
+          response?: unknown;
+        };
+        error.status = response.status;
+        error.response = responseData;
+        throw error;
+      }
       const data = await response.json();
       setFiles(data);
       setError(null);
     } catch (err) {
-      const message = await handleClientError(err, 'WebDiskPage');
+      const message = await handleClientError(err, 'WebDiskPage', {
+        status: typeof err === 'object' && err && 'status' in err ? (err as { status?: number }).status : undefined,
+        response: typeof err === 'object' && err && 'response' in err ? (err as { response?: unknown }).response : undefined,
+      });
       setError(message);
     } finally {
       setLoading(false);

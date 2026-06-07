@@ -42,8 +42,21 @@ export function FileList({ refreshTrigger = 0 }: FileListProps) {
                 const data = await res.json();
                 setFiles(data);
             } else {
-                const errorData = await res.json();
-                setError(errorData.error || 'Failed to fetch files');
+                let errorData: unknown = null;
+                try {
+                    errorData = await res.json();
+                } catch {
+                    errorData = await res.text().catch(() => '');
+                }
+                const message = await handleClientError(
+                    new Error('Failed to fetch files'),
+                    'FileList',
+                    {
+                        status: res.status,
+                        response: errorData,
+                    }
+                );
+                setError(message);
             }
         } catch (error) {
             const userMessage = await handleClientError(error, 'FileList');

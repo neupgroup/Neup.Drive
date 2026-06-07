@@ -62,7 +62,13 @@ export async function initializeUpload(
         } catch {
             // Fallback if not JSON
         }
-        throw new Error(errorMessage);
+        const error = new Error(errorMessage) as Error & {
+            status?: number;
+            response?: unknown;
+        };
+        error.status = response.status;
+        error.response = parsedResponse;
+        throw error;
     }
 
     return await response.json();

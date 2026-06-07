@@ -1,13 +1,64 @@
-import { ErrorType, identifyError, GENERIC_ERROR_MESSAGE } from './error-types';
+import { toast } from '@/hooks/use-toast';
+import { ErrorType, identifyError } from './error-types';
+
+type ErrorContext = {
+    status?: number;
+    response?: unknown;
+    apiResponse?: unknown;
+    cdnResponse?: unknown;
+    [key: string]: unknown;
+};
+
+function getResponseFromContext(context: ErrorContext) {
+    return context.response ?? context.apiResponse ?? context.cdnResponse;
+}
+
+function getAttachedStatus(error: any) {
+    return typeof error?.status === 'number' ? error.status : undefined;
+}
+
+function getAttachedResponse(error: any) {
+    return error?.response ?? error?.apiResponse ?? error?.cdnResponse;
+}
+
+function extractResponseErrorCode(response: unknown): string | undefined {
+    if (!response || typeof response !== 'object') return undefined;
+    const maybeResponse = response as { error?: unknown; code?: unknown; message?: unknown };
+    if (typeof maybeResponse.error === 'string' && maybeResponse.error) return maybeResponse.error;
+    if (typeof maybeResponse.code === 'string' && maybeResponse.code) return maybeResponse.code;
+    if (typeof maybeResponse.code === 'number') return String(maybeResponse.code);
+    if (typeof maybeResponse.message === 'string' && maybeResponse.message) return maybeResponse.message;
+    return undefined;
+}
+
+function isNotFoundError(error: any, context: ErrorContext, response: unknown) {
+    if (context.status === 404 || getAttachedStatus(error) === 404) return true;
+    const message = error instanceof Error ? error.message : String(error);
+    const responseCode = extractResponseErrorCode(response);
+
+    return (
+        message.includes('404') ||
+        message.toLowerCase().includes('not found') ||
+        responseCode === '404_not_found' ||
+        responseCode === 'not_found'
+    );
+}
 
 /**
  * Handles client-side errors
  */
-export async function handleClientError(error: any, onPage: string, context: any = {}) {
+export async function handleClientError(error: any, onPage: string, context: ErrorContext = {}) {
     const errorType = identifyError(error);
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const response = getResponseFromContext(context) ?? getAttachedResponse(error);
+    const status = context.status ?? getAttachedStatus(error);
 
-    console.error(`[Client: ${onPage}] ${errorType}: ${errorMessage}`, { error, context });
+    console.error(`[Client: ${onPage}] ${errorType}: ${errorMessage}`, {
+        error,
+        status,
+        context,
+        response,
+    });
 
     // Try to notify the server about this client error
     try {
@@ -19,6 +70,8 @@ export async function handleClientError(error: any, onPage: string, context: any
                 context: {
                     type: errorType,
                     message: errorMessage,
+                    status,
+                    response,
                     ...context
                 }
             }),
@@ -27,5 +80,19 @@ export async function handleClientError(error: any, onPage: string, context: any
         console.error('Failed to report client error to server:', e);
     }
 
-    return GENERIC_ERROR_MESSAGE;
+    if (isNotFoundError(error, { ...context, status }, response)) {
+        toast({
+            variant: 'destructive',
+            title: 'Not found',
+            description: 'The requested item was not found.',
+        });
+        return 'The requested item was not found.';
+    }
+
+    toast({
+        variant: 'destructive',
+        title: 'Something went wrong.',
+        description: 'The team has been notified.',
+    });
+    return 'Something went wrong. The team has been notified.';
 }
