@@ -19,6 +19,26 @@ function encodeUploadToken(token: UploadInitResponse['signed_upload_token']): st
         : Buffer.from(json).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
+const KB = 1024;
+const MB = 1024 * KB;
+const MIN_CHUNK_SIZE = 0.25 * MB;
+const MAX_CHUNK_SIZE = 50 * MB;
+const FAST_CHUNK_MS = 1000;
+const SLOW_SPEED_DROP_RATIO = 0.75;
+const SLOW_SPEED_HOLD_MS = 3000;
+
+function clampChunkSize(size: number, remainingBytes: number): number {
+    return Math.min(Math.max(size, 1), remainingBytes);
+}
+
+function increaseChunkSize(currentSize: number): number {
+    return Math.min(currentSize * 2, MAX_CHUNK_SIZE);
+}
+
+function decreaseChunkSize(currentSize: number): number {
+    return Math.max(Math.floor(currentSize / 2), MIN_CHUNK_SIZE);
+}
+
 /**
  * Uploads a file in chunks to the specified endpoint.
  * 
@@ -33,16 +53,18 @@ export async function uploadFileChunks(
     fileHash: string,
     onProgress?: (progress: number) => void
 ): Promise<void> {
-    const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024;
-    const STREAM_CHUNK_SIZE = 800 * 1024;
-    const chunkSize = file.size > LARGE_FILE_THRESHOLD ? STREAM_CHUNK_SIZE : Math.max(file.size, 1);
-    const totalChunks = Math.ceil(file.size / chunkSize);
     let uploadedBytes = 0;
+    let chunkIndex = 0;
+    let chunkSize = file.size <= MIN_CHUNK_SIZE ? Math.max(file.size, 1) : MIN_CHUNK_SIZE;
+    let bestBytesPerSecond = 0;
+    let lowSpeedSince: number | null = null;
 
-    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-        const start = chunkIndex * chunkSize;
-        const end = Math.min(start + chunkSize, file.size);
+    while (uploadedBytes < file.size) {
+        const start = uploadedBytes;
+        const currentChunkSize = clampChunkSize(chunkSize, file.size - uploadedBytes);
+        const end = Math.min(start + currentChunkSize, file.size);
         const chunk = file.slice(start, end);
+        const estimatedTotalChunks = chunkIndex + 1 + Math.ceil((file.size - end) / Math.max(chunkSize, 1));
 
         // Prepare headers
         const headers: HeadersInit = {
@@ -55,11 +77,14 @@ export async function uploadFileChunks(
         };
 
         try {
+            const chunkStartedAt = performance.now();
             const response = await fetch(sessionData.upload_endpoint, {
                 method: 'PUT',
                 headers,
                 body: chunk,
             });
+            const uploadDurationMs = Math.max(performance.now() - chunkStartedAt, 1);
+            const bytesPerSecond = (chunk.size / uploadDurationMs) * 1000;
 
             const responseText = await response.text();
             let responseData: unknown = undefined;
@@ -72,8 +97,10 @@ export async function uploadFileChunks(
             }
             void logUploadTrace('chunked-upload', 'chunk_upload_response', {
                 chunkIndex: chunkIndex + 1,
-                totalChunks,
+                totalChunks: estimatedTotalChunks,
                 chunkSize: chunk.size,
+                uploadDurationMs,
+                bytesPerSecond,
                 status: response.status,
                 ok: response.ok,
                 response: responseData,
@@ -84,7 +111,7 @@ export async function uploadFileChunks(
                 const error = new Error(`CDN upload failed with code ${errorCode}`);
                 void logUploadTrace('chunked-upload', 'chunk_upload_failed', {
                     chunkIndex: chunkIndex + 1,
-                    totalChunks,
+                    totalChunks: estimatedTotalChunks,
                     status: response.status,
                     response: responseData,
                     errorType: identifyError(error),
@@ -95,7 +122,7 @@ export async function uploadFileChunks(
                     {
                         stage: 'chunk_upload',
                         chunkIndex: chunkIndex + 1,
-                        totalChunks,
+                        totalChunks: estimatedTotalChunks,
                         status: response.status,
                         response: responseData,
                     }
@@ -109,7 +136,7 @@ export async function uploadFileChunks(
                 const error = new Error(`CDN upload failed with code ${errorCode}`);
                 void logUploadTrace('chunked-upload', 'chunk_upload_failed', {
                     chunkIndex: chunkIndex + 1,
-                    totalChunks,
+                    totalChunks: estimatedTotalChunks,
                     status: response.status,
                     response: responseData ?? responseText,
                     errorType: identifyError(error),
@@ -120,12 +147,12 @@ export async function uploadFileChunks(
                     {
                         stage: 'chunk_upload',
                         chunkIndex: chunkIndex + 1,
-                        totalChunks,
+                        totalChunks: estimatedTotalChunks,
                         status: response.status,
                         response: responseData ?? responseText,
                     }
                 );
-                throw new Error(`Upload failed for chunk ${chunkIndex + 1}/${totalChunks}: ${errorCode}`);
+                throw new Error(`Upload failed for chunk ${chunkIndex + 1}/${estimatedTotalChunks}: ${errorCode}`);
             }
 
             if (responseData && typeof responseData === 'object' && 'success' in responseData && (responseData as { success?: unknown }).success === false) {
@@ -133,7 +160,7 @@ export async function uploadFileChunks(
                 const error = new Error(`CDN upload failed with code ${errorCode}`);
                 void logUploadTrace('chunked-upload', 'chunk_upload_failed', {
                     chunkIndex: chunkIndex + 1,
-                    totalChunks,
+                    totalChunks: estimatedTotalChunks,
                     status: response.status,
                     response: responseData,
                     errorType: identifyError(error),
@@ -144,12 +171,12 @@ export async function uploadFileChunks(
                     {
                         stage: 'chunk_upload',
                         chunkIndex: chunkIndex + 1,
-                        totalChunks,
+                        totalChunks: estimatedTotalChunks,
                         status: response.status,
                         response: responseData,
                     }
                 );
-                throw new Error(`Upload failed for chunk ${chunkIndex + 1}/${totalChunks}: ${errorCode}`);
+                throw new Error(`Upload failed for chunk ${chunkIndex + 1}/${estimatedTotalChunks}: ${errorCode}`);
             }
 
             // Update progress
@@ -159,12 +186,46 @@ export async function uploadFileChunks(
                 onProgress(progress);
             }
 
+            const previousChunkSize = chunkSize;
+            if (bytesPerSecond > bestBytesPerSecond) {
+                bestBytesPerSecond = bytesPerSecond;
+                lowSpeedSince = null;
+            }
+
+            const isSlowComparedToBest = bestBytesPerSecond > 0 && bytesPerSecond < bestBytesPerSecond * SLOW_SPEED_DROP_RATIO;
+            if (uploadDurationMs < FAST_CHUNK_MS && chunkSize < MAX_CHUNK_SIZE) {
+                chunkSize = increaseChunkSize(chunkSize);
+                lowSpeedSince = null;
+            } else if (isSlowComparedToBest && chunkSize > MIN_CHUNK_SIZE) {
+                const now = performance.now();
+                lowSpeedSince ??= now - uploadDurationMs;
+                if (now - lowSpeedSince >= SLOW_SPEED_HOLD_MS) {
+                    chunkSize = decreaseChunkSize(chunkSize);
+                    lowSpeedSince = null;
+                }
+            } else {
+                lowSpeedSince = null;
+            }
+
+            if (chunkSize !== previousChunkSize) {
+                void logUploadTrace('chunked-upload', 'adaptive_chunk_size_changed', {
+                    chunkIndex: chunkIndex + 1,
+                    previousChunkSize,
+                    nextChunkSize: chunkSize,
+                    uploadDurationMs,
+                    bytesPerSecond,
+                    bestBytesPerSecond,
+                });
+            }
+
+            chunkIndex += 1;
+
         } catch (error) {
             if (error instanceof TypeError && error.message === 'Failed to fetch') {
                 const networkError = new Error('CDN unreachable: Network error during chunk upload. Please check your internet connection or CDN status.');
                 void logUploadTrace('chunked-upload', 'chunk_upload_network_error', {
                     chunkIndex: chunkIndex + 1,
-                    totalChunks,
+                    totalChunks: estimatedTotalChunks,
                     errorType: identifyError(networkError),
                     message: networkError.message,
                 });
