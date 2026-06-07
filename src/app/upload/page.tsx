@@ -18,7 +18,6 @@ function UploadContent() {
     const accountId = 'demo-account';
     const keyId = 'demo-key';
     const secretKey = process.env.NEXT_PUBLIC_UPLOAD_SECRET || 'demo-secret-key';
-    const cdnUrl = process.env.NEXT_PUBLIC_CDN_UPLOAD_URL || 'https://neupcdn.com/upload';
     const searchParams = useSearchParams();
     const saveTo = searchParams.get('saveto');
     const webdiskType = normalizeWebdiskType(searchParams.get('type'));
@@ -54,7 +53,6 @@ function UploadContent() {
                 keyId={keyId}
                 secretKey={secretKey}
                 uploadPath="uploads"
-                cdnUrl={cdnUrl}
                 uploadMode={uploadMode}
                 uploadInitEndpoint={uploadInitEndpoint}
                 onUploadComplete={(url, file) => {

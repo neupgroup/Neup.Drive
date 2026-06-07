@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Upload, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { signAndUploadFile, initializeUpload } from '@/lib/upload-client';
+import { initializeUpload } from '@/lib/upload-client';
 import { cn } from '@/lib/utils';
 import { hashFile } from '@/lib/blake3';
 import type { UploadInitResponse } from '@/lib/upload-types';
@@ -20,7 +20,6 @@ interface FileUploadProps {
     uploadPath?: string; // Base path for uploads
     maxSize?: number; // Max file size in bytes
     acceptedTypes?: string[]; // Accepted MIME types
-    cdnUrl?: string; // CDN API endpoint URL
     uploadMode?: 'drive' | 'webdisk';
     uploadInitEndpoint?: string;
     onUploadComplete?: (url: string, file: File) => void;
@@ -35,7 +34,6 @@ export function FileUpload({
     uploadPath = 'uploads',
     maxSize = 6000 * 1024 * 1024, // 100MB default
     acceptedTypes,
-    cdnUrl = '/api/upload', // Default to local API endpoint
     uploadMode = 'drive',
     uploadInitEndpoint,
     onUploadComplete,
