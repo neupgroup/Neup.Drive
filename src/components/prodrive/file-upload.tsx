@@ -169,7 +169,9 @@ export function FileUpload({
                     size: hashedItem.metadata.size,
                     mime: hashedItem.metadata.type,
                     file_hash: hashedItem.hash,
-                }, uploadInitEndpoint || `/bridge/api.v1/drive/upload/init?mode=${uploadMode}`);
+                }, uploadInitEndpoint || `/bridge/api.v1/upload/init?folder_type=${encodeURIComponent(uploadMode)}`, {
+                    accountId,
+                });
 
                 // Update state to TOKEN_ISSUED
                 updateQueueItem(hashedItem.id, {
@@ -205,7 +207,7 @@ export function FileUpload({
         // Since we modify queue in the effect, we need to be careful not to create infinite loops
         // The condition `queue.find(item => item.status === 'HASHED')` ensures we only act when there is work
         authorizeFile();
-    }, [queue]);
+    }, [accountId, queue, uploadInitEndpoint, uploadMode]);
     // ======== Step 3 Ends, Authorization ==============
 
     // ======= Step 4 Starts, Uploading ===============

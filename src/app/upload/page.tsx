@@ -15,7 +15,7 @@ function normalizeUploadPath(value: string | null) {
 }
 
 function UploadContent() {
-    const accountId = 'demo-account';
+    const accountId = process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
     const keyId = 'demo-key';
     const secretKey = process.env.NEXT_PUBLIC_UPLOAD_SECRET || 'demo-secret-key';
     const searchParams = useSearchParams();
@@ -25,15 +25,14 @@ function UploadContent() {
     const uploadMode = 'webdisk' as const;
     const uploadInitEndpoint = React.useMemo(() => {
         const params = new URLSearchParams();
-        params.set('mode', uploadMode);
+        params.set('folder_type', saveTo === 'webdisk' ? webdiskType : uploadMode);
 
         if (saveTo === 'webdisk') {
             params.set('saveto', 'webdisk');
-            params.set('type', webdiskType);
             if (webdiskPath) params.set('path', webdiskPath);
         }
 
-        return `/bridge/api.v1/drive/upload/init?${params.toString()}`;
+        return `/bridge/api.v1/upload/init?${params.toString()}`;
     }, [saveTo, uploadMode, webdiskPath, webdiskType]);
 
     return (

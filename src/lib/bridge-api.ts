@@ -114,6 +114,16 @@ export function createBridgeFileUrl(filefolder: { owner: string; path: string; d
     return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/${encodeURIComponent(folderType)}/${encodedPath}?token=${encodeURIComponent(token)}${disposition}`;
 }
 
+function isMissingFileFolderTableError(error: unknown) {
+    return Boolean(
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        (error as { code?: unknown }).code === 'P2021' &&
+        String((error as { message?: unknown }).message ?? '').includes('filefolder')
+    );
+}
+
 export async function createBridgeUploadInit(params: {
     owner: string;
     fileId: string;
@@ -182,26 +192,32 @@ export async function createBridgeUploadInit(params: {
         expires_at: expiresAt,
     };
 
-    const filefolder = await recordFileFolderUpload({
-        name: params.filename,
-        path: destinationPath,
-        mimeType: params.mime,
-        owner,
-        size: params.size,
-        mode: 'drive',
-        details: {
-            file_id: params.fileId,
-            file_hash: params.fileHash,
-            upload_session_id: uploadSessionId,
-            destination_path: destinationPath,
-            status: 'PENDING',
-            source: 'bridge',
-            folder_type: folderType,
-            api_response: response as any,
-        },
-    });
+    try {
+        const filefolder = await recordFileFolderUpload({
+            name: params.filename,
+            path: destinationPath,
+            mimeType: params.mime,
+            owner,
+            size: params.size,
+            mode: 'drive',
+            details: {
+                file_id: params.fileId,
+                file_hash: params.fileHash,
+                upload_session_id: uploadSessionId,
+                destination_path: destinationPath,
+                status: 'PENDING',
+                source: 'bridge',
+                folder_type: folderType,
+                api_response: response as any,
+            },
+        });
 
-    return { ...response, filefolder_id: filefolder.id, folder_type: folderType };
+        return { ...response, filefolder_id: filefolder.id, folder_type: folderType };
+    } catch (error) {
+        if (!isMissingFileFolderTableError(error)) throw error;
+        console.warn('Skipping filefolder upload record because the filefolder table is missing.');
+        return { ...response, folder_type: folderType };
+    }
 }
 
 export async function findBridgeFile(params: {

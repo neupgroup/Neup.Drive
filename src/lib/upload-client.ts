@@ -6,12 +6,14 @@ import { logUploadTrace } from './upload-trace';
  */
 export async function initializeUpload(
     metadata: UploadInitRequest,
-    apiEndpoint: string = '/bridge/api.v1/drive/upload/init'
+    apiEndpoint: string = '/bridge/api.v1/upload/init',
+    options: { accountId?: string } = {}
 ): Promise<UploadInitResponse> {
     const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            ...(options.accountId ? { 'x-account-id': options.accountId } : {}),
         },
         body: JSON.stringify(metadata),
     });
