@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { createFileFolderLog } from '@/lib/filefolder';
 
@@ -48,41 +49,7 @@ export async function POST(request: NextRequest) {
                 console.warn('⚠️ File record not found for verification:', metadataPath);
             }
 
-            const filefolder = await prisma.fileFolder.findFirst({
-                where: { path: metadataPath },
-                orderBy: { created_on: 'desc' },
-            });
-
-            if (filefolder) {
-                const existingDetails = filefolder.details && typeof filefolder.details === 'object' && !Array.isArray(filefolder.details)
-                    ? filefolder.details
-                    : {};
-
-                await prisma.fileFolder.update({
-                    where: { id: filefolder.id },
-                    data: {
-                        details: {
-                            ...existingDetails,
-                            status: 'VERIFIED',
-                            file_hash,
-                            upload_session_id,
-                            callback_response: body,
-                        },
-                    },
-                });
-
-                await createFileFolderLog({
-                    filefolderId: filefolder.id,
-                    action: 'upload',
-                    details: {
-                        status: 'VERIFIED',
-                        callback_response: body,
-                    },
-                    doneBy: filefolder.owner,
-                });
-            } else {
-                console.warn('⚠️ Filefolder record not found for verification:', metadataPath);
-            }
+            await updateFileFolderCallbackState(metadataPath, 'VERIFIED', file_hash, upload_session_id, body);
             
             return NextResponse.json({ success: true });
         } else {
@@ -93,39 +60,7 @@ export async function POST(request: NextRequest) {
                 data: { status: 'FAILED' }
             });
 
-            const filefolder = await prisma.fileFolder.findFirst({
-                where: { path: metadataPath },
-                orderBy: { created_on: 'desc' },
-            });
-
-            if (filefolder) {
-                const existingDetails = filefolder.details && typeof filefolder.details === 'object' && !Array.isArray(filefolder.details)
-                    ? filefolder.details
-                    : {};
-
-                await prisma.fileFolder.update({
-                    where: { id: filefolder.id },
-                    data: {
-                        details: {
-                            ...existingDetails,
-                            status: 'FAILED',
-                            file_hash,
-                            upload_session_id,
-                            callback_response: body,
-                        },
-                    },
-                });
-
-                await createFileFolderLog({
-                    filefolderId: filefolder.id,
-                    action: 'upload',
-                    details: {
-                        status: 'FAILED',
-                        callback_response: body,
-                    },
-                    doneBy: filefolder.owner,
-                });
-            }
+            await updateFileFolderCallbackState(metadataPath, 'FAILED', file_hash, upload_session_id, body);
             return NextResponse.json({ success: true }); // Acknowledge receipt even for failures
         }
 
@@ -135,5 +70,54 @@ export async function POST(request: NextRequest) {
             { error: 'Internal server error' },
             { status: 500 }
         );
+    }
+}
+
+async function updateFileFolderCallbackState(
+    metadataPath: string,
+    status: 'VERIFIED' | 'FAILED',
+    fileHash: string,
+    uploadSessionId: string,
+    callbackResponse: Prisma.InputJsonValue,
+) {
+    try {
+        const filefolder = await prisma.fileFolder.findFirst({
+            where: { path: metadataPath },
+            orderBy: { created_on: 'desc' },
+        });
+
+        if (!filefolder) {
+            console.warn('⚠️ Filefolder record not found for verification:', metadataPath);
+            return;
+        }
+
+        const existingDetails = filefolder.details && typeof filefolder.details === 'object' && !Array.isArray(filefolder.details)
+            ? filefolder.details
+            : {};
+
+        await prisma.fileFolder.update({
+            where: { id: filefolder.id },
+            data: {
+                details: {
+                    ...existingDetails,
+                    status,
+                    file_hash: fileHash,
+                    upload_session_id: uploadSessionId,
+                    callback_response: callbackResponse,
+                },
+            },
+        });
+
+        await createFileFolderLog({
+            filefolderId: filefolder.id,
+            action: 'upload',
+            details: {
+                status,
+                callback_response: callbackResponse,
+            },
+            doneBy: filefolder.owner,
+        });
+    } catch (error) {
+        console.warn('⚠️ Skipping filefolder callback update:', error);
     }
 }

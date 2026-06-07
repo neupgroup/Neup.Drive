@@ -12,6 +12,18 @@ function getDetails(details: Prisma.JsonValue): Prisma.JsonObject {
     return details && typeof details === 'object' && !Array.isArray(details) ? details : {};
 }
 
+function toAccountRelativePath(filePath: string, owner: string) {
+    const cleanPath = filePath.replace(/^\/+/, '');
+    const prefix = `uploads/${owner}/`;
+    if (cleanPath.startsWith(prefix)) {
+        return cleanPath.slice(prefix.length);
+    }
+    if (cleanPath.startsWith('uploads/')) {
+        return cleanPath.slice('uploads/'.length);
+    }
+    return cleanPath;
+}
+
 export async function GET(request: NextRequest) {
     try {
         if (!PRIVATE_KEY) {
@@ -37,6 +49,7 @@ export async function GET(request: NextRequest) {
         }
 
         const folderType = typeof details.mode === 'string' ? details.mode : 'drive';
+        const relativePath = toAccountRelativePath(filefolder.path, filefolder.owner);
         const signedToken = createSignedCdnToken(createExpiringOperationPayload({
             action: 'view',
             account_id: filefolder.owner,
@@ -46,12 +59,13 @@ export async function GET(request: NextRequest) {
             method: 'GET',
         }), PRIVATE_KEY);
         const token = encodeSignedCdnToken(signedToken);
+        const encodedPath = relativePath.split('/').map(encodeURIComponent).join('/');
 
         return NextResponse.json({
             success: true,
             filefolder_id: filefolder.id,
             expires_at: Math.floor(Date.now() / 1000) + 15 * 60,
-            view_url: `${CDN_BASE_URL}/api/files/view?token=${encodeURIComponent(token)}`,
+            view_url: `${CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/${encodeURIComponent(folderType)}/${encodedPath}?token=${encodeURIComponent(token)}`,
         });
     } catch (error) {
         return handleServerError(error, 'api/drive/files/preview');

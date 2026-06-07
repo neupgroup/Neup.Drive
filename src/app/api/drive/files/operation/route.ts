@@ -19,7 +19,7 @@ interface FileOperationRequest {
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 const CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
-const CDN_OPERATION_URL = process.env.CDN_OPERATION_URL || `${CDN_BASE_URL}/api/files/operation`;
+const CDN_OPERATION_BASE = getCdnOperationBase();
 
 function getDetails(details: Prisma.JsonValue): Prisma.JsonObject {
     return details && typeof details === 'object' && !Array.isArray(details) ? details : {};
@@ -27,6 +27,21 @@ function getDetails(details: Prisma.JsonValue): Prisma.JsonObject {
 
 function getFolderType(details: Prisma.JsonObject) {
     return typeof details.mode === 'string' ? details.mode : 'drive';
+}
+
+function getCdnOperationBase() {
+    const explicit = process.env.CDN_OPERATION_URL;
+    if (!explicit) return `${CDN_BASE_URL}/operate`;
+
+    try {
+        const url = new URL(explicit);
+        if (url.pathname.endsWith('/operation') || url.pathname.endsWith('/operate')) {
+            return `${url.origin}/operate`;
+        }
+        return `${url.origin}${url.pathname.replace(/\/$/, '')}`;
+    } catch {
+        return explicit.replace(/\/$/, '');
+    }
 }
 
 function assertSafePathSegment(value: string, label: string) {
@@ -54,8 +69,8 @@ function makeDestinationPath(owner: string, toFolderType: string, filename: stri
     return path.posix.join('uploads', owner, internalPath);
 }
 
-async function callCdnOperation(token: string) {
-    const response = await fetch(CDN_OPERATION_URL, {
+async function callCdnOperation(action: FileOperationAction, token: string) {
+    const response = await fetch(`${CDN_OPERATION_BASE}/${encodeURIComponent(action)}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -143,7 +158,7 @@ export async function POST(request: NextRequest) {
             method: 'POST',
         }), PRIVATE_KEY);
 
-        const cdnResult = await callCdnOperation(encodeSignedCdnToken(signedToken));
+        const cdnResult = await callCdnOperation(operation.action, encodeSignedCdnToken(signedToken));
 
         const operationDetails: Prisma.InputJsonObject = {
             action: operation.action,

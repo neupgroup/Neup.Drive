@@ -25,27 +25,11 @@ export default function UploadPage() {
                 uploadPath="uploads"
                 cdnUrl={cdnUrl}
                 uploadMode="webdisk"
-                onUploadComplete={async (url, file) => {
+                onUploadComplete={(url, file) => {
                     console.log('✅ Upload complete:', {
                         url,
                         fileName: file.name,
                     });
-
-                    try {
-                        await fetch('/api/webdisk/record', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                filename: file.name,
-                                path: url,
-                                mimeType: file.type,
-                                size: file.size,
-                                uploaded_by: 'Admin',
-                            }),
-                        });
-                    } catch (e) {
-                        console.error('Failed to record upload:', e);
-                    }
                 }}
                 onUploadError={(error, file) => {
                     console.error('❌ Upload error:', {

@@ -1,6 +1,6 @@
 import nodeCrypto, { type JsonWebKey } from 'node:crypto';
 
-export type CdnFileAction = 'rename' | 'move' | 'delete' | 'view';
+export type CdnFileAction = 'rename' | 'move' | 'delete' | 'view' | 'list';
 
 export interface CdnFileOperationPayload {
     action: CdnFileAction;

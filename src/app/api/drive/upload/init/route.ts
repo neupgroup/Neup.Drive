@@ -118,22 +118,24 @@ export async function POST(request: NextRequest) {
             expires_at
         };
 
-        await recordFileFolderUpload({
-            name: filename,
-            path: destination_path,
-            mimeType: mime,
-            owner: userId,
-            size,
-            mode,
-            details: {
-                file_id,
-                file_hash,
-                upload_session_id,
-                destination_path,
-                status: 'PENDING',
-                api_response: response as any,
-            },
-        });
+        if (mode === 'drive') {
+            await recordFileFolderUpload({
+                name: filename,
+                path: destination_path,
+                mimeType: mime,
+                owner: userId,
+                size,
+                mode,
+                details: {
+                    file_id,
+                    file_hash,
+                    upload_session_id,
+                    destination_path,
+                    status: 'PENDING',
+                    api_response: response as any,
+                },
+            });
+        }
 
         return NextResponse.json(response);
 

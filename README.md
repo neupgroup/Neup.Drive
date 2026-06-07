@@ -40,10 +40,23 @@ Starts the Go CDN on `http://localhost:3001` (ensure PORT is configured in `neup
 ## Upload Flow
 
 1.  **Browser** -> **Main App**: Request upload (`POST /drive/api/upload/init`).
-2.  **Main App**: Validates request and returns a signed HMAC token.
+2.  **Main App**: Validates request and returns a signed token.
 3.  **Browser** -> **CDN**: Uploads file chunks (`PUT /upload`) using the token.
 4.  **CDN** -> **Main App**: Calls webhook (`POST /drive/api/upload/callback`) upon completion.
 5.  **Main App**: Marks file as verified.
+
+## CDN Endpoints
+
+The CDN is API-only. Hitting `https://neupcdn.com/` returns a JSON 404 response.
+
+- `PUT /upload`
+- `GET /list`
+- `POST /operate/move`
+- `POST /operate/rename`
+- `POST /operate/delete`
+- `GET /files/{accountId}/{type}/{relativePath}`
+
+Legacy aliases under `/api/files/*` are still accepted during migration.
 
 ## Environment Variables
 

@@ -13,9 +13,11 @@ interface WebDiskRecord {
   id: string;
   filename: string;
   path: string;
+  cdn_path?: string;
   mimeType: string;
   uploaded_by: string;
   uploaded_on: string;
+  size?: number;
 }
 
 const getFileIcon = (mimeType: string) => {
@@ -119,7 +121,7 @@ export default function WebdiskPage() {
             WebDisk
           </h1>
           <p className="text-muted-foreground text-sm font-medium">
-            Stored and tracked CDN uploads
+            Files looked up directly from the CDN API
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -153,9 +155,9 @@ export default function WebdiskPage() {
           <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-full mb-6">
             <Globe className="h-16 w-16 opacity-30 text-indigo-500" />
           </div>
-          <h3 className="text-xl font-bold mb-2">No files recorded yet</h3>
+          <h3 className="text-xl font-bold mb-2">No CDN files found</h3>
           <p className="text-muted-foreground max-w-sm text-center mb-6">
-            Any files you upload through the Upload Center will automatically appear here for tracking.
+            Any files you upload through the Upload Center will appear here after the CDN API finds them.
           </p>
           <Button asChild className="rounded-full">
             <Link href="/upload">Go to Upload Center</Link>
