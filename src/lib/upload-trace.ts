@@ -1,4 +1,7 @@
 export async function logUploadTrace(onPage: string, message: string, context: Record<string, unknown> = {}) {
+    const lowerMessage = message.toLowerCase();
+    if (!lowerMessage.includes('failed') && !lowerMessage.includes('error')) return;
+
     try {
         await fetch('/bridge/api.v1/log-error', {
             method: 'POST',
