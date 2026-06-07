@@ -19,6 +19,7 @@ var Cfg Config
 
 func Load() {
 	Cfg = Config{
+		Port:            getEnv("PORT", "3001"),
 		PublicRoot:      "./public",
 		UploadPublicKey: getEnv("UPLOAD_SECRET_PUBLIC_KEY", ""),
 		CallbackURL:     "https://neupgroup.com/drive/callback/v1/upload",
@@ -26,7 +27,7 @@ func Load() {
 		MaxChunkSize:    getEnvInt64("UPLOAD_MAX_CHUNK_SIZE", 50*1024*1024), // 50MB default
 	}
 
-	log.Printf("Config loaded. PublicRoot: %s, MaxSize: %d bytes, MaxChunk: %d bytes", Cfg.PublicRoot, Cfg.MaxUploadSize, Cfg.MaxChunkSize)
+	log.Printf("Config loaded. Port: %s, PublicRoot: %s, MaxSize: %d bytes, MaxChunk: %d bytes", Cfg.Port, Cfg.PublicRoot, Cfg.MaxUploadSize, Cfg.MaxChunkSize)
 
 	// Log public key status
 	if Cfg.UploadPublicKey != "" {
