@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import path from 'node:path';
 import { generateNonce } from '@/lib/upload-client';
 import type { UploadInitRequest, UploadInitResponse, UploadSignaturePayload } from '@/lib/upload-types';
 import { prisma } from '@/lib/db';
@@ -10,15 +11,36 @@ import { signCdnPayloadBase64 } from '@/lib/cdn-token';
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 // Production CDN URL
 const CDN_URL = process.env.CDN_UPLOAD_URL || 'https://neupcdn.com/upload';
+const WEBDISK_TYPES = ['assets', 'brand', 'private', 'signed'];
 
 async function createSignature(payloadBase64: string, privateKeyHex: string): Promise<string> {
     return signCdnPayloadBase64(payloadBase64, privateKeyHex);
+}
+
+function normalizeWebdiskType(value: string | null) {
+    const type = value?.trim() || 'assets';
+    if (!WEBDISK_TYPES.includes(type)) {
+        throw new Error('Invalid webdisk type');
+    }
+    return type;
+}
+
+function normalizeWebdiskPath(value: string | null) {
+    const cleaned = (value || '').trim().replace(/^\/+/, '');
+    if (!cleaned) return '';
+
+    const normalized = path.posix.normalize(cleaned);
+    if (normalized === '.' || normalized === '..' || normalized.startsWith('../') || path.posix.isAbsolute(normalized)) {
+        throw new Error('Invalid webdisk path');
+    }
+    return normalized;
 }
 
 export async function POST(request: NextRequest) {
     let body: any;
     try {
         const mode = parseFileFolderMode(request.nextUrl.searchParams.get('mode'));
+        const saveTo = request.nextUrl.searchParams.get('saveto');
 
         // Validate private key exists
         if (!PRIVATE_KEY) {
@@ -66,7 +88,15 @@ export async function POST(request: NextRequest) {
         const upload_session_id = crypto.randomUUID();
         const timestamp = Date.now();
         const sanitizedName = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const destination_path = `uploads/${userId}/${timestamp}-${sanitizedName}`;
+        const destination_path = mode === 'webdisk' && saveTo === 'webdisk'
+            ? path.posix.join(
+                'uploads',
+                userId,
+                normalizeWebdiskType(request.nextUrl.searchParams.get('type')),
+                normalizeWebdiskPath(request.nextUrl.searchParams.get('path')),
+                `${timestamp}-${sanitizedName}`,
+            )
+            : `uploads/${userId}/${timestamp}-${sanitizedName}`;
         const expires_at = Math.floor(Date.now() / 1000) + (15 * 60); // 15 minutes expiration
 
         // Create Pending File Record

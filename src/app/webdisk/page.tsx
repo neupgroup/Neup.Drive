@@ -84,6 +84,14 @@ function childPath(parentPath: string, childName: string) {
   return parentPath ? `${parentPath}/${childName}` : childName;
 }
 
+function webdiskUploadHref(type: string | null, folderPath: string) {
+  const params = new URLSearchParams();
+  params.set('type', type || 'assets');
+  params.set('saveto', 'webdisk');
+  if (folderPath) params.set('path', folderPath);
+  return `/upload?${params.toString()}`;
+}
+
 function FolderCard({ folder, onOpen }: { folder: WebDiskFolder; onOpen: (folder: WebDiskFolder) => void }) {
   return (
     <button
@@ -400,7 +408,7 @@ function WebdiskContent() {
             Refresh
           </Button>
           <Button asChild className="rounded-full shadow-indigo-500/20 shadow-lg">
-            <Link href="/upload">
+            <Link href={webdiskUploadHref(selectedType, selectedPath)}>
               <Upload className="mr-2 h-4 w-4" />
               Upload New File
             </Link>
@@ -431,7 +439,7 @@ function WebdiskContent() {
             Files organized into this WebDisk location will appear here after the CDN API finds them.
           </p>
           <Button asChild className="rounded-full">
-            <Link href="/upload">Go to Upload Center</Link>
+            <Link href={webdiskUploadHref(selectedType, selectedPath)}>Go to Upload Center</Link>
           </Button>
         </Card>
       ) : (

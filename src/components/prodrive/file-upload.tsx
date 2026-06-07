@@ -22,6 +22,7 @@ interface FileUploadProps {
     acceptedTypes?: string[]; // Accepted MIME types
     cdnUrl?: string; // CDN API endpoint URL
     uploadMode?: 'drive' | 'webdisk';
+    uploadInitEndpoint?: string;
     onUploadComplete?: (url: string, file: File) => void;
     onUploadError?: (error: string, file: File) => void;
     className?: string;
@@ -36,6 +37,7 @@ export function FileUpload({
     acceptedTypes,
     cdnUrl = '/api/upload', // Default to local API endpoint
     uploadMode = 'drive',
+    uploadInitEndpoint,
     onUploadComplete,
     onUploadError,
     className,
@@ -144,7 +146,7 @@ export function FileUpload({
         // Also set an interval to check for free slots if multiple files are pending
         const interval = setInterval(processQueue, 500);
         return () => clearInterval(interval);
-    }, [queue]);
+    }, [queue, uploadInitEndpoint, uploadMode]);
     // =========Step2 Ends, Hashing =============
 
     // ======= Step 3 Starts, Authorization ===============
@@ -161,7 +163,7 @@ export function FileUpload({
                     size: hashedItem.metadata.size,
                     mime: hashedItem.metadata.type,
                     file_hash: hashedItem.hash,
-                }, `/api/drive/upload/init?mode=${uploadMode}`);
+                }, uploadInitEndpoint || `/api/drive/upload/init?mode=${uploadMode}`);
 
                 // Update state to TOKEN_ISSUED
                 updateQueueItem(hashedItem.id, {

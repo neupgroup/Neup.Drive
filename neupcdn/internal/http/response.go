@@ -63,6 +63,10 @@ func ClientErrorCode(w http.ResponseWriter, statusCode int, code string, interna
 	})
 }
 
+func TokenNotFound(w http.ResponseWriter, internalMsg string, internalErr error) {
+	ClientErrorCode(w, http.StatusNotFound, "404_not_found", internalMsg, internalErr)
+}
+
 // Deprecated: Use ClientError or InternalServerError instead
 func JSONError(w http.ResponseWriter, statusCode int, message string) {
 	ClientError(w, statusCode, message, nil)

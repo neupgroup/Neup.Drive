@@ -96,12 +96,12 @@ func handleFileOperation(w http.ResponseWriter, r *http.Request, expectedAction 
 	}
 
 	if expectedAction != "" && claims.Action != expectedAction {
-		ClientErrorCode(w, http.StatusBadRequest, "action_mismatch", "Token action does not match the requested endpoint", nil)
+		TokenNotFound(w, "Token action does not match the requested endpoint", nil)
 		return
 	}
 
 	if claims.Method != http.MethodPost {
-		ClientErrorCode(w, http.StatusForbidden, "method_mismatch", "Token is not valid for this request method", nil)
+		TokenNotFound(w, "Token is not valid for this request method", nil)
 		return
 	}
 
@@ -113,7 +113,7 @@ func handleFileOperation(w http.ResponseWriter, r *http.Request, expectedAction 
 	case "delete":
 		deleteFile(w, claims)
 	default:
-		ClientErrorCode(w, http.StatusBadRequest, "unsupported_action", "Unsupported file operation", nil)
+		TokenNotFound(w, "Unsupported file operation", nil)
 	}
 }
 
@@ -129,7 +129,7 @@ func FileViewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if claims.Action != "view" || claims.Method != http.MethodGet {
-		ClientErrorCode(w, http.StatusForbidden, "invalid_view_token", "Token is not valid for file preview", nil)
+		TokenNotFound(w, "Token is not valid for file preview", nil)
 		return
 	}
 
@@ -187,12 +187,12 @@ func FileServeHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if claims.Action != "view" || claims.Method != http.MethodGet {
-			ClientErrorCode(w, http.StatusForbidden, "invalid_view_token", "Token is not valid for file preview", nil)
+			TokenNotFound(w, "Token is not valid for file preview", nil)
 			return
 		}
 
 		if claims.AccountFolder != accountID || claims.FolderType != accessType {
-			ClientErrorCode(w, http.StatusForbidden, "path_mismatch", "Token does not match the requested file path", nil)
+			TokenNotFound(w, "Token does not match the requested file path", nil)
 			return
 		}
 
@@ -203,7 +203,7 @@ func FileServeHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if tokenPath != fullPath {
-			ClientErrorCode(w, http.StatusForbidden, "path_mismatch", "Token does not match the requested file path", nil)
+			TokenNotFound(w, "Token does not match the requested file path", nil)
 			return
 		}
 	}
@@ -237,7 +237,7 @@ func FileListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if claims.Action != "list" || claims.Method != http.MethodGet {
-		ClientErrorCode(w, http.StatusForbidden, "invalid_list_token", "Token is not valid for file listing", nil)
+		TokenNotFound(w, "Token is not valid for file listing", nil)
 		return
 	}
 
@@ -328,7 +328,7 @@ func verifyFileOperationRequest(w http.ResponseWriter, r *http.Request) (*securi
 		token = r.URL.Query().Get("token")
 	}
 	if token == "" {
-		ClientErrorCode(w, http.StatusUnauthorized, "missing_file_operation_token", "File operation token not found", nil)
+		TokenNotFound(w, "File operation token not found", nil)
 		return nil, false
 	}
 
@@ -338,28 +338,19 @@ func verifyFileOperationRequest(w http.ResponseWriter, r *http.Request) (*securi
 			InternalServerError(w, "Invalid public key configuration during verification", err)
 			return nil, false
 		}
-		switch err.Error() {
-		case "invalid signature", "invalid signature format":
-			ClientErrorCode(w, http.StatusForbidden, "invalid_signature", "Invalid file operation token signature", err)
-		case "token expired":
-			ClientErrorCode(w, http.StatusForbidden, "token_expired", "File operation token expired", err)
-		case "invalid token format":
-			ClientErrorCode(w, http.StatusBadRequest, "invalid_token_format", "Invalid file operation token format", err)
-		default:
-			ClientErrorCode(w, http.StatusForbidden, "invalid_file_operation_token", "Invalid file operation token", err)
-		}
+		TokenNotFound(w, "Invalid file operation token", err)
 		return nil, false
 	}
 
 	if claims.AccountID == "" || claims.AccountFolder == "" || claims.FolderType == "" || claims.Path == "" || claims.Method == "" || claims.Nonce == "" {
-		ClientErrorCode(w, http.StatusBadRequest, "missing_token_claim", "File operation token is missing required claims", nil)
+		TokenNotFound(w, "File operation token is missing required claims", nil)
 		return nil, false
 	}
 
 	accountRoot := "uploads/" + claims.AccountFolder
 	cleanPath := strings.TrimPrefix(claims.Path, "/")
 	if cleanPath != accountRoot && !strings.HasPrefix(cleanPath, accountRoot+"/") {
-		ClientErrorCode(w, http.StatusForbidden, "account_path_mismatch", "Token path does not match account folder", nil)
+		TokenNotFound(w, "Token path does not match account folder", nil)
 		return nil, false
 	}
 

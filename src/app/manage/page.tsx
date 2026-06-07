@@ -26,7 +26,7 @@ const managementLinks = [
     description: 'Inspect recent application errors and debugging context.',
   },
   {
-    href: '/uploads',
+    href: '/upload',
     icon: Upload,
     title: 'Upload Center',
     description: 'Open the upload workflow and monitor browser-side upload progress.',

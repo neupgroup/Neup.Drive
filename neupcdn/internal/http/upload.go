@@ -47,7 +47,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	tokenJSON := r.Header.Get("x-upload-token")
 	if tokenJSON == "" {
 		// "if mime type, filename, path, file category, etc is not found error: ... not found."
-		ClientErrorCode(w, http.StatusUnauthorized, "missing_upload_token", "x-upload-token header not found", nil)
+		TokenNotFound(w, "x-upload-token header not found", nil)
 		return
 	}
 
@@ -58,18 +58,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 			InternalServerError(w, "Invalid public key configuration during verification", err)
 			return
 		}
-		// "if something like client tries to manipulate the system like using expired keys, log that and also show an error."
-		// VerifyEd25519Token returns "token expired" or "invalid signature" etc.
-		switch err.Error() {
-		case "invalid signature", "invalid signature format":
-			ClientErrorCode(w, http.StatusForbidden, "invalid_signature", "Invalid upload token signature", err)
-		case "token expired":
-			ClientErrorCode(w, http.StatusForbidden, "token_expired", "Upload token expired", err)
-		case "invalid token format":
-			ClientErrorCode(w, http.StatusBadRequest, "invalid_token_format", "Invalid upload token format", err)
-		default:
-			ClientErrorCode(w, http.StatusForbidden, "invalid_upload_token", "Invalid upload token", err)
-		}
+		TokenNotFound(w, "Invalid upload token", err)
 		return
 	}
 
@@ -77,19 +66,19 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	// "if mime type, filename, path, file category, etc is not found error: ... not found."
 
 	if claims.AccountID == "" {
-		ClientErrorCode(w, http.StatusBadRequest, "missing_account_id", "Account ID not found in upload token", nil)
+		TokenNotFound(w, "Account ID not found in upload token", nil)
 		return
 	}
 	if claims.Path == "" {
-		ClientErrorCode(w, http.StatusBadRequest, "missing_path", "Path not found in upload token", nil)
+		TokenNotFound(w, "Path not found in upload token", nil)
 		return
 	}
 	if claims.ContentType == "" {
-		ClientErrorCode(w, http.StatusBadRequest, "missing_content_type", "Content-Type not found in upload token", nil)
+		TokenNotFound(w, "Content-Type not found in upload token", nil)
 		return
 	}
 	if claims.Nonce == "" {
-		ClientErrorCode(w, http.StatusBadRequest, "missing_nonce", "Nonce not found in upload token", nil)
+		TokenNotFound(w, "Nonce not found in upload token", nil)
 		return
 	}
 
