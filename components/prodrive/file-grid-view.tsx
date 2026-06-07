@@ -2,6 +2,8 @@ import Image from 'next/image';
 import type { FileOrFolder } from '@/core/lib/types';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { FileIcon } from '@/components/file-icon';
+import { Badge } from '@/components/ui/badge';
+import { storageTierBadgeClass, storageTierLabel } from '@/core/lib/storage-tiers';
 
 export function FileGridView({
   data,
@@ -37,7 +39,12 @@ export function FileGridView({
           </CardContent>
           <CardFooter className="flex-col items-start p-3">
             <p className="w-full truncate text-sm font-medium">{item.name}</p>
-            <p className="text-xs text-muted-foreground">{item.size || '—'}</p>
+            <div className="mt-1 flex w-full items-center justify-between gap-2">
+              <p className="truncate text-xs text-muted-foreground">{item.size || '—'}</p>
+              <Badge variant="outline" className={storageTierBadgeClass(item.storageTier)}>
+                {storageTierLabel(item.storageTier)}
+              </Badge>
+            </div>
           </CardFooter>
         </Card>
       ))}

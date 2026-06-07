@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client';
 import { FileManager } from '@/components/prodrive/file-manager';
 import { prisma } from '@/core/lib/db';
 import { PlaceHolderImages } from '@/core/lib/placeholder-images';
+import { storageTierFromStoredAs } from '@/core/lib/storage-tiers';
 import type { FileOrFolder } from '@/core/lib/types';
 
 const HOME_OWNER = process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
@@ -51,6 +52,7 @@ function fileTypeFromRecord(type: string, name: string): FileOrFolder['type'] {
   if (extension === 'jpg' || extension === 'jpeg') return 'jpg';
   if (extension === 'png') return 'png';
   if (extension === 'mp4') return 'mp4';
+  if (extension === 'mp3' || extension === 'wav' || extension === 'm4a' || extension === 'aac' || extension === 'ogg') return 'audio';
   if (extension === 'doc' || extension === 'docx') return 'doc';
 
   if (type.startsWith('file:')) {
@@ -59,9 +61,10 @@ function fileTypeFromRecord(type: string, name: string): FileOrFolder['type'] {
     if (subtype === 'jpeg' || subtype === 'jpg') return 'jpg';
     if (subtype === 'png') return 'png';
     if (subtype === 'mp4') return 'mp4';
+    if (subtype === 'mpeg' || subtype === 'mp3' || subtype === 'wav' || subtype === 'ogg' || subtype === 'aac') return 'audio';
   }
 
-  return 'doc';
+  return 'unknown';
 }
 
 async function getHomepageFiles(): Promise<FileOrFolder[]> {
@@ -82,6 +85,7 @@ async function getHomepageFiles(): Promise<FileOrFolder[]> {
       name: row.name,
       type: fileTypeFromRecord(row.type, row.name),
       size: formatBytes(row.size),
+      storageTier: storageTierFromStoredAs(row.stored_as),
       lastModified: formatLastModified(row.updated_on),
       members: MEMBER_AVATAR
         ? [{ id: row.owner, name: ownerName, avatar: MEMBER_AVATAR }]

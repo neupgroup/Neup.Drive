@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { handleClientError } from '@/core/lib/error-client';
 import { format } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
+import { storageTierBadgeClass, storageTierFromWebdiskType, storageTierLabel, type StorageTier } from '@/core/lib/storage-tiers';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +27,7 @@ interface WebDiskRecord {
   uploaded_by: string;
   uploaded_on: string;
   size?: number;
+  storageTier?: StorageTier;
 }
 
 interface WebDiskFolder {
@@ -155,6 +157,12 @@ function FileCard({
         <Badge variant="secondary" className="absolute top-2 right-2 backdrop-blur-md bg-white/70 dark:bg-black/70 text-[10px] uppercase font-bold tracking-wider">
           {file.mimeType.split('/')[1] || 'FILE'}
         </Badge>
+        <Badge
+          variant="outline"
+          className={`absolute left-2 top-2 backdrop-blur-md text-[10px] uppercase font-bold tracking-wider ${storageTierBadgeClass(file.storageTier || storageTierFromWebdiskType(currentType))}`}
+        >
+          {storageTierLabel(file.storageTier || storageTierFromWebdiskType(currentType))}
+        </Badge>
       </div>
 
       <CardHeader className="p-4 flex-grow">
@@ -262,6 +270,12 @@ function WebdiskContent() {
   const filesByType = React.useMemo(() => files.map((file) => ({
     file,
     location: getTypedRelativePath(file),
+  })).map((item) => ({
+    ...item,
+    file: {
+      ...item.file,
+      storageTier: storageTierFromWebdiskType(item.location.type),
+    },
   })), [files]);
 
   const topLevelFolders = React.useMemo<WebDiskFolder[]>(() => WEBDISK_TYPES.map((type) => ({

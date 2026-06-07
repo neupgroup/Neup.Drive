@@ -1,21 +1,20 @@
 import type { FileOrFolder } from '@/core/lib/types';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+  FileImage,
+  FileQuestion,
+  FileText,
+  Folder,
+  Music,
+  Play,
+} from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { FileIcon } from '@/components/file-icon';
 import { Card } from '@/components/ui/card';
+import { storageTierDotClass, storageTierLabel } from '@/core/lib/storage-tiers';
 
 export function FileListView({
   data,
@@ -25,54 +24,93 @@ export function FileListView({
   onItemContextMenu?: (event: React.MouseEvent, item: FileOrFolder) => void;
 }) {
   return (
-    <Card>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[350px]">Name</TableHead>
-            <TableHead>Members</TableHead>
-            <TableHead className="hidden md:table-cell">Last Modified</TableHead>
-            <TableHead className="text-right">File Size</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((item) => (
-            <TableRow
-              key={item.id}
-              onContextMenu={(event) => onItemContextMenu?.(event, item)}
-              className="cursor-default"
-            >
-              <TableCell className="font-medium">
-                <div className="flex items-center gap-3">
-                  <FileIcon type={item.type} className="h-5 w-5 text-muted-foreground" />
-                  <span>{item.name}</span>
+    <div className="space-y-0">
+      {data.map((item, index) => {
+        const uploader = item.members[0]?.name || 'Unknown';
+
+        return (
+          <Card
+            key={item.id}
+            onContextMenu={(event) => onItemContextMenu?.(event, item)}
+            className={`cursor-default rounded-none border-b-0 shadow-none transition-colors hover:bg-muted/40 ${
+              index === 0 ? 'rounded-t-3xl' : ''
+            } ${index === data.length - 1 ? 'rounded-b-3xl border-b' : ''}`}
+          >
+            <div className="flex min-h-20 items-center gap-4 px-4 py-3">
+              <FileTypeTile type={item.type} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span
+                          className={`h-2 w-2 rounded-full ${storageTierDotClass(item.storageTier)}`}
+                          aria-label={storageTierLabel(item.storageTier)}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>{storageTierLabel(item.storageTier)} Storage</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <span className="truncate">Uploaded by {uploader}</span>
+                  <span aria-hidden="true">.</span>
+                  <span>{item.lastModified}</span>
                 </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center">
-                  {item.members.map((member, index) => (
-                    <TooltipProvider key={member.id}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Avatar className={`h-7 w-7 border-2 border-background ${index > 0 ? '-ml-2' : ''}`}>
-                            <AvatarImage src={member.avatar.imageUrl} alt={member.name} data-ai-hint={member.avatar.imageHint}/>
-                            <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{member.name}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  ))}
-                </div>
-              </TableCell>
-              <TableCell className="hidden md:table-cell">{item.lastModified}</TableCell>
-              <TableCell className="text-right">{item.size || '—'}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Card>
+              </div>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+function FileTypeTile({ type }: { type: FileOrFolder['type'] }) {
+  const iconClass = 'h-5 w-5 text-white drop-shadow-sm';
+
+  if (type === 'folder') {
+    return (
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 shadow-sm">
+        <Folder className={iconClass} />
+      </span>
+    );
+  }
+
+  if (type === 'jpg' || type === 'png') {
+    return (
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-300 to-cyan-600 shadow-sm">
+        <FileImage className={iconClass} />
+      </span>
+    );
+  }
+
+  if (type === 'mp4') {
+    return (
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-red-600 shadow-sm">
+        <Play className="ml-0.5 h-5 w-5 fill-white text-white drop-shadow-sm" />
+      </span>
+    );
+  }
+
+  if (type === 'audio') {
+    return (
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-400 to-purple-700 shadow-sm">
+        <Music className={iconClass} />
+      </span>
+    );
+  }
+
+  if (type === 'doc' || type === 'pdf') {
+    return (
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-300 to-orange-600 shadow-sm">
+        <FileText className={iconClass} />
+      </span>
+    );
+  }
+
+  return (
+    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-300 to-slate-600 shadow-sm">
+      <FileQuestion className={iconClass} />
+    </span>
   );
 }

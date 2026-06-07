@@ -1,5 +1,5 @@
 import type { LucideProps } from 'lucide-react';
-import { File, FileImage, FileText, FileVideo, Folder } from 'lucide-react';
+import { File, FileImage, FileQuestion, FileText, FileVideo, Folder, Music } from 'lucide-react';
 import type { FileOrFolder } from '@/core/lib/types';
 
 export function FileIcon({ type, ...props }: { type: FileOrFolder['type'] } & LucideProps) {
@@ -15,6 +15,10 @@ export function FileIcon({ type, ...props }: { type: FileOrFolder['type'] } & Lu
       return <FileImage {...props} />;
     case 'mp4':
       return <FileVideo {...props} />;
+    case 'audio':
+      return <Music {...props} />;
+    case 'unknown':
+      return <FileQuestion {...props} />;
     default:
       return <File {...props} />;
   }
