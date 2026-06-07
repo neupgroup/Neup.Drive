@@ -2,12 +2,20 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Globe, Upload, FileIcon, ExternalLink, Calendar, User, FileText, ImageIcon, VideoIcon, AudioLines, FileCode, MoreVertical } from "lucide-react";
+import { ArrowLeft, Calendar, ExternalLink, FileCode, FileIcon, FileText, Folder, FolderInput, Globe, ImageIcon, MoreVertical, Pencil, Trash2, Upload, User, VideoIcon, AudioLines } from "lucide-react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { handleClientError } from '@/lib/error-client';
 import { format } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface WebDiskRecord {
   id: string;
@@ -20,6 +28,20 @@ interface WebDiskRecord {
   size?: number;
 }
 
+interface WebDiskFolder {
+  name: string;
+  type: string;
+  path: string;
+  count: number;
+}
+
+const WEBDISK_TYPES = [
+  { id: 'assets', label: 'Assets' },
+  { id: 'brand', label: 'Brand' },
+  { id: 'private', label: 'Private' },
+  { id: 'signed', label: 'Signed' },
+];
+
 const getFileIcon = (mimeType: string) => {
   if (mimeType.startsWith('image/')) return <ImageIcon className="h-10 w-10 text-blue-500" />;
   if (mimeType.startsWith('video/')) return <VideoIcon className="h-10 w-10 text-purple-500" />;
@@ -29,7 +51,72 @@ const getFileIcon = (mimeType: string) => {
   return <FileIcon className="h-10 w-10 text-slate-400" />;
 };
 
-function FileCard({ file }: { file: WebDiskRecord }) {
+function getAccountRelativePath(file: WebDiskRecord) {
+  const cleanPath = (file.cdn_path || file.id || '').replace(/^\/+/, '');
+  const uploadsPrefix = 'uploads/';
+  const withoutUploads = cleanPath.startsWith(uploadsPrefix) ? cleanPath.slice(uploadsPrefix.length) : cleanPath;
+  const [, ...rest] = withoutUploads.split('/');
+  return rest.join('/');
+}
+
+function getTypedRelativePath(file: WebDiskRecord) {
+  const relativePath = getAccountRelativePath(file);
+  const [maybeType, ...rest] = relativePath.split('/');
+  if (WEBDISK_TYPES.some((type) => type.id === maybeType)) {
+    return {
+      type: maybeType,
+      path: rest.join('/'),
+    };
+  }
+
+  return {
+    type: 'assets',
+    path: relativePath,
+  };
+}
+
+function dirname(value: string) {
+  const index = value.lastIndexOf('/');
+  return index === -1 ? '' : value.slice(0, index);
+}
+
+function childPath(parentPath: string, childName: string) {
+  return parentPath ? `${parentPath}/${childName}` : childName;
+}
+
+function FolderCard({ folder, onOpen }: { folder: WebDiskFolder; onOpen: (folder: WebDiskFolder) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(folder)}
+      className="text-left"
+    >
+      <Card className="h-full border-slate-200/60 transition-all duration-300 hover:shadow-lg dark:border-slate-800/60">
+        <CardContent className="flex items-center gap-4 p-5">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300">
+            <Folder className="h-7 w-7" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-semibold text-slate-900 dark:text-white">{folder.name}</h3>
+            <p className="text-xs text-muted-foreground">{folder.count} item{folder.count === 1 ? '' : 's'}</p>
+          </div>
+        </CardContent>
+      </Card>
+    </button>
+  );
+}
+
+function FileCard({
+  file,
+  currentType,
+  currentPath,
+  onOperation,
+}: {
+  file: WebDiskRecord;
+  currentType: string;
+  currentPath: string;
+  onOperation: (file: WebDiskRecord, action: 'rename' | 'move' | 'delete') => void;
+}) {
   const [imgError, setImgError] = React.useState(false);
   const isImage = file.mimeType.startsWith('image/') && !imgError;
 
@@ -68,9 +155,28 @@ function FileCard({ file }: { file: WebDiskRecord }) {
           <CardTitle className="text-sm font-semibold truncate leading-tight flex-1" title={file.filename}>
             {file.filename}
           </CardTitle>
-          <Button variant="ghost" size="icon" className="h-6 w-6 -mr-1">
-            <MoreVertical className="h-4 w-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6 -mr-1">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onOperation(file, 'move')}>
+                <FolderInput className="mr-2 h-4 w-4" />
+                Organize
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onOperation(file, 'rename')}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onOperation(file, 'delete')} className="text-destructive focus:text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         <CardDescription className="text-[12px] flex items-center gap-1.5 mt-1">
           <User className="h-3 w-3" />
@@ -83,15 +189,24 @@ function FileCard({ file }: { file: WebDiskRecord }) {
           <Calendar className="h-3 w-3" />
           {format(new Date(file.uploaded_on), 'MMM d, yyyy')}
         </div>
+        <Badge variant="outline" className="max-w-[120px] truncate text-[10px]" title={currentPath || currentType}>
+          {currentPath || currentType}
+        </Badge>
       </CardFooter>
     </Card>
   );
 }
 
-export default function WebdiskPage() {
+function WebdiskContent() {
   const [files, setFiles] = React.useState<WebDiskRecord[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [operatingPath, setOperatingPath] = React.useState<string | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedTypeParam = searchParams.get('type');
+  const selectedType = WEBDISK_TYPES.some((type) => type.id === selectedTypeParam) ? selectedTypeParam : null;
+  const selectedPath = (searchParams.get('path') || '').replace(/^\/+/, '');
 
   const fetchFiles = React.useCallback(async () => {
     try {
@@ -130,18 +245,157 @@ export default function WebdiskPage() {
     fetchFiles();
   }, [fetchFiles]);
 
+  const navigateTo = React.useCallback((type: string, nextPath = '') => {
+    const params = new URLSearchParams();
+    params.set('type', type);
+    params.set('path', nextPath);
+    router.push(`/webdisk?${params.toString()}`);
+  }, [router]);
+
+  const filesByType = React.useMemo(() => files.map((file) => ({
+    file,
+    location: getTypedRelativePath(file),
+  })), [files]);
+
+  const topLevelFolders = React.useMemo<WebDiskFolder[]>(() => WEBDISK_TYPES.map((type) => ({
+    name: type.label,
+    type: type.id,
+    path: '',
+    count: filesByType.filter((item) => item.location.type === type.id).length,
+  })), [filesByType]);
+
+  const currentItems = React.useMemo(() => {
+    if (!selectedType) return { folders: topLevelFolders, files: [] as WebDiskRecord[] };
+
+    const folders = new Map<string, WebDiskFolder>();
+    const currentFiles: WebDiskRecord[] = [];
+    const pathPrefix = selectedPath ? `${selectedPath}/` : '';
+
+    for (const item of filesByType) {
+      if (item.location.type !== selectedType) continue;
+      const relativeFilePath = item.location.path;
+
+      if (selectedPath && relativeFilePath !== selectedPath && !relativeFilePath.startsWith(pathPrefix)) continue;
+      const remaining = selectedPath ? relativeFilePath.slice(pathPrefix.length) : relativeFilePath;
+      const [nextSegment, ...rest] = remaining.split('/');
+
+      if (!nextSegment) continue;
+      if (rest.length === 0) {
+        currentFiles.push(item.file);
+      } else {
+        const nextPath = childPath(selectedPath, nextSegment);
+        const folder = folders.get(nextPath);
+        folders.set(nextPath, {
+          name: nextSegment,
+          type: selectedType,
+          path: nextPath,
+          count: (folder?.count || 0) + 1,
+        });
+      }
+    }
+
+    return {
+      folders: Array.from(folders.values()).sort((a, b) => a.name.localeCompare(b.name)),
+      files: currentFiles.sort((a, b) => a.filename.localeCompare(b.filename)),
+    };
+  }, [filesByType, selectedPath, selectedType, topLevelFolders]);
+
+  const runOperation = React.useCallback(async (file: WebDiskRecord, action: 'rename' | 'move' | 'delete') => {
+    if (!selectedType) return;
+
+    let body: Record<string, string> = {
+      action,
+      cdn_path: file.cdn_path || file.id,
+      type: selectedType,
+    };
+
+    if (action === 'rename') {
+      const newName = window.prompt('Rename file', file.filename);
+      if (!newName || newName.trim() === file.filename) return;
+      body.new_name = newName.trim();
+    }
+
+    if (action === 'move') {
+      const destinationType = window.prompt('Organize into type: assets, brand, private, or signed', selectedType);
+      if (!destinationType) return;
+
+      const normalizedType = destinationType.trim();
+      if (!WEBDISK_TYPES.some((type) => type.id === normalizedType)) {
+        setError('Invalid type. Use assets, brand, private, or signed.');
+        return;
+      }
+
+      const destinationPath = window.prompt('Folder path inside that type', selectedPath);
+      if (destinationPath === null) return;
+      body.to_type = normalizedType;
+      body.to_path = destinationPath.trim().replace(/^\/+/, '');
+    }
+
+    if (action === 'delete' && !window.confirm(`Delete ${file.filename} from WebDisk?`)) {
+      return;
+    }
+
+    try {
+      setOperatingPath(file.cdn_path || file.id);
+      const response = await fetch('/api/webdisk/files/operation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        let responseData: unknown = null;
+        try {
+          responseData = await response.json();
+        } catch {
+          responseData = await response.text().catch(() => '');
+        }
+        const operationError = new Error('WebDisk operation failed') as Error & { status?: number; response?: unknown };
+        operationError.status = response.status;
+        operationError.response = responseData;
+        throw operationError;
+      }
+
+      await fetchFiles();
+      setError(null);
+    } catch (err) {
+      const message = await handleClientError(err, 'WebDiskOperation', {
+        status: typeof err === 'object' && err && 'status' in err ? (err as { status?: number }).status : undefined,
+        response: typeof err === 'object' && err && 'response' in err ? (err as { response?: unknown }).response : undefined,
+      });
+      setError(message);
+    } finally {
+      setOperatingPath(null);
+    }
+  }, [fetchFiles, selectedPath, selectedType]);
+
+  const heading = selectedType
+    ? WEBDISK_TYPES.find((type) => type.id === selectedType)?.label || selectedType
+    : 'WebDisk';
+
   return (
     <div className="space-y-8 p-1 sm:p-2">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-black font-headline tracking-tight mb-1 text-slate-900 dark:text-white">
-            WebDisk
+            {heading}
           </h1>
           <p className="text-muted-foreground text-sm font-medium">
-            Files looked up directly from the CDN API
+            {selectedType ? `/${selectedType}${selectedPath ? `/${selectedPath}` : ''}` : 'Files looked up directly from the CDN API'}
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {selectedType ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => selectedPath ? navigateTo(selectedType, dirname(selectedPath)) : router.push('/webdisk')}
+              className="rounded-full"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+          ) : null}
           <Button variant="outline" size="sm" onClick={fetchFiles} className="rounded-full">
             Refresh
           </Button>
@@ -167,14 +421,14 @@ export default function WebdiskPage() {
             <Button variant="outline" size="sm" onClick={fetchFiles}>Try Again</Button>
           </CardContent>
         </Card>
-      ) : files.length === 0 ? (
+      ) : selectedType && currentItems.folders.length === 0 && currentItems.files.length === 0 ? (
         <Card className="flex h-[400px] flex-col items-center justify-center bg-slate-50/30 dark:bg-slate-900/30 border-dashed rounded-3xl">
           <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-full mb-6">
             <Globe className="h-16 w-16 opacity-30 text-indigo-500" />
           </div>
-          <h3 className="text-xl font-bold mb-2">No CDN files found</h3>
+          <h3 className="text-xl font-bold mb-2">This folder is empty</h3>
           <p className="text-muted-foreground max-w-sm text-center mb-6">
-            Any files you upload through the Upload Center will appear here after the CDN API finds them.
+            Files organized into this WebDisk location will appear here after the CDN API finds them.
           </p>
           <Button asChild className="rounded-full">
             <Link href="/upload">Go to Upload Center</Link>
@@ -182,11 +436,33 @@ export default function WebdiskPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-          {files.map((file) => (
-            <FileCard key={file.id} file={file} />
+          {currentItems.folders.map((folder) => (
+            <FolderCard
+              key={`${folder.type}:${folder.path || folder.name}`}
+              folder={folder}
+              onOpen={() => navigateTo(folder.type, folder.path)}
+            />
+          ))}
+          {currentItems.files.map((file) => (
+            <div key={file.id} className={operatingPath === (file.cdn_path || file.id) ? 'pointer-events-none opacity-60' : ''}>
+              <FileCard
+                file={file}
+                currentType={selectedType || 'assets'}
+                currentPath={selectedPath}
+                onOperation={runOperation}
+              />
+            </div>
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+export default function WebdiskPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <WebdiskContent />
+    </React.Suspense>
   );
 }
