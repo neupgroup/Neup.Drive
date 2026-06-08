@@ -7,7 +7,7 @@ import type { Prisma } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { prisma } from '@/core/lib/db';
-import { createBridgeFileUrl } from '@/core/lib/bridge-api';
+import { createBridgeFileUrl, isActiveFileDetails } from '@/core/lib/bridge-api';
 
 function getDetails(details: Prisma.JsonValue): Prisma.JsonObject {
   return details && typeof details === 'object' && !Array.isArray(details) ? details : {};
@@ -33,7 +33,7 @@ function viewerForMime(params: { mimeType: string; name: string; viewUrl: string
 
   if (mimeType.startsWith('image/')) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center bg-slate-50 p-4">
+      <div className="flex min-h-[60vh] w-full min-w-0 items-center justify-center overflow-hidden bg-slate-50 p-4">
         <img src={viewUrl} alt={name} className="max-h-[75vh] max-w-full rounded-lg object-contain shadow-sm" />
       </div>
     );
@@ -41,15 +41,17 @@ function viewerForMime(params: { mimeType: string; name: string; viewUrl: string
 
   if (mimeType.startsWith('video/')) {
     return (
-      <video controls className="max-h-[75vh] w-full bg-black">
-        <source src={viewUrl} type={mimeType} />
-      </video>
+      <div className="w-full min-w-0 overflow-hidden bg-black">
+        <video controls className="block max-h-[75vh] w-full max-w-full object-contain">
+          <source src={viewUrl} type={mimeType} />
+        </video>
+      </div>
     );
   }
 
   if (mimeType.startsWith('audio/')) {
     return (
-      <div className="flex min-h-[45vh] items-center justify-center bg-slate-50 p-8">
+      <div className="flex min-h-[45vh] w-full min-w-0 items-center justify-center overflow-hidden bg-slate-50 p-8">
         <audio controls className="w-full max-w-2xl">
           <source src={viewUrl} type={mimeType} />
         </audio>
@@ -58,7 +60,7 @@ function viewerForMime(params: { mimeType: string; name: string; viewUrl: string
   }
 
   if (mimeType === 'application/pdf') {
-    return <iframe src={viewUrl} title={name} className="h-[75vh] w-full bg-white" />;
+    return <iframe src={viewUrl} title={name} className="h-[75vh] w-full max-w-full bg-white" />;
   }
 
   return (
@@ -91,7 +93,7 @@ export default async function ViewerPage({
   if (!file) notFound();
 
   const details = getDetails(file.details);
-  if (details.status === 'DELETED') notFound();
+  if (!isActiveFileDetails(file.details)) notFound();
 
   const requestHeaders = await headers();
   const tokenOptions = {
@@ -103,39 +105,40 @@ export default async function ViewerPage({
   const mimeType = getMimeType(details);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
+    <div className="w-full min-w-0 space-y-4 overflow-hidden">
+      <div className="flex min-w-0 flex-col gap-3">
+        <div className="min-w-0 flex-1">
           <Button variant="ghost" size="sm" asChild className="-ml-2 mb-2">
             <Link href="/">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Link>
           </Button>
-          <h1 className="truncate text-2xl font-bold tracking-tight">{file.name}</h1>
-          <p className="text-sm text-muted-foreground">{mimeType}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
-            <a href={viewUrl} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="mr-2 h-4 w-4" />
-              Open
-            </a>
-          </Button>
-          <Button asChild>
-            <a href={downloadUrl}>
-              <Download className="mr-2 h-4 w-4" />
-              Download
-            </a>
-          </Button>
+          <h1 className="max-w-full break-words text-2xl font-bold tracking-tight">{file.name}</h1>
+          <p className="break-words text-sm text-muted-foreground">{mimeType}</p>
         </div>
       </div>
 
-      <Card className="overflow-hidden">
+      <Card className="w-full min-w-0 overflow-hidden">
         <CardContent className="p-0">
           {viewerForMime({ mimeType, name: file.name, viewUrl })}
         </CardContent>
       </Card>
+
+      <div className="flex flex-wrap items-center justify-start gap-2">
+        <Button variant="outline" asChild>
+          <a href={viewUrl} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Open
+          </a>
+        </Button>
+        <Button asChild>
+          <a href={downloadUrl}>
+            <Download className="mr-2 h-4 w-4" />
+            Download
+          </a>
+        </Button>
+      </div>
     </div>
   );
 }

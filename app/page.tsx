@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import { FileManager } from '@/components/prodrive/file-manager';
 import { prisma } from '@/core/lib/db';
+import { isActiveFileDetails } from '@/core/lib/bridge-api';
 import { PlaceHolderImages } from '@/core/lib/placeholder-images';
 import { storageTierFromStoredAs } from '@/core/lib/storage-tiers';
 import type { FileOrFolder } from '@/core/lib/types';
@@ -76,7 +77,7 @@ async function getHomepageFiles(): Promise<FileOrFolder[]> {
     take: 100,
   });
 
-  return rows.filter((row) => getDetails(row.details).status !== 'DELETED').map((row) => {
+  return rows.filter((row) => isActiveFileDetails(row.details)).map((row) => {
     const details = getDetails(row.details);
     const ownerName = typeof details.uploaded_by === 'string' ? details.uploaded_by : row.owner;
 

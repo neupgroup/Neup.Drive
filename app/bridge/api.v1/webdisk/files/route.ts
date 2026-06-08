@@ -18,7 +18,7 @@ interface CdnListedFile {
 }
 
 function getCdnBaseUrl() {
-    const explicitBase = process.env.CDN_BASE_URL || process.env.CDN_HOST;
+    const explicitBase = process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_BASE_URL || process.env.CDN_HOST;
     if (explicitBase) return explicitBase.replace(/\/$/, '');
 
     const uploadUrl = process.env.CDN_UPLOAD_URL || process.env.NEXT_PUBLIC_CDN_UPLOAD_URL;
@@ -123,7 +123,11 @@ export async function GET(request: NextRequest) {
         }
 
         const files = await listCdnFiles();
-        const mappedFiles = files.map((file) => ({
+        const visibleFiles = files.filter((file) => {
+            const cleanPath = file.path.replace(/^\/+/, '');
+            return !cleanPath.includes(`/${WEBDISK_ACCOUNT_ID}/.trash/`) && !cleanPath.includes('/.trash/');
+        });
+        const mappedFiles = visibleFiles.map((file) => ({
             id: file.path,
             filename: file.name,
             path: fileUrl(file.path, request),

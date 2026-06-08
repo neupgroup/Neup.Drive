@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
-import { createBridgeFileUrl, getRequestDeviceIp } from '@/core/lib/bridge-api';
+import { createBridgeFileUrl, getRequestDeviceIp, isActiveFileDetails } from '@/core/lib/bridge-api';
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 
@@ -24,10 +24,7 @@ export async function GET(request: NextRequest) {
         });
 
         // Map files to include full URL and handle BigInt
-        const visibleFiles = files.filter((file) => {
-            const details = typeof file.details === 'object' && file.details && !Array.isArray(file.details) ? file.details : {};
-            return details.status !== 'DELETED';
-        });
+        const visibleFiles = files.filter((file) => isActiveFileDetails(file.details));
         const tokenOptions = {
             deviceIp: getRequestDeviceIp(request),
             userAgent: request.headers.get('user-agent') || '',

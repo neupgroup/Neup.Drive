@@ -8,6 +8,7 @@ import {
     getFolderType,
     getParam,
     getRequestDeviceIp,
+    isActiveFileDetails,
     normalizeFolderType,
 } from '@/core/lib/bridge-api';
 import { prisma } from '@/core/lib/db';
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
             take: limit,
         });
 
-        const visibleFiles = files.filter((file) => getDetails(file.details).status !== 'DELETED');
+        const visibleFiles = files.filter((file) => isActiveFileDetails(file.details));
 
         return NextResponse.json({
             success: true,

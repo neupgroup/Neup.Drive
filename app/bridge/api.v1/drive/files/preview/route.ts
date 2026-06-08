@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 
-import { createBridgeFileUrl, getFolderType, getParam, getRequestDeviceIp } from '@/core/lib/bridge-api';
+import { createBridgeFileUrl, getFolderType, getParam, getRequestDeviceIp, isActiveFileDetails } from '@/core/lib/bridge-api';
 import { parseDurationSeconds } from '@/core/lib/cdn-token';
 import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
         }
 
         const details = getDetails(filefolder.details);
-        if (details.status === 'DELETED') {
+        if (!isActiveFileDetails(filefolder.details)) {
             return NextResponse.json({ error: 'File is deleted' }, { status: 410 });
         }
 

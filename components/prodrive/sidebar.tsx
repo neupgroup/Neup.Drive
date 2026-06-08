@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { PlusCircle } from 'lucide-react';
-import type { Prisma } from '@prisma/client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -22,6 +21,7 @@ import {
 import { Logo } from '@/components/icons';
 import { NavLinks } from '@/components/prodrive/nav-links';
 import { prisma } from '@/core/lib/db';
+import { isActiveFileDetails } from '@/core/lib/bridge-api';
 import {
   formatStorageBytes,
   STORAGE_LIMIT_BYTES,
@@ -30,10 +30,6 @@ import {
 } from '@/core/lib/storage-tiers';
 
 const STORAGE_OWNER = process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
-
-function getDetails(details: Prisma.JsonValue): Prisma.JsonObject {
-  return details && typeof details === 'object' && !Array.isArray(details) ? details : {};
-}
 
 async function getStorageUsage() {
   const rows = await prisma.fileFolder.findMany({
@@ -52,7 +48,7 @@ async function getStorageUsage() {
   };
 
   for (const row of rows) {
-    if (getDetails(row.details).status === 'DELETED') continue;
+    if (row.stored_as === 'trash' || !isActiveFileDetails(row.details)) continue;
     totals[storageTierFromStoredAs(row.stored_as)] += Number(row.size || 0);
   }
 

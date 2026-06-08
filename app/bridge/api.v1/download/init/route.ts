@@ -10,6 +10,7 @@ import {
     getFolderType,
     getParam,
     getRequestDeviceIp,
+    isActiveFileDetails,
 } from '@/core/lib/bridge-api';
 import { parseDurationSeconds } from '@/core/lib/cdn-token';
 import { handleServerError } from '@/core/lib/error-server';
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
         }
 
         const details = getDetails(file.details);
-        if (details.status === 'DELETED') {
+        if (!isActiveFileDetails(file.details)) {
             return NextResponse.json({ error: 'File is deleted' }, { status: 410 });
         }
 

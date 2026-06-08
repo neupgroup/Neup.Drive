@@ -79,6 +79,12 @@ func parseFileRoute(pathValue string) (accountID, accessType, relPath string, ok
 			return "", "", "", false
 		}
 		accessType = "drive"
+	case ".trash":
+		relPath = strings.TrimPrefix(remainder, ".trash/")
+		if strings.TrimSpace(relPath) == "" {
+			return "", "", "", false
+		}
+		accessType = ".trash"
 	case "assets":
 		relPath = strings.TrimPrefix(remainder, "assets/")
 		if strings.TrimSpace(relPath) == "" {
@@ -530,15 +536,43 @@ func deleteFile(w http.ResponseWriter, claims *security.FileOperationPayload) {
 		return
 	}
 
-	if err := os.Remove(source); err != nil {
-		InternalServerError(w, "Failed to delete file", err)
+	if claims.DestinationPath == "" {
+		if err := os.Remove(source); err != nil {
+			InternalServerError(w, "Failed to delete file", err)
+			return
+		}
+
+		JSONResponse(w, http.StatusOK, map[string]interface{}{
+			"success":      true,
+			"action":       "delete",
+			"deleted_path": claims.Path,
+		})
+		return
+	}
+
+	if !strings.HasPrefix(strings.TrimPrefix(claims.DestinationPath, "/"), "uploads/"+claims.AccountFolder+"/.trash/") {
+		ClientErrorCode(w, http.StatusForbidden, "invalid_trash_destination", "Delete destination must be inside the account trash folder", nil)
+		return
+	}
+
+	destRel := strings.TrimPrefix(claims.DestinationPath, "/")
+	dest, err := safePublicPath(destRel)
+	if err != nil {
+		ClientErrorCode(w, http.StatusForbidden, "invalid_destination_path", "Invalid destination path", err)
+		return
+	}
+
+	if err := renameOrMove(source, dest); err != nil {
+		writeOperationError(w, err)
 		return
 	}
 
 	JSONResponse(w, http.StatusOK, map[string]interface{}{
-		"success":      true,
-		"action":       "delete",
-		"deleted_path": claims.Path,
+		"success":          true,
+		"action":           "delete",
+		"path":             destRel,
+		"destination_path": destRel,
+		"deleted_path":     claims.Path,
 	})
 }
 

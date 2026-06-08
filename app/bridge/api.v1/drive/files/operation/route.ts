@@ -6,6 +6,7 @@ import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnTo
 import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
 import { createFileFolderLog } from '@/core/lib/filefolder';
+import { buildBridgeTrashPath, getTrashDeletesIn, isActiveFileDetails } from '@/core/lib/bridge-api';
 
 type FileOperationAction = 'rename' | 'move' | 'delete';
 
@@ -18,7 +19,7 @@ interface FileOperationRequest {
 }
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
-const CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
+const CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
 const CDN_OPERATION_BASE = getCdnOperationBase();
 const FOLDER_TYPES = new Set(['drive', 'assets', 'private', 'signed']);
 
@@ -125,7 +126,7 @@ export async function POST(request: NextRequest) {
         }
 
         const details = getDetails(filefolder.details);
-        if (details.status === 'DELETED') {
+        if (!isActiveFileDetails(filefolder.details)) {
             return NextResponse.json({ error: 'File is already deleted' }, { status: 409 });
         }
 
@@ -151,6 +152,11 @@ export async function POST(request: NextRequest) {
             destinationPath = makeDestinationPath(filefolder.owner, nextFolderType, filefolder.name, operation.destination_internal_path);
         }
 
+        if (operation.action === 'delete') {
+            nextFolderType = '.trash';
+            destinationPath = buildBridgeTrashPath(filefolder.owner, filefolder.name);
+        }
+
         const signedToken = createSignedCdnToken(createExpiringOperationPayload({
             action: operation.action,
             account_id: filefolder.owner,
@@ -160,7 +166,7 @@ export async function POST(request: NextRequest) {
             destination_path: destinationPath,
             new_name: operation.action === 'rename' ? nextName : undefined,
             method: 'POST',
-        }), PRIVATE_KEY);
+        }, operation.action === 'delete' ? 60 : undefined), PRIVATE_KEY);
 
         const cdnResult = await callCdnOperation(operation.action, encodeSignedCdnToken(signedToken));
 
@@ -176,20 +182,30 @@ export async function POST(request: NextRequest) {
         let updatedFilefolder;
 
         if (operation.action === 'delete') {
+            const finalPath = cdnResult.destination_path || cdnResult.path || destinationPath || currentPath;
+            const now = new Date();
+            const deletesIn = getTrashDeletesIn(now);
             updatedFilefolder = await prisma.fileFolder.update({
                 where: { id: filefolder.id },
                 data: {
+                    path: finalPath,
+                    stored_as: 'trash',
                     details: {
                         ...details,
-                        status: 'DELETED',
-                        deleted_on: new Date().toISOString(),
-                        deleted_path: cdnResult.deleted_path ?? currentPath,
+                        mode: 'trash',
+                        folder_type: '.trash',
+                        previous_mode: currentFolderType,
+                        previous_path: currentPath,
+                        status: 'TRASHED',
+                        deleted_on: now.toISOString(),
+                        deletes_in: deletesIn,
+                        trash_path: finalPath,
                     },
                 },
             });
             await prisma.file.updateMany({
                 where: { path: currentPath },
-                data: { status: 'DELETED' },
+                data: { path: finalPath, status: 'TRASHED' },
             });
         } else {
             const finalPath = cdnResult.destination_path || cdnResult.path || destinationPath || currentPath;

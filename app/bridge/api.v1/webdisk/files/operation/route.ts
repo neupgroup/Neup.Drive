@@ -4,6 +4,7 @@ import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnTo
 import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
 import { webdiskStoredAs } from '@/core/lib/filefolder';
+import { buildBridgeTrashPath, getTrashDeletesIn } from '@/core/lib/bridge-api';
 
 type WebdiskOperationAction = 'rename' | 'move' | 'delete';
 
@@ -17,7 +18,7 @@ interface WebdiskOperationRequest {
 }
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
-const CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
+const CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
 const CDN_OPERATION_BASE = getCdnOperationBase();
 const WEBDISK_ACCOUNT_ID = process.env.WEBDISK_ACCOUNT_ID || process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
 const WEBDISK_TYPES = ['assets', 'private', 'signed'];
@@ -128,14 +129,22 @@ async function syncFilefolderOperation(params: {
             : {};
 
         if (params.action === 'delete') {
+            const now = new Date();
             await prisma.fileFolder.update({
                 where: { id: filefolder.id },
                 data: {
+                    path: params.finalPath,
+                    stored_as: 'trash',
                     details: {
                         ...details,
-                        status: 'DELETED',
-                        deleted_on: new Date().toISOString(),
-                        deleted_path: params.cdn.deleted_path ?? params.sourcePath,
+                        mode: 'trash',
+                        folder_type: '.trash',
+                        previous_mode: params.currentType,
+                        previous_path: params.sourcePath,
+                        status: 'TRASHED',
+                        deleted_on: now.toISOString(),
+                        deletes_in: getTrashDeletesIn(now),
+                        trash_path: params.finalPath,
                     },
                 },
             });
@@ -192,6 +201,10 @@ export async function POST(request: NextRequest) {
             destinationPath = path.posix.join('uploads', WEBDISK_ACCOUNT_ID, destinationType, destinationFolder, filename);
         }
 
+        if (body.action === 'delete') {
+            destinationPath = buildBridgeTrashPath(WEBDISK_ACCOUNT_ID, path.posix.basename(sourcePath));
+        }
+
         const signedToken = createSignedCdnToken(createExpiringOperationPayload({
             action: body.action,
             account_id: WEBDISK_ACCOUNT_ID,
@@ -201,14 +214,14 @@ export async function POST(request: NextRequest) {
             destination_path: destinationPath,
             new_name: newName,
             method: 'POST',
-        }), PRIVATE_KEY);
+        }, body.action === 'delete' ? 60 : undefined), PRIVATE_KEY);
 
         const cdn = await callCdnOperation(body.action, encodeSignedCdnToken(signedToken));
         await syncFilefolderOperation({
             action: body.action,
             sourcePath,
             currentType,
-            nextType: body.action === 'move' ? normalizeType(body.to_type) : currentType,
+            nextType: body.action === 'delete' ? '.trash' : body.action === 'move' ? normalizeType(body.to_type) : currentType,
             nextName: newName,
             finalPath: cdn.destination_path || cdn.path || destinationPath || sourcePath,
             cdn,

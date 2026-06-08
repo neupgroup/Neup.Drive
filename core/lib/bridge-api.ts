@@ -19,10 +19,11 @@ export type BridgeOrganizeType = 'rename' | 'move' | 'delete';
 
 export const BRIDGE_PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 export const BRIDGE_UPLOAD_URL = process.env.CDN_UPLOAD_URL || 'https://neupcdn.com/upload';
-export const BRIDGE_CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
+export const BRIDGE_CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
 export const BRIDGE_CDN_OPERATION_BASE = getCdnOperationBase();
 export const DEFAULT_BRIDGE_OWNER = 'demo-user-123';
 const BRIDGE_FOLDER_TYPES = new Set(['drive', 'assets', 'private', 'signed']);
+const TRASH_RETENTION_DAYS = 30;
 
 export function getBridgeOwner(request: NextRequest) {
     return (
@@ -46,6 +47,11 @@ export function getRequestDeviceIp(request: NextRequest) {
 
 export function getDetails(details: Prisma.JsonValue): Prisma.JsonObject {
     return details && typeof details === 'object' && !Array.isArray(details) ? details : {};
+}
+
+export function isActiveFileDetails(details: Prisma.JsonValue) {
+    const parsedDetails = getDetails(details);
+    return parsedDetails.status !== 'DELETED' && parsedDetails.status !== 'TRASHED';
 }
 
 export function assertSafePathSegment(value: string, label: string) {
@@ -76,6 +82,16 @@ export function normalizeFolderType(folderType?: string | null) {
         throw new Error('Invalid folder_type');
     }
     return safeFolderType;
+}
+
+export function getTrashDeletesIn(from = new Date()) {
+    return new Date(from.getTime() + TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+}
+
+export function buildBridgeTrashPath(owner: string, filename: string) {
+    const safeOwner = assertSafePathSegment(owner, 'owner');
+    const safeFilename = sanitizeFilename(path.posix.basename(filename));
+    return path.posix.join('uploads', safeOwner, '.trash', safeFilename);
 }
 
 export function buildBridgeStoragePath(params: {
@@ -121,8 +137,7 @@ export async function getDuplicateWebdiskFilename(params: {
     const existing = await findActiveFileFolderByPath(params.owner, destinationPath);
     if (!existing) return null;
 
-    const details = getDetails(existing.details);
-    if (details.status === 'DELETED') return null;
+    if (!isActiveFileDetails(existing.details)) return null;
 
     return {
         existing,
@@ -196,11 +211,11 @@ export function createBridgeFileUrl(
         return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/${encodedPath}`;
     }
 
-    const maxSeconds = folderType === 'private' ? 60 * 60 : 24 * 60 * 60;
+    const maxSeconds = folderType === 'private' ? 60 * 60 : folderType === '.trash' ? 60 : 24 * 60 * 60;
     const expiresInSeconds = options.expiresInSeconds ?? parseDurationSeconds(options.expiresIn, {
         min: folderType === 'private' ? 60 : 60,
         max: maxSeconds,
-        fallback: 15 * 60,
+        fallback: folderType === '.trash' ? 60 : 15 * 60,
     });
     const token = createBridgeViewToken(filefolder, action, {
         expiresInSeconds,
@@ -221,6 +236,11 @@ export function createBridgeFileUrl(
     if (folderType === 'drive') {
         const encodedStoragePath = filefolder.path.split('/').filter(Boolean).map(encodeURIComponent).join('/');
         return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/drive/${encodedStoragePath}?${tokenQuery}`;
+    }
+
+    if (folderType === '.trash') {
+        const encodedTrashPath = stripFolderType(toAccountRelativePath(filefolder.path, filefolder.owner), '.trash').split('/').filter(Boolean).map(encodeURIComponent).join('/');
+        return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/.trash/${encodedTrashPath}?${tokenQuery}`;
     }
 
     return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/${encodeURIComponent(folderType)}/${encodedPath}?${tokenQuery}`;
@@ -407,7 +427,7 @@ export async function organizeBridgeFile(params: {
     destinationInternalPath?: string | null;
 }) {
     const details = getDetails(params.filefolder.details);
-    if (details.status === 'DELETED') throw new Error('File is already deleted');
+    if (!isActiveFileDetails(params.filefolder.details)) throw new Error('File is already deleted');
 
     const currentFolderType = getFolderType(params.filefolder);
     const currentPath = params.filefolder.path;
@@ -432,6 +452,11 @@ export async function organizeBridgeFile(params: {
         });
     }
 
+    if (params.action === 'delete') {
+        nextFolderType = '.trash';
+        destinationPath = buildBridgeTrashPath(params.filefolder.owner, params.filefolder.name);
+    }
+
     const token = encodeSignedCdnToken(createSignedCdnToken(createExpiringOperationPayload({
         action: params.action,
         account_id: params.filefolder.owner,
@@ -441,24 +466,34 @@ export async function organizeBridgeFile(params: {
         destination_path: destinationPath,
         new_name: params.action === 'rename' ? nextName : undefined,
         method: 'POST',
-    }), BRIDGE_PRIVATE_KEY));
+    }, params.action === 'delete' ? 60 : undefined), BRIDGE_PRIVATE_KEY));
 
     const cdnResult = await callBridgeCdnOperation(params.action, token);
 
     let updatedFilefolder;
     if (params.action === 'delete') {
+        const finalPath = cdnResult.destination_path || cdnResult.path || destinationPath || currentPath;
+        const now = new Date();
+        const deletesIn = getTrashDeletesIn(now);
         updatedFilefolder = await prisma.fileFolder.update({
             where: { id: params.filefolder.id },
             data: {
+                path: finalPath,
+                stored_as: 'trash',
                 details: {
                     ...details,
-                    status: 'DELETED',
-                    deleted_on: new Date().toISOString(),
-                    deleted_path: cdnResult.deleted_path ?? currentPath,
+                    mode: 'trash',
+                    folder_type: '.trash',
+                    previous_mode: currentFolderType,
+                    previous_path: currentPath,
+                    status: 'TRASHED',
+                    deleted_on: now.toISOString(),
+                    deletes_in: deletesIn,
+                    trash_path: finalPath,
                 },
             },
         });
-        await prisma.file.updateMany({ where: { path: currentPath }, data: { status: 'DELETED' } });
+        await prisma.file.updateMany({ where: { path: currentPath }, data: { path: finalPath, status: 'TRASHED' } });
     } else {
         const finalPath = cdnResult.destination_path || cdnResult.path || destinationPath || currentPath;
         updatedFilefolder = await prisma.fileFolder.update({
