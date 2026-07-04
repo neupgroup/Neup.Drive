@@ -41,8 +41,6 @@
 - [ ] Add `::neup.documentation::` source documentation for `components/ui/select.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `components/ui/label.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `core/hooks/use-toast.ts`.
-- [ ] Add `::neup.documentation::` source documentation for `core/lib/filefolder.ts`.
-- [ ] Add `::neup.documentation::` source documentation for `core/lib/types.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `components/prodrive/file-list.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `components/prodrive/file-list-view.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `components/prodrive/file-grid-view.tsx`.

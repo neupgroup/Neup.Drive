@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/core/lib/db';
-import { createFileFolderLog } from '@/core/lib/filefolder';
+import { buildFileFolderActivityUpdate, createFileFolderLog } from '@/core/lib/filefolder';
 
 /**
  * Step 6: Finalization - Server Callback
@@ -94,6 +94,16 @@ async function updateFileFolderCallbackState(
         const existingDetails = filefolder.details && typeof filefolder.details === 'object' && !Array.isArray(filefolder.details)
             ? filefolder.details
             : {};
+        const activityUpdate = status === 'VERIFIED'
+            ? buildFileFolderActivityUpdate({
+                currentActivity: filefolder.activity,
+                action: 'changed',
+                details: {
+                    path: metadataPath,
+                    upload_session_id: uploadSessionId,
+                },
+            })
+            : null;
 
         await prisma.fileFolder.update({
             where: { id: filefolder.id },
@@ -105,6 +115,11 @@ async function updateFileFolderCallbackState(
                     upload_session_id: uploadSessionId,
                     callback_response: callbackResponse,
                 },
+                ...(activityUpdate ? {
+                    activity: activityUpdate.activity,
+                    lastActivityOn: activityUpdate.lastActivityOn,
+                    totalActivity: activityUpdate.totalActivity,
+                } : {}),
             },
         });
 

@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { appendBridgeFileAccessLog } from '@/core/lib/file-access-log';
 import { prisma } from '@/core/lib/db';
 import { createBridgeFileUrl, isActiveFileDetails } from '@/core/lib/bridge-api';
+import { recordFileFolderActivity } from '@/core/lib/filefolder';
 
 /*
 ::neup.documentation::viewer-page
@@ -238,6 +239,14 @@ export default async function ViewerPage({
   });
   if (exists) {
     try {
+      await recordFileFolderActivity({
+        filefolderId: file.id,
+        action: 'viewed',
+        details: {
+          path: file.path,
+          viewer_page: `/viewer/${encodeURIComponent(file.id)}`,
+        },
+      });
       await appendBridgeFileAccessLog({
         owner: file.owner,
         fileType: typeof details.folder_type === 'string' ? details.folder_type : 'drive',

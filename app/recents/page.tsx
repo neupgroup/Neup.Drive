@@ -6,13 +6,13 @@
 
 ::public
 
-Shows the most recently updated drive files and folders using the shared file
-manager experience.
+Shows the most recent activity across Drive, WebDisk, and Signed items using
+the shared file manager experience.
 
 ::returns
 ::datatype Promise<JSX.Element>
 
-The recent-items page for the signed-in drive owner.
+The recent-items page for the configured Drive and WebDisk owners.
 
 ::public end
 

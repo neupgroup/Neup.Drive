@@ -78,6 +78,18 @@ export function DrivePageManager({
   files: FileOrFolder[];
 }) {
   const router = useRouter();
+  const trackFolderOpen = React.useCallback((folderPath: string) => {
+    void fetch('/bridge/api.v1/activity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'folder_opened',
+        mode: 'drive',
+        folder_type: 'drive',
+        folder_path: folderPath,
+      }),
+    }).catch(() => undefined);
+  }, []);
   const [sortMode, setSortMode] = React.useState('name-asc');
   const breadcrumbs = React.useMemo(() => buildDriveBreadcrumbs(currentPath), [currentPath]);
   const uploadActionHref = React.useMemo(() => buildDriveUploadHref(currentPath), [currentPath]);
@@ -100,7 +112,8 @@ export function DrivePageManager({
       uploadActionDescription="Upload a file to your drive."
       onOpenItem={(item) => {
         if (item.type !== 'folder') return;
-        const nextPath = item.id.startsWith('folder:') ? item.id.slice('folder:'.length) : item.name;
+        const nextPath = item.navigationPath || (item.id.startsWith('folder:') ? item.id.slice('folder:'.length) : item.name);
+        trackFolderOpen(nextPath);
         router.push(`/?path=${encodeURIComponent(nextPath)}`);
       }}
       onCreateFolder={async (name) => {

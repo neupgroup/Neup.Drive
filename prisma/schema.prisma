@@ -47,6 +47,9 @@ model FileFolder {
   owner      String
   stored_as  String          @default("drivefile")
   size       BigInt          @default(0)
+  activity   Json            @default("{}")
+  lastActivityOn DateTime?   @map("last_activity_on")
+  totalActivity Int          @default(0) @map("total_activity")
   details    Json            @default("{}")
   created_on DateTime        @default(now())
   updated_on DateTime        @updatedAt

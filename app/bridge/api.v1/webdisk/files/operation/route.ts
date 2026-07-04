@@ -5,7 +5,7 @@ import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnTo
 import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
 import { logToDatabase } from '@/core/lib/error-server';
-import { webdiskStoredAs } from '@/core/lib/filefolder';
+import { buildFileFolderActivityUpdate, webdiskStoredAs } from '@/core/lib/filefolder';
 import { buildBridgeTrashPath, getTrashDeletesIn, isMissingCdnFileError, isReservedWebdiskRootFolder } from '@/core/lib/bridge-api';
 import { ErrorType } from '@/core/lib/error-types';
 
@@ -162,6 +162,22 @@ async function syncFilefolderOperation(params: {
         const details = filefolder.details && typeof filefolder.details === 'object' && !Array.isArray(filefolder.details)
             ? filefolder.details
             : {};
+        const activityAction = params.action === 'rename'
+            ? 'renamed'
+            : params.action === 'move'
+                ? 'moved'
+                : params.action === 'delete'
+                    ? 'deleted'
+                    : 'restored';
+        const activityUpdate = buildFileFolderActivityUpdate({
+            currentActivity: filefolder.activity,
+            action: activityAction,
+            details: {
+                path: params.finalPath,
+                previous_path: params.sourcePath,
+                folder_type: params.nextType,
+            },
+        });
 
         if (params.action === 'delete') {
             const now = new Date();
@@ -181,6 +197,9 @@ async function syncFilefolderOperation(params: {
                         deletes_in: getTrashDeletesIn(now),
                         trash_path: params.finalPath,
                     },
+                    activity: activityUpdate.activity,
+                    lastActivityOn: activityUpdate.lastActivityOn,
+                    totalActivity: activityUpdate.totalActivity,
                 },
             });
             return;
@@ -207,6 +226,9 @@ async function syncFilefolderOperation(params: {
                         previous_path: params.sourcePath,
                         status: 'VERIFIED',
                     },
+                    activity: activityUpdate.activity,
+                    lastActivityOn: activityUpdate.lastActivityOn,
+                    totalActivity: activityUpdate.totalActivity,
                 },
             });
             return;
@@ -225,6 +247,9 @@ async function syncFilefolderOperation(params: {
                     previous_path: params.sourcePath,
                     status: typeof details.status === 'string' ? details.status : 'VERIFIED',
                 },
+                activity: activityUpdate.activity,
+                lastActivityOn: activityUpdate.lastActivityOn,
+                totalActivity: activityUpdate.totalActivity,
             },
         });
     } catch (error) {

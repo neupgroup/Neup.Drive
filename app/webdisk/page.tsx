@@ -393,6 +393,8 @@ function WebdiskContent() {
       lastModified: `${folder.count} item${folder.count === 1 ? '' : 's'}`,
       members: [],
       description: folder.type === 'signed' && !folder.path ? 'Private webdisk files.' : undefined,
+      locationType: folder.type as 'assets' | 'signed',
+      navigationPath: folder.path,
     }));
 
     const fileItems = currentItems.files.map((file) => ({
@@ -495,6 +497,18 @@ function WebdiskContent() {
   const handleOpenItem = React.useCallback((item: FileOrFolder) => {
     const folder = foldersById.get(item.id);
     if (folder) {
+      if (folder.path) {
+        void fetch('/bridge/api.v1/activity', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'folder_opened',
+            mode: 'webdisk',
+            folder_type: folder.type,
+            folder_path: folder.path,
+          }),
+        }).catch(() => undefined);
+      }
       navigateTo(folder.type, folder.path);
       return;
     }

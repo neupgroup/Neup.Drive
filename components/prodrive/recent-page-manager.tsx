@@ -23,9 +23,9 @@ The interactive recent-items manager.
 
 ::private
 
-Folder items carry their internal drive path in `description` so this client
-wrapper can navigate to the correct `?path=` destination while leaving file
-rows to the shared viewer flow.
+Recent rows carry their surface and internal navigation path so this client
+wrapper can route folders into Drive or WebDisk while leaving file rows to the
+shared viewer flow.
 
 ::private end
 
@@ -42,6 +42,15 @@ type SortMode = 'recent-desc' | 'recent-asc' | 'name-asc' | 'name-desc';
 
 function recencyRank(label: string) {
   const normalized = label.trim().toLowerCase();
+
+  const shorthandMatch = normalized.match(/^(\d+)([mhd])\s+ago$/);
+  if (shorthandMatch) {
+    const value = Number.parseInt(shorthandMatch[1], 10);
+    const unit = shorthandMatch[2];
+    if (unit === 'm') return value;
+    if (unit === 'h') return value * 60;
+    return value * 1440;
+  }
 
   if (normalized === 'just now') return 0;
 
@@ -70,6 +79,20 @@ export function RecentPageManager({
   files: FileOrFolder[];
 }) {
   const router = useRouter();
+  const trackFolderOpen = React.useCallback((item: FileOrFolder) => {
+    if (item.type !== 'folder' || !item.navigationPath || !item.locationType) return;
+
+    void fetch('/bridge/api.v1/activity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'folder_opened',
+        mode: item.locationType === 'drive' ? 'drive' : 'webdisk',
+        folder_type: item.locationType,
+        folder_path: item.navigationPath,
+      }),
+    }).catch(() => undefined);
+  }, []);
   const [sortMode, setSortMode] = React.useState<SortMode>('recent-desc');
   const sortedFiles = React.useMemo(() => [...files].sort((left, right) => {
     if (sortMode === 'name-asc') return left.name.localeCompare(right.name);
@@ -88,7 +111,7 @@ export function RecentPageManager({
     <FileManager
       initialFiles={sortedFiles}
       title="Recent"
-      subtitle="Recently modified files and folders across your drive."
+      subtitle="Recent activity across Drive, WebDisk, and Signed files."
       emptyMessage="No recent files yet."
       sortOptions={[
         { value: 'recent-desc', label: 'Recently updated' },
@@ -101,9 +124,18 @@ export function RecentPageManager({
       uploadActionDescription="Upload a file to your drive."
       onOpenItem={(item) => {
         if (item.type === 'folder') {
-          const folderPath = item.description?.trim();
-          if (!folderPath) return;
-          router.push(`/?path=${encodeURIComponent(folderPath)}`);
+          if (!item.navigationPath || !item.locationType) return;
+          trackFolderOpen(item);
+
+          if (item.locationType === 'drive') {
+            router.push(`/?path=${encodeURIComponent(item.navigationPath)}`);
+            return;
+          }
+
+          const params = new URLSearchParams();
+          params.set('type', item.locationType);
+          params.set('path', item.navigationPath);
+          router.push(`/webdisk?${params.toString()}`);
           return;
         }
 

@@ -7,7 +7,7 @@ import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
 import { logToDatabase } from '@/core/lib/error-server';
 import { appendBridgeFileAccessLog } from '@/core/lib/file-access-log';
-import { createFileFolderLog } from '@/core/lib/filefolder';
+import { buildFileFolderActivityUpdate, createFileFolderLog } from '@/core/lib/filefolder';
 import { buildBridgeTrashPath, getTrashDeletesIn, isActiveFileDetails, isMissingCdnFileError, isReservedWebdiskRootFolder } from '@/core/lib/bridge-api';
 import { ErrorType } from '@/core/lib/error-types';
 
@@ -291,6 +291,22 @@ export async function POST(request: NextRequest) {
 
         let updatedFilefolder;
         const finalPath = cdnResult.destination_path || cdnResult.path || destinationPath || currentPath;
+        const activityAction = operation.action === 'rename'
+            ? 'renamed'
+            : operation.action === 'move'
+                ? 'moved'
+                : operation.action === 'delete'
+                    ? 'deleted'
+                    : 'restored';
+        const activityUpdate = buildFileFolderActivityUpdate({
+            currentActivity: filefolder.activity,
+            action: activityAction,
+            details: {
+                path: finalPath,
+                previous_path: currentPath,
+                folder_type: nextFolderType,
+            },
+        });
 
         if (operation.action === 'delete') {
             const now = new Date();
@@ -311,6 +327,9 @@ export async function POST(request: NextRequest) {
                         deletes_in: deletesIn,
                         trash_path: finalPath,
                     },
+                    activity: activityUpdate.activity,
+                    lastActivityOn: activityUpdate.lastActivityOn,
+                    totalActivity: activityUpdate.totalActivity,
                 },
             });
             await prisma.file.updateMany({
@@ -338,6 +357,9 @@ export async function POST(request: NextRequest) {
                         previous_path: currentPath,
                         status: 'VERIFIED',
                     },
+                    activity: activityUpdate.activity,
+                    lastActivityOn: activityUpdate.lastActivityOn,
+                    totalActivity: activityUpdate.totalActivity,
                 },
             });
             await prisma.file.updateMany({
@@ -360,6 +382,9 @@ export async function POST(request: NextRequest) {
                         previous_path: currentPath,
                         status: details.status ?? 'VERIFIED',
                     },
+                    activity: activityUpdate.activity,
+                    lastActivityOn: activityUpdate.lastActivityOn,
+                    totalActivity: activityUpdate.totalActivity,
                 },
             });
             await prisma.file.updateMany({
