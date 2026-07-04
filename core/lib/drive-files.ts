@@ -111,6 +111,76 @@ function getDriveRelativePath(storagePath: string, owner: string) {
   return ownerRelativePath;
 }
 
+/*
+::neup.documentation::recent-drive-files-helper
+::function getRecentDriveFiles(options)
+::title Get Recent Drive Files
+::owner Neup Drive
+
+::public
+
+Returns the most recently updated active drive items for the configured owner.
+
+::param external options
+::datatype object
+
+Owner and result-limit options for the recent drive lookup.
+
+::returns
+::datatype Promise<FileOrFolder[]>
+
+The mapped recent drive items ready for the `/recents` UI.
+
+::public end
+
+::private
+
+Folder rows store their internal drive path in `description` so the recent page
+can route users back into the correct folder while still using the shared item
+shape.
+
+::private end
+
+::end
+*/
+export async function getRecentDriveFiles({
+  owner = DEFAULT_DRIVE_OWNER,
+  take = 100,
+}: {
+  owner?: string;
+  take?: number;
+} = {}): Promise<FileOrFolder[]> {
+  const rows = await prisma.fileFolder.findMany({
+    where: {
+      owner,
+      stored_as: 'drivefile',
+    },
+    orderBy: { updated_on: 'desc' },
+    take,
+  });
+
+  return rows
+    .filter((row) => isActiveFileDetails(row.details))
+    .map((row) => {
+      const details = getDetails(row.details);
+      const ownerName = typeof details.uploaded_by === 'string' ? details.uploaded_by : row.owner;
+      const relativePath = getDriveRelativePath(row.path, row.owner);
+
+      return {
+        id: row.id,
+        name: row.name,
+        type: fileTypeFromRecord(row.type, row.name),
+        size: formatBytes(row.size),
+        storageTier: storageTierFromStoredAs(row.stored_as),
+        lastModified: formatLastModified(row.updated_on),
+        members: MEMBER_AVATAR
+          ? [{ id: row.owner, name: ownerName, avatar: MEMBER_AVATAR }]
+          : [],
+        description: row.type === 'folder' ? relativePath : undefined,
+      };
+    });
+}
+
 export async function getDriveFiles({
   owner = DEFAULT_DRIVE_OWNER,
   query,

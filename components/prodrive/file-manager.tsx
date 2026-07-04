@@ -512,7 +512,7 @@ export function FileManager({
       {menu ? (
         (() => {
           const manageable = isManageable(menu.item);
-          const moveTargets = getMoveTargets ? getMoveTargets(menu.item) : ['drive', 'assets', 'signed'];
+          const moveTargets: MoveTarget[] = getMoveTargets ? getMoveTargets(menu.item) : ['drive', 'assets', 'signed'];
 
           return (
         <div

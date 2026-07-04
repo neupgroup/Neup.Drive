@@ -49,7 +49,7 @@ function buildDriveBreadcrumbs(currentPath: string) {
   const segments = currentPath.split('/').filter(Boolean);
   if (segments.length === 0) return [];
 
-  const breadcrumbs = [{ label: 'Drive', href: '/' }];
+  const breadcrumbs: Array<{ label: string; href?: string }> = [{ label: 'Drive', href: '/' }];
 
   let accumulatedPath = '';
   for (const segment of segments) {

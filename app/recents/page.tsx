@@ -1,41 +1,35 @@
-'use client';
+/*
+::neup.documentation::recents-page
+::route /recents
+::title Recent Items Page
+::owner Neup Drive
 
-import * as React from 'react';
-import { files } from '@/core/lib/data';
-import { FileManager } from '@/components/prodrive/file-manager';
+::public
 
-export default function RecentsPage() {
-    // Sort files by last modified (most recent first)
-    // In a real app, this would filter by actual recent activity
-    const recentFiles = [...files].sort((a, b) => {
-        // Simple sorting based on the lastModified string
-        // In production, you'd use actual timestamps
-        const timeUnits: Record<string, number> = {
-            'minutes': 1,
-            'hours': 60,
-            'day': 1440,
-            'days': 1440,
-            'week': 10080,
-            'weeks': 10080,
-        };
+Shows the most recently updated drive files and folders using the shared file
+manager experience.
 
-        const getMinutes = (str: string) => {
-            const match = str.match(/(\d+)\s+(\w+)/);
-            if (!match) return Infinity;
-            const [, num, unit] = match;
-            const unitKey = unit.toLowerCase();
-            return parseInt(num) * (timeUnits[unitKey] || 1440);
-        };
+::returns
+::datatype Promise<JSX.Element>
 
-        return getMinutes(a.lastModified) - getMinutes(b.lastModified);
-    });
+The recent-items page for the signed-in drive owner.
 
-    return (
-        <FileManager
-            initialFiles={recentFiles}
-            title="Recent"
-            subtitle="Files and folders you've recently opened or modified."
-            emptyMessage="No recent files yet."
-        />
-    );
+::public end
+
+::private
+
+The page is server-backed through Prisma so it stays aligned with live drive
+state instead of the older mock-data implementation.
+
+::private end
+
+::end
+*/
+import { RecentPageManager } from '@/components/prodrive/recent-page-manager';
+import { getRecentDriveFiles } from '@/core/lib/drive-files';
+
+export default async function RecentsPage() {
+  const files = await getRecentDriveFiles();
+
+  return <RecentPageManager files={files} />;
 }
