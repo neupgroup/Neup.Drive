@@ -18,7 +18,7 @@ import { FileListView } from './file-list-view';
 import { FileGridView } from './file-grid-view';
 
 type ViewMode = 'list' | 'grid';
-type MoveTarget = 'drive' | 'assets' | 'private' | 'signed';
+type MoveTarget = 'drive' | 'assets' | 'signed';
 
 type ContextMenuState = {
   item: FileOrFolder;
@@ -217,7 +217,6 @@ export function FileManager({
           <ContextMenuButton icon={Edit3} label="Rename" onClick={() => renameItem(menu.item)} disabled={busyItemId === menu.item.id} />
           <ContextMenuButton icon={FolderInput} label="Move to Drive" onClick={() => moveItem(menu.item, 'drive')} disabled={busyItemId === menu.item.id} />
           <ContextMenuButton icon={FolderInput} label="Move to Assets" onClick={() => moveItem(menu.item, 'assets')} disabled={busyItemId === menu.item.id} />
-          <ContextMenuButton icon={FolderInput} label="Move to Private" onClick={() => moveItem(menu.item, 'private')} disabled={busyItemId === menu.item.id} />
           <ContextMenuButton icon={FolderInput} label="Move to Signed" onClick={() => moveItem(menu.item, 'signed')} disabled={busyItemId === menu.item.id} />
           <div className="-mx-1 my-1 h-px bg-muted" />
           <ContextMenuButton icon={Share2} label="Share" onClick={() => setMenu(null)} disabled />

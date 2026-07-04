@@ -2,6 +2,7 @@
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/webdisk/files/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/webdisk/record/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/drive/upload/init/route.ts`.
+- [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/upload/init/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/webhook.v1/upload/callback/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `prisma/schema.prisma`.
 - [ ] Add `::neup.documentation::` source documentation for `components/prodrive/file-manager.tsx`.
@@ -25,6 +26,7 @@
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/upload.go`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/serve.go`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/security/signer.go`.
+- [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/storage/filesystem.go`.
 - [ ] Add `::neup.documentation::` source documentation for `components/ui/toast.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `components/ui/toaster.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `core/hooks/use-toast.ts`.
@@ -33,6 +35,13 @@
 - [ ] Add `::neup.documentation::` source documentation for `components/prodrive/file-list.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `components/prodrive/file-list-view.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `components/prodrive/file-grid-view.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `components/prodrive/file-manager.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/download/init/route.ts`.
+- [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/list/route.ts`.
+- [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/drive/files/route.ts`.
+- [ ] Add `::neup.documentation::` source documentation for `app/upload/page.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `core/lib/storage-tiers.ts`.
+- [ ] Update `neupcdn/README.md` to reflect the current CDN routes and removed `private` storage type.
 - [ ] Fix `npx tsc --noEmit` error in `components/ui/calendar.tsx`: `IconLeft` is not a valid `CustomComponents` property.
 - [ ] Fix implicit `any` `className` bindings in `components/ui/calendar.tsx`.
 - [ ] Fix missing module import in `scripts/test-hashing.ts` for `../src/lib/sha256`.

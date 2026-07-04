@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'node:path';
 import { getRequestDeviceIp } from '@/core/lib/bridge-api';
-import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken, formatDurationToken, parseDurationSeconds } from '@/core/lib/cdn-token';
+import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken, parseDurationSeconds } from '@/core/lib/cdn-token';
 import { handleServerError } from '@/core/lib/error-server';
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
@@ -35,7 +35,7 @@ function getCdnBaseUrl() {
 
 function getWebdiskType(relativePath: string) {
     const [type] = relativePath.split('/');
-    return type === 'signed' || type === 'private' ? type : 'assets';
+    return type === 'signed' ? type : 'assets';
 }
 
 function stripWebdiskType(relativePath: string, folderType: string) {
@@ -56,12 +56,12 @@ function fileUrl(filePath: string, request: NextRequest) {
     const encodedPath = exposedPath.split('/').filter(Boolean).map(encodeURIComponent).join('/');
 
     if (folderType === 'assets') {
-        return `${CDN_BASE_URL}/files/${encodeURIComponent(WEBDISK_ACCOUNT_ID)}/${encodedPath}`;
+        return `${CDN_BASE_URL}/${encodeURIComponent(WEBDISK_ACCOUNT_ID)}/${encodedPath}`;
     }
     const expiresIn = request.nextUrl.searchParams.get('expires_in') || request.nextUrl.searchParams.get('expires');
     const expiresInSeconds = parseDurationSeconds(expiresIn, {
         min: 60,
-        max: folderType === 'private' ? 60 * 60 : 24 * 60 * 60,
+        max: 24 * 60 * 60,
         fallback: 15 * 60,
     });
 
@@ -72,15 +72,11 @@ function fileUrl(filePath: string, request: NextRequest) {
         folder_type: folderType,
         path: cleanPath,
         method: 'GET',
-        device_ip: folderType === 'private' ? getRequestDeviceIp(request) : undefined,
-        user_agent: folderType === 'private' ? request.headers.get('user-agent') || '' : undefined,
+        device_ip: getRequestDeviceIp(request),
+        user_agent: request.headers.get('user-agent') || '',
     }, expiresInSeconds), PRIVATE_KEY);
 
-    if (folderType === 'signed') {
-        return `${CDN_BASE_URL}/files/${encodeURIComponent(WEBDISK_ACCOUNT_ID)}/signed/${formatDurationToken(expiresInSeconds)}/${encodedPath}?token=${encodeURIComponent(encodeSignedCdnToken(signedToken))}`;
-    }
-
-    return `${CDN_BASE_URL}/files/${encodeURIComponent(WEBDISK_ACCOUNT_ID)}/private/${encodedPath}?token=${encodeURIComponent(encodeSignedCdnToken(signedToken))}`;
+    return `${CDN_BASE_URL}/${encodeURIComponent(WEBDISK_ACCOUNT_ID)}/signed/${encodedPath}?token=${encodeURIComponent(encodeSignedCdnToken(signedToken))}`;
 }
 
 async function listCdnFiles() {
@@ -125,7 +121,12 @@ export async function GET(request: NextRequest) {
         const files = await listCdnFiles();
         const visibleFiles = files.filter((file) => {
             const cleanPath = file.path.replace(/^\/+/, '');
-            return !cleanPath.includes(`/${WEBDISK_ACCOUNT_ID}/.trash/`) && !cleanPath.includes('/.trash/');
+            return (
+                !cleanPath.includes(`/${WEBDISK_ACCOUNT_ID}/.trash/`) &&
+                !cleanPath.includes('/.trash/') &&
+                !cleanPath.includes(`/${WEBDISK_ACCOUNT_ID}/.logs/`) &&
+                !cleanPath.includes('/.logs/')
+            );
         });
         const mappedFiles = visibleFiles.map((file) => ({
             id: file.path,

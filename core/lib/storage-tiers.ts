@@ -4,13 +4,13 @@ export const STORAGE_LIMIT_BYTES = 10 * 1024 * 1024 * 1024;
 
 export function storageTierFromStoredAs(storedAs?: string | null): StorageTier {
   if (storedAs === 'webfile') return 'hot';
-  if (storedAs === 'webfile_private' || storedAs === 'webfile_signed') return 'warm';
+  if (storedAs === 'webfile_signed' || storedAs === 'webfile_private') return 'warm';
   return 'cold';
 }
 
 export function storageTierFromWebdiskType(type?: string | null): StorageTier {
   if (type === 'assets') return 'hot';
-  if (type === 'private' || type === 'signed') return 'warm';
+  if (type === 'signed') return 'warm';
   return 'cold';
 }
 

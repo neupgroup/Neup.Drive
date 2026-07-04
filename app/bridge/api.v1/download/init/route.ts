@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
         const expiresInSeconds = parseDurationSeconds(expiresIn, {
             min: 60,
-            max: folderType === 'private' ? 60 * 60 : 24 * 60 * 60,
+            max: 24 * 60 * 60,
             fallback: 15 * 60,
         });
         const tokenOptions = {

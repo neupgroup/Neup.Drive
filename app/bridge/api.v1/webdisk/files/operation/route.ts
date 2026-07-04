@@ -16,7 +16,7 @@ Handles rename, move, delete, and restore requests for CDN-listed WebDisk files.
 
 ::details
 
-Delete operations now move files into `.trash/<filetype>/<original-location>`, log every API action into `uploads/<account>/.logs/2026jun25`, treat CDN `404_not_found` delete responses as soft-delete success, and allow an undo through the `restore` action.
+Delete operations now move files into `.trash/<original-location>`, log every API action into `uploads/<account>/.logs/2026jun25`, treat CDN `404_not_found` delete responses as soft-delete success, and allow an undo through the `restore` action.
 
 ::end
 */
@@ -36,7 +36,7 @@ const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 const CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
 const CDN_OPERATION_BASE = getCdnOperationBase();
 const WEBDISK_ACCOUNT_ID = process.env.WEBDISK_ACCOUNT_ID || process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
-const WEBDISK_TYPES = ['assets', 'private', 'signed'];
+const WEBDISK_TYPES = ['assets', 'signed'];
 
 function getCdnOperationBase() {
     const explicit = process.env.CDN_OPERATION_URL;

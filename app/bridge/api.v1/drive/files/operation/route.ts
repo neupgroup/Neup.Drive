@@ -46,7 +46,7 @@ interface FileOperationRequest {
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 const CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
 const CDN_OPERATION_BASE = getCdnOperationBase();
-const FOLDER_TYPES = new Set(['drive', 'assets', 'private', 'signed']);
+const FOLDER_TYPES = new Set(['drive', 'assets', 'signed']);
 
 function getDetails(details: Prisma.JsonValue): Prisma.JsonObject {
     return details && typeof details === 'object' && !Array.isArray(details) ? details : {};

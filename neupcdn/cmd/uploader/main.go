@@ -31,7 +31,7 @@ func main() {
 	filePath := flag.String("file", "", "Path to the file to upload")
 	targetPath := flag.String("path", "", "Target path on server")
 	accountID := flag.String("account", "default", "Account ID")
-	category := flag.String("category", "general", "Category (assets, private, signed)")
+	category := flag.String("category", "general", "Category (assets, signed)")
 	host := flag.String("host", "http://localhost:3000", "Server host")
 	flag.Parse()
 
@@ -48,10 +48,10 @@ func main() {
 
 	// Validate category locally too
 	switch *category {
-	case "assets", "private", "signed":
+	case "assets", "signed":
 		// OK
 	default:
-		fmt.Println("Error: category must be one of: assets, private, signed")
+		fmt.Println("Error: category must be one of: assets, signed")
 		os.Exit(1)
 	}
 

@@ -6,7 +6,6 @@ import {
     createExpiringOperationPayload,
     createSignedCdnToken,
     encodeSignedCdnToken,
-    formatDurationToken,
     parseDurationSeconds,
 } from '@/core/lib/cdn-token';
 import { prisma } from '@/core/lib/db';
@@ -30,7 +29,7 @@ Executes rename, move, and delete operations against the CDN, keeps database sta
 
 ::details
 
-Delete operations now preserve the original file-type subpath inside `.trash`, and a CDN `404_not_found` during delete is treated as a soft-delete success so metadata still moves into trash and the missing-source event is logged.
+Delete operations now preserve the original subpath inside `.trash`, and a CDN `404_not_found` during delete is treated as a soft-delete success so metadata still moves into trash and the missing-source event is logged.
 
 ::private end
 
@@ -44,7 +43,7 @@ export const BRIDGE_UPLOAD_URL = process.env.CDN_UPLOAD_URL || 'https://neupcdn.
 export const BRIDGE_CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
 export const BRIDGE_CDN_OPERATION_BASE = getCdnOperationBase();
 export const DEFAULT_BRIDGE_OWNER = 'demo-user-123';
-const BRIDGE_FOLDER_TYPES = new Set(['drive', 'assets', 'private', 'signed']);
+const BRIDGE_FOLDER_TYPES = new Set(['drive', 'assets', 'signed']);
 const TRASH_RETENTION_DAYS = 30;
 
 export function getBridgeOwner(request: NextRequest) {
@@ -127,7 +126,7 @@ export function buildBridgeTrashPath(params: {
         ? accountRelativePath.slice(folderPrefix.length)
         : path.posix.basename(accountRelativePath);
     const normalizedRelativePath = normalizeInternalPath(relativePath);
-    return path.posix.join('uploads', safeOwner, '.trash', safeFolderType, normalizedRelativePath);
+    return path.posix.join('uploads', safeOwner, '.trash', normalizedRelativePath);
 }
 
 function createBridgeOperationError(response: Response, data: any) {
@@ -305,18 +304,18 @@ export function createBridgeFileUrl(
 ) {
     const folderType = getFolderType(filefolder);
     const relativePath = toAccountRelativePath(filefolder.path, filefolder.owner);
-    const exposedPath = folderType === 'assets' || folderType === 'signed' || folderType === 'private'
+    const exposedPath = folderType === 'assets' || folderType === 'signed'
         ? stripFolderType(relativePath, folderType)
         : relativePath;
     const encodedPath = exposedPath.split('/').filter(Boolean).map(encodeURIComponent).join('/');
 
     if (folderType === 'assets') {
-        return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/${encodedPath}`;
+        return `${BRIDGE_CDN_BASE_URL}/${encodeURIComponent(filefolder.owner)}/${encodedPath}`;
     }
 
-    const maxSeconds = folderType === 'private' ? 60 * 60 : folderType === '.trash' ? 60 : 24 * 60 * 60;
+    const maxSeconds = folderType === '.trash' ? 60 : 24 * 60 * 60;
     const expiresInSeconds = options.expiresInSeconds ?? parseDurationSeconds(options.expiresIn, {
-        min: folderType === 'private' ? 60 : 60,
+        min: 60,
         max: maxSeconds,
         fallback: folderType === '.trash' ? 60 : 15 * 60,
     });
@@ -329,11 +328,7 @@ export function createBridgeFileUrl(
     const tokenQuery = `token=${encodeURIComponent(token)}${disposition}`;
 
     if (folderType === 'signed') {
-        return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/signed/${formatDurationToken(expiresInSeconds)}/${encodedPath}?${tokenQuery}`;
-    }
-
-    if (folderType === 'private') {
-        return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/private/${encodedPath}?${tokenQuery}`;
+        return `${BRIDGE_CDN_BASE_URL}/${encodeURIComponent(filefolder.owner)}/signed/${encodedPath}?${tokenQuery}`;
     }
 
     if (folderType === 'drive') {
@@ -343,7 +338,7 @@ export function createBridgeFileUrl(
 
     if (folderType === '.trash') {
         const encodedTrashPath = stripFolderType(toAccountRelativePath(filefolder.path, filefolder.owner), '.trash').split('/').filter(Boolean).map(encodeURIComponent).join('/');
-        return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/.trash/${encodedTrashPath}?${tokenQuery}`;
+        return `${BRIDGE_CDN_BASE_URL}/${encodeURIComponent(filefolder.owner)}/.trash/${encodedTrashPath}?${tokenQuery}`;
     }
 
     return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/${encodeURIComponent(folderType)}/${encodedPath}?${tokenQuery}`;

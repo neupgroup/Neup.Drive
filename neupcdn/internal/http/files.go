@@ -23,28 +23,24 @@ func isPublicAccessType(accessType string) bool {
 	return accessType == "assets" || accessType == "public" || accessType == "direct"
 }
 
-func isSignedDuration(value string) bool {
-	if len(value) < 2 {
-		return false
+func parseFileRoute(pathValue string) (accountID, accessType, relPath string, ok bool) {
+	if strings.HasPrefix(pathValue, "/files/") {
+		return parseLegacyFileRoute(strings.TrimPrefix(pathValue, "/files/"))
 	}
 
-	unit := value[len(value)-1]
-	if unit != 'm' && unit != 'h' {
-		return false
-	}
-
-	for _, char := range value[:len(value)-1] {
-		if char < '0' || char > '9' {
-			return false
-		}
-	}
-
-	return true
+	return parseRootFileRoute(strings.TrimPrefix(pathValue, "/"))
 }
 
-func parseFileRoute(pathValue string) (accountID, accessType, relPath string, ok bool) {
-	cleaned := strings.TrimPrefix(pathValue, "/files/")
-	if cleaned == pathValue {
+func parseLegacyFileRoute(cleaned string) (accountID, accessType, relPath string, ok bool) {
+	return parseAccountFileRoute(cleaned, true)
+}
+
+func parseRootFileRoute(cleaned string) (accountID, accessType, relPath string, ok bool) {
+	return parseAccountFileRoute(cleaned, false)
+}
+
+func parseAccountFileRoute(cleaned string, allowSignedDuration bool) (accountID, accessType, relPath string, ok bool) {
+	if cleaned == "" {
 		return "", "", "", false
 	}
 
@@ -62,17 +58,15 @@ func parseFileRoute(pathValue string) (accountID, accessType, relPath string, ok
 	routeParts := strings.SplitN(remainder, "/", 3)
 	switch routeParts[0] {
 	case "signed":
-		if len(routeParts) != 3 || !isSignedDuration(routeParts[1]) || routeParts[2] == "" {
+		if len(routeParts) < 2 || strings.TrimSpace(routeParts[1]) == "" {
 			return "", "", "", false
 		}
 		accessType = "signed"
-		relPath = routeParts[2]
-	case "private":
-		relPath = strings.TrimPrefix(remainder, "private/")
-		if strings.TrimSpace(relPath) == "" {
-			return "", "", "", false
+		if allowSignedDuration && len(routeParts) == 3 {
+			relPath = routeParts[2]
+		} else {
+			relPath = strings.TrimPrefix(remainder, "signed/")
 		}
-		accessType = "private"
 	case "drive":
 		relPath = strings.TrimPrefix(remainder, "drive/")
 		if strings.TrimSpace(relPath) == "" {
@@ -85,6 +79,12 @@ func parseFileRoute(pathValue string) (accountID, accessType, relPath string, ok
 			return "", "", "", false
 		}
 		accessType = ".trash"
+	case ".logs":
+		relPath = strings.TrimPrefix(remainder, ".logs/")
+		if strings.TrimSpace(relPath) == "" {
+			return "", "", "", false
+		}
+		accessType = ".logs"
 	case "assets":
 		relPath = strings.TrimPrefix(remainder, "assets/")
 		if strings.TrimSpace(relPath) == "" {
@@ -278,17 +278,6 @@ func FileServeHandler(w http.ResponseWriter, r *http.Request) {
 		if claims.AccountFolder != accountID || claims.FolderType != accessType {
 			TokenNotFound(w, "Token does not match the requested file path", nil)
 			return
-		}
-
-		if accessType == "private" {
-			if claims.DeviceIP == "" || claims.UserAgent == "" {
-				TokenNotFound(w, "Private file token is missing device claims", nil)
-				return
-			}
-			if claims.DeviceIP != requestDeviceIP(r) || claims.UserAgent != r.UserAgent() {
-				TokenNotFound(w, "Private file token does not match this device", nil)
-				return
-			}
 		}
 
 		tokenPath, err := safePublicPath(claims.Path)

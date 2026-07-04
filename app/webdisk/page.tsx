@@ -41,7 +41,6 @@ interface WebDiskFolder {
 
 const WEBDISK_TYPES = [
   { id: 'assets', label: 'Assets' },
-  { id: 'private', label: 'Private' },
   { id: 'signed', label: 'Signed' },
 ];
 
@@ -222,7 +221,7 @@ function WebdiskContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedTypeParam = searchParams.get('type');
-  const selectedType = WEBDISK_TYPES.some((type) => type.id === selectedTypeParam) ? selectedTypeParam : null;
+  const selectedType = WEBDISK_TYPES.some((type) => type.id === selectedTypeParam) ? selectedTypeParam || 'assets' : 'assets';
   const selectedPath = (searchParams.get('path') || '').replace(/^\/+/, '');
 
   const fetchFiles = React.useCallback(async () => {
@@ -280,16 +279,7 @@ function WebdiskContent() {
     },
   })), [files]);
 
-  const topLevelFolders = React.useMemo<WebDiskFolder[]>(() => WEBDISK_TYPES.map((type) => ({
-    name: type.label,
-    type: type.id,
-    path: '',
-    count: filesByType.filter((item) => item.location.type === type.id).length,
-  })), [filesByType]);
-
   const currentItems = React.useMemo(() => {
-    if (!selectedType) return { folders: topLevelFolders, files: [] as WebDiskRecord[] };
-
     const folders = new Map<string, WebDiskFolder>();
     const currentFiles: WebDiskRecord[] = [];
     const pathPrefix = selectedPath ? `${selectedPath}/` : '';
@@ -321,7 +311,7 @@ function WebdiskContent() {
       folders: Array.from(folders.values()).sort((a, b) => a.name.localeCompare(b.name)),
       files: currentFiles.sort((a, b) => a.filename.localeCompare(b.filename)),
     };
-  }, [filesByType, selectedPath, selectedType, topLevelFolders]);
+  }, [filesByType, selectedPath, selectedType]);
 
   const runOperation = React.useCallback(async (file: WebDiskRecord, action: 'rename' | 'move' | 'delete' | 'restore') => {
     if (!selectedType) return;
@@ -339,12 +329,12 @@ function WebdiskContent() {
     }
 
     if (action === 'move') {
-      const destinationType = window.prompt('Organize into type: assets, private, or signed', selectedType);
+      const destinationType = window.prompt('Organize into type: assets or signed', selectedType);
       if (!destinationType) return;
 
       const normalizedType = destinationType.trim();
       if (!WEBDISK_TYPES.some((type) => type.id === normalizedType)) {
-        setError('Invalid type. Use assets, private, or signed.');
+        setError('Invalid type. Use assets or signed.');
         return;
       }
 
@@ -406,9 +396,7 @@ function WebdiskContent() {
     }
   }, [fetchFiles, selectedPath, selectedType]);
 
-  const heading = selectedType
-    ? WEBDISK_TYPES.find((type) => type.id === selectedType)?.label || selectedType
-    : 'WebDisk';
+  const heading = WEBDISK_TYPES.find((type) => type.id === selectedType)?.label || selectedType;
 
   return (
     <div className="space-y-8 p-1 sm:p-2">
@@ -418,21 +406,20 @@ function WebdiskContent() {
             {heading}
           </h1>
           <p className="text-muted-foreground text-sm font-medium">
-            {selectedType ? `/${selectedType}${selectedPath ? `/${selectedPath}` : ''}` : 'Files looked up directly from the CDN API'}
+            {`/${selectedType}${selectedPath ? `/${selectedPath}` : ''}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {selectedType ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => selectedPath ? navigateTo(selectedType, dirname(selectedPath)) : router.push('/webdisk')}
-              className="rounded-full"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
-            </Button>
-          ) : null}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => selectedPath ? navigateTo(selectedType, dirname(selectedPath)) : router.push(`/webdisk?type=${selectedType}`)}
+            className="rounded-full"
+            disabled={!selectedPath}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
           <Button variant="outline" size="sm" onClick={fetchFiles} className="rounded-full">
             Refresh
           </Button>
@@ -443,6 +430,20 @@ function WebdiskContent() {
             </Link>
           </Button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {WEBDISK_TYPES.map((type) => (
+          <Button
+            key={type.id}
+            type="button"
+            variant={selectedType === type.id ? 'default' : 'outline'}
+            className="rounded-full"
+            onClick={() => navigateTo(type.id, '')}
+          >
+            {type.label}
+          </Button>
+        ))}
       </div>
 
       {loading ? (
@@ -458,7 +459,7 @@ function WebdiskContent() {
             <Button variant="outline" size="sm" onClick={fetchFiles}>Try Again</Button>
           </CardContent>
         </Card>
-      ) : selectedType && currentItems.folders.length === 0 && currentItems.files.length === 0 ? (
+      ) : currentItems.folders.length === 0 && currentItems.files.length === 0 ? (
         <Card className="flex h-[400px] flex-col items-center justify-center bg-slate-50/30 dark:bg-slate-900/30 border-dashed rounded-3xl">
           <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-full mb-6">
             <Globe className="h-16 w-16 opacity-30 text-indigo-500" />
@@ -484,7 +485,7 @@ function WebdiskContent() {
             <div key={file.id} className={operatingPath === (file.cdn_path || file.id) ? 'pointer-events-none opacity-60' : ''}>
               <FileCard
                 file={file}
-                currentType={selectedType || 'assets'}
+                currentType={selectedType}
                 currentPath={selectedPath}
                 onOperation={runOperation}
               />

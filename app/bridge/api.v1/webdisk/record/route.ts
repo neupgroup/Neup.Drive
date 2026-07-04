@@ -3,7 +3,7 @@ import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
 import { createFileFolderLog, recordFileFolderUpload, webdiskStoredAs } from '@/core/lib/filefolder';
 
-const WEBDISK_TYPES = ['assets', 'private', 'signed'];
+const WEBDISK_TYPES = ['assets', 'signed'];
 
 function getWebdiskTypeFromPath(filePath: string) {
     const parts = filePath.replace(/^\/+/, '').split('/');
