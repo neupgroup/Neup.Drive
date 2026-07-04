@@ -6,7 +6,8 @@
 
 ::public
 
-Renders the homepage skeleton while the root drive page is loading.
+Renders the homepage loading shell while the recent-files section is still
+unavailable.
 
 ::returns
 ::datatype JSX.Element
@@ -17,8 +18,8 @@ The loading UI for `/`.
 
 ::private
 
-The skeleton mirrors the default list-style drive layout so the page remains
-stable while the server-rendered homepage data is loading.
+The heading text is rendered immediately instead of as a skeleton, while the
+files area keeps a list-style skeleton to preserve layout stability.
 
 ::private end
 
@@ -33,8 +34,10 @@ export default function Loading() {
     <div className="container mx-auto py-10 space-y-6">
       <div className="space-y-4">
         <div className="space-y-2">
-          <Skeleton className="h-8 w-56 max-w-full" />
-          <Skeleton className="h-4 w-72 max-w-full" />
+          <h1 className="text-2xl font-bold font-headline tracking-tight">Welcome back, ...</h1>
+          <p className="text-sm text-muted-foreground">
+            Here&apos;s some files you might be interested in.
+          </p>
         </div>
 
         <div className="space-y-0">

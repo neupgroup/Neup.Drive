@@ -78,10 +78,12 @@ export function RecentPageManager({
   files,
   title = 'Recent',
   subtitle = 'Recent activity across Drive, WebDisk, and Signed files.',
+  showHeader = true,
 }: {
   files: FileOrFolder[];
   title?: string;
   subtitle?: string;
+  showHeader?: boolean;
 }) {
   const router = useRouter();
   const trackFolderOpen = React.useCallback((item: FileOrFolder) => {
@@ -117,6 +119,7 @@ export function RecentPageManager({
       initialFiles={sortedFiles}
       title={title}
       subtitle={subtitle}
+      showHeader={showHeader}
       emptyMessage="No recent files yet."
       sortOptions={[
         { value: 'recent-desc', label: 'Recently updated' },

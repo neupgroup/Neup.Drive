@@ -86,6 +86,7 @@ export function FileManager({
   initialFiles = [],
   title = 'My Drive',
   subtitle,
+  showHeader = true,
   emptyMessage = 'No files yet.',
   breadcrumbs = [],
   sortOptions = [],
@@ -109,6 +110,7 @@ export function FileManager({
   initialFiles?: FileOrFolder[];
   title?: string;
   subtitle?: string;
+  showHeader?: boolean;
   emptyMessage?: string;
   breadcrumbs?: BreadcrumbItem[];
   sortOptions?: SortOption[];
@@ -476,35 +478,37 @@ export function FileManager({
         if (event.target === event.currentTarget) event.preventDefault();
       }}
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold font-headline tracking-tight">{title}</h1>
-          {subtitle || selectionSummary ? (
-            <p className={`mt-1 text-sm ${selectionSummary ? 'font-medium text-primary' : 'text-muted-foreground'}`}>
-              {selectionSummary || subtitle}
-            </p>
-          ) : null}
-          {breadcrumbs.length > 0 ? (
-            <nav aria-label={`${title} breadcrumb`} className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
-              {breadcrumbs.map((item, index) => (
-                <React.Fragment key={`${item.label}-${index}`}>
-                  {index > 0 ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" /> : null}
-                  {item.href ? (
-                    <Link
-                      href={item.href}
-                      className="transition-colors hover:font-semibold hover:text-foreground"
-                    >
-                      {item.label}
-                    </Link>
-                  ) : (
-                    <span className="font-semibold text-foreground">{item.label}</span>
-                  )}
-                </React.Fragment>
-              ))}
-            </nav>
-          ) : null}
+      {showHeader ? (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold font-headline tracking-tight">{title}</h1>
+            {subtitle || selectionSummary ? (
+              <p className={`mt-1 text-sm ${selectionSummary ? 'font-medium text-primary' : 'text-muted-foreground'}`}>
+                {selectionSummary || subtitle}
+              </p>
+            ) : null}
+            {breadcrumbs.length > 0 ? (
+              <nav aria-label={`${title} breadcrumb`} className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+                {breadcrumbs.map((item, index) => (
+                  <React.Fragment key={`${item.label}-${index}`}>
+                    {index > 0 ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" /> : null}
+                    {item.href ? (
+                      <Link
+                        href={item.href}
+                        className="transition-colors hover:font-semibold hover:text-foreground"
+                      >
+                        {item.label}
+                      </Link>
+                    ) : (
+                      <span className="font-semibold text-foreground">{item.label}</span>
+                    )}
+                  </React.Fragment>
+                ))}
+              </nav>
+            ) : null}
+          </div>
         </div>
-      </div>
+      ) : null}
       <div
         className="min-h-[45vh]"
         onClick={(event) => {

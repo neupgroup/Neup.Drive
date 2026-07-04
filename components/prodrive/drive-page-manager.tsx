@@ -25,8 +25,8 @@ The drive manager UI for the root drive page.
 ::private
 
 Folder rows are synthetic UI items derived from `filefolder.path`. This client
-wrapper converts folder clicks into `?path=` navigation and keeps the upload
-action scoped to the current drive folder.
+wrapper converts folder clicks into `?path=` navigation, routes files into the
+viewer, and keeps the upload action scoped to the current drive folder.
 
 ::private end
 
@@ -112,7 +112,11 @@ export function DrivePageManager({
       uploadActionHref={uploadActionHref}
       uploadActionDescription="Upload a file to your drive."
       onOpenItem={(item) => {
-        if (item.type !== 'folder') return;
+        if (item.type !== 'folder') {
+          router.push(`/viewer/${encodeURIComponent(item.id)}`);
+          return;
+        }
+
         const nextPath = item.navigationPath || (item.id.startsWith('folder:') ? item.id.slice('folder:'.length) : item.name);
         trackFolderOpen(nextPath);
         router.push(`/drive?path=${encodeURIComponent(nextPath)}`);
