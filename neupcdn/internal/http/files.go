@@ -589,14 +589,16 @@ func deleteFile(w http.ResponseWriter, r *http.Request, claims *security.FileOpe
 		writeOperationError(w, err)
 		return
 	}
-	if info.IsDir() {
-		ClientErrorCode(w, http.StatusBadRequest, "not_a_file", "Delete path must be a file", nil)
-		return
-	}
 
 	if claims.DestinationPath == "" {
-		if err := os.Remove(source); err != nil {
-			InternalServerError(w, "Failed to delete file", err)
+		var removeErr error
+		if info.IsDir() {
+			removeErr = os.RemoveAll(source)
+		} else {
+			removeErr = os.Remove(source)
+		}
+		if removeErr != nil {
+			InternalServerError(w, "Failed to delete file", removeErr)
 			return
 		}
 

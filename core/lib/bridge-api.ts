@@ -272,7 +272,11 @@ export function toAccountRelativePath(filePath: string, owner: string) {
 export function getFolderType(filefolder: { path: string; details: Prisma.JsonValue }) {
     const details = getDetails(filefolder.details);
     if (typeof details.folder_type === 'string') return details.folder_type;
-    if (typeof details.mode === 'string') return details.mode;
+
+    if (typeof details.mode === 'string') {
+        const normalizedMode = details.mode.trim();
+        if (normalizedMode && normalizedMode !== 'webdisk') return normalizedMode;
+    }
 
     const parts = filefolder.path.replace(/^\/+/, '').split('/');
     return parts.length >= 2 ? parts[1] : 'drive';

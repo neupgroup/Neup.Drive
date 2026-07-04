@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Eye, Trash2 } from 'lucide-react';
 
 import { FileManager } from '@/components/prodrive/file-manager';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,7 @@ interface WebDiskFolder {
   type: string;
   path: string;
   count: number;
+  storagePath: string;
 }
 
 interface WebDiskFolderRecord {
@@ -89,6 +91,10 @@ function dirname(value: string) {
 
 function childPath(parentPath: string, childName: string) {
   return parentPath ? `${parentPath}/${childName}` : childName;
+}
+
+function buildStoragePath(owner: string, folderType: string, relativePath: string) {
+  return [owner, folderType, relativePath].filter(Boolean).join('/');
 }
 
 function webdiskUploadHref(type: string | null, folderPath: string) {
@@ -297,6 +303,11 @@ function WebdiskContent() {
       storageTier: storageTierFromWebdiskType(item.location.type),
     },
   })), [files]);
+  const webdiskOwner = React.useMemo(() => (
+    files[0]?.uploaded_by ||
+    folderRecords[0]?.path.replace(/^\/+/, '').split('/')[0] ||
+    'demo-user-123'
+  ), [files, folderRecords]);
 
   const currentItems = React.useMemo(() => {
     const folders = new Map<string, WebDiskFolder>();
@@ -321,6 +332,7 @@ function WebdiskContent() {
           type: location.type,
           path: folderPath,
           count: folders.get(folderPath)?.count || 0,
+          storagePath: folderRecord.path,
         });
       } else {
         const nextPath = childPath(selectedPath, nextSegment);
@@ -331,6 +343,7 @@ function WebdiskContent() {
           type: location.type,
           path: nextPath,
           count: folder?.count || 0,
+          storagePath: folder?.storagePath || buildStoragePath(webdiskOwner, location.type, nextPath),
         });
       }
     }
@@ -355,6 +368,7 @@ function WebdiskContent() {
           type: selectedType,
           path: nextPath,
           count: (folder?.count || 0) + 1,
+          storagePath: folder?.storagePath || buildStoragePath(webdiskOwner, selectedType, nextPath),
         });
       }
     }
@@ -367,6 +381,7 @@ function WebdiskContent() {
         type: 'signed',
         path: '',
         count: signedCount,
+        storagePath: buildStoragePath(webdiskOwner, 'signed', ''),
       });
     }
 
@@ -380,7 +395,7 @@ function WebdiskContent() {
       folders: sortedFolders,
       files: currentFiles.sort((a, b) => a.filename.localeCompare(b.filename)),
     };
-  }, [filesByType, folderRecords, selectedPath, selectedType]);
+  }, [filesByType, folderRecords, selectedPath, selectedType, webdiskOwner]);
 
   const managerItems = React.useMemo<FileOrFolder[]>(() => {
     const folderItems = currentItems.folders.map((folder) => ({
@@ -450,8 +465,9 @@ function WebdiskContent() {
         const trashPath = typeof data?.cdn?.destination_path === 'string'
           ? data.cdn.destination_path as string
           : '';
+        const isFolder = file.mimeType === 'inode/directory';
         const trashToast = toast({
-          title: 'File moved to Trash.',
+          title: isFolder ? 'Folder moved to Trash.' : 'File moved to Trash.',
           hideClose: true,
           action: trashPath ? (
             <ToastAction
@@ -465,6 +481,8 @@ function WebdiskContent() {
                   action: 'restore',
                   cdn_path: trashPath,
                   type: selectedType,
+                  previous_path: file.cdn_path || file.id,
+                  previous_type: body.type || selectedType,
                 });
               }}
             >
@@ -476,7 +494,7 @@ function WebdiskContent() {
           trashToast.dismiss();
         }, 10000);
       } else if (action === 'restore') {
-        toast({ title: 'File restored.' });
+        toast({ title: file.mimeType === 'inode/directory' ? 'Folder restored.' : 'File restored.' });
       } else if (action === 'rename') {
         toast({ title: 'File renamed.' });
       } else if (action === 'move') {
@@ -544,6 +562,24 @@ function WebdiskContent() {
   }, [performOperation, recordsById, selectedType]);
 
   const handleDeleteItem = React.useCallback(async (item: FileOrFolder) => {
+    const folder = foldersById.get(item.id);
+    if (folder) {
+      await performOperation({
+        id: folder.storagePath,
+        filename: folder.name,
+        path: '',
+        cdn_path: folder.storagePath,
+        mimeType: 'inode/directory',
+        uploaded_by: webdiskOwner,
+        uploaded_on: new Date(0).toISOString(),
+      }, 'delete', {
+        action: 'delete',
+        cdn_path: folder.storagePath,
+        type: folder.type,
+      });
+      return;
+    }
+
     const file = recordsById.get(item.id);
     if (!file) return;
 
@@ -552,7 +588,7 @@ function WebdiskContent() {
       cdn_path: file.cdn_path || file.id,
       type: selectedType,
     });
-  }, [performOperation, recordsById, selectedType]);
+  }, [foldersById, performOperation, recordsById, selectedType, webdiskOwner]);
 
   const busyIds = operatingPath ? [operatingPath] : [];
   const breadcrumbs = React.useMemo(
@@ -597,6 +633,38 @@ function WebdiskContent() {
             onRenameItem={handleRenameItem}
             onMoveItem={handleMoveItem}
             onDeleteItem={handleDeleteItem}
+            getItemContextMenuSections={(item) => {
+              if (item.type !== 'folder') return [];
+              const folder = foldersById.get(item.id);
+              const isSystemSignedRoot = folder?.type === 'signed' && !folder.path;
+              return [
+                {
+                  actions: [
+                    {
+                      icon: Eye,
+                      label: 'Open',
+                      onClick: () => {
+                        const folder = foldersById.get(item.id);
+                        if (!folder) return;
+                        navigateTo(folder.type, folder.path);
+                      },
+                    },
+                    ...(
+                      isSystemSignedRoot
+                        ? []
+                        : [{
+                            icon: Trash2,
+                            label: 'Delete',
+                            onClick: () => {
+                              void handleDeleteItem(item);
+                            },
+                            className: 'text-destructive focus:bg-destructive focus:text-destructive-foreground',
+                          }]
+                    ),
+                  ],
+                },
+              ];
+            }}
             onCreateFolder={async (name) => {
               const response = await fetch('/bridge/api.v1/folders/create', {
                 method: 'POST',
@@ -616,7 +684,11 @@ function WebdiskContent() {
             }}
             onSortChange={setSortMode}
             getMoveTargets={(item) => item.type === 'folder' ? [] : ['assets', 'signed']}
-            canManageItem={(item) => item.type !== 'folder'}
+            canManageItem={(item) => {
+              if (item.type === 'action') return false;
+              if (item.type === 'folder' && item.locationType === 'signed' && !item.navigationPath) return false;
+              return true;
+            }}
           />
         </div>
       )}

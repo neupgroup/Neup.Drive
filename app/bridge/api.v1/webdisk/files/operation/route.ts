@@ -27,11 +27,14 @@ type WebdiskOperationAction = 'rename' | 'move' | 'delete' | 'restore';
 
 interface WebdiskOperationRequest {
     action?: WebdiskOperationAction;
+    filefolder_id?: string;
     cdn_path?: string;
     type?: string;
     new_name?: string;
     to_type?: string;
     to_path?: string;
+    previous_path?: string;
+    previous_type?: string;
 }
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
@@ -89,6 +92,18 @@ function normalizeCdnPath(value?: string) {
         throw new Error('Invalid cdn_path');
     }
     return normalized;
+}
+
+function replacePathPrefix(value: string, sourcePrefix: string, destinationPrefix: string) {
+    if (value === sourcePrefix) return destinationPrefix;
+    if (!value.startsWith(`${sourcePrefix}/`)) return value;
+    return `${destinationPrefix}${value.slice(sourcePrefix.length)}`;
+}
+
+function folderTypeFromStoragePath(storagePath: string) {
+    const cleanPath = storagePath.replace(/^\/+/, '');
+    const parts = cleanPath.split('/');
+    return normalizeType(parts[1]);
 }
 
 async function callCdnOperation(action: Extract<WebdiskOperationAction, 'rename' | 'move' | 'delete'>, token: string) {
@@ -257,6 +272,121 @@ async function syncFilefolderOperation(params: {
     }
 }
 
+async function syncFolderDescendants(params: {
+    action: WebdiskOperationAction;
+    sourcePath: string;
+    currentType: string;
+    nextType: string;
+    finalPath: string;
+}) {
+    const filefolders = await prisma.fileFolder.findMany({
+        where: {
+            owner: WEBDISK_ACCOUNT_ID,
+            OR: [
+                { path: params.sourcePath },
+                { path: { startsWith: `${params.sourcePath}/` } },
+            ],
+        },
+        orderBy: { created_on: 'asc' },
+    });
+    const files = await prisma.file.findMany({
+        where: {
+            userId: WEBDISK_ACCOUNT_ID,
+            OR: [
+                { path: params.sourcePath },
+                { path: { startsWith: `${params.sourcePath}/` } },
+            ],
+        },
+        orderBy: { createdAt: 'asc' },
+    });
+    const now = new Date();
+    const deletesIn = getTrashDeletesIn(now);
+
+    await prisma.$transaction([
+        ...filefolders.map((filefolder) => {
+            const details = filefolder.details && typeof filefolder.details === 'object' && !Array.isArray(filefolder.details)
+                ? filefolder.details as Record<string, unknown>
+                : {};
+            const nextPath = params.action === 'restore'
+                ? typeof details.previous_path === 'string' && details.previous_path
+                    ? details.previous_path
+                    : replacePathPrefix(filefolder.path, params.sourcePath, params.finalPath)
+                : replacePathPrefix(filefolder.path, params.sourcePath, params.finalPath);
+            const activityUpdate = buildFileFolderActivityUpdate({
+                currentActivity: filefolder.activity,
+                action: params.action === 'delete' ? 'deleted' : 'restored',
+                details: {
+                    path: nextPath,
+                    previous_path: filefolder.path,
+                    folder_type: params.nextType,
+                },
+            });
+
+            if (params.action === 'delete') {
+                return prisma.fileFolder.update({
+                    where: { id: filefolder.id },
+                    data: {
+                        path: nextPath,
+                        stored_as: 'trash',
+                        details: {
+                            ...details,
+                            mode: 'trash',
+                            folder_type: '.trash',
+                            previous_mode: params.currentType,
+                            previous_path: filefolder.path,
+                            status: 'TRASHED',
+                            deleted_on: now.toISOString(),
+                            deletes_in: deletesIn,
+                            trash_path: nextPath,
+                        },
+                        activity: activityUpdate.activity,
+                        lastActivityOn: activityUpdate.lastActivityOn,
+                        totalActivity: activityUpdate.totalActivity,
+                    },
+                });
+            }
+
+            const {
+                deleted_on: _deletedOn,
+                deletes_in: _deletesIn,
+                trash_path: _trashPath,
+                ...restoredDetails
+            } = details;
+
+            return prisma.fileFolder.update({
+                where: { id: filefolder.id },
+                data: {
+                    path: nextPath,
+                    stored_as: webdiskStoredAs(params.nextType),
+                    details: {
+                        ...restoredDetails,
+                        mode: 'webdisk',
+                        folder_type: params.nextType,
+                        previous_mode: '.trash',
+                        previous_path: filefolder.path,
+                        status: 'VERIFIED',
+                    },
+                    activity: activityUpdate.activity,
+                    lastActivityOn: activityUpdate.lastActivityOn,
+                    totalActivity: activityUpdate.totalActivity,
+                },
+            });
+        }),
+        ...files.map((file) => {
+            const nextPath = params.action === 'restore'
+                ? replacePathPrefix(file.path, params.sourcePath, params.finalPath)
+                : replacePathPrefix(file.path, params.sourcePath, params.finalPath);
+            return prisma.file.update({
+                where: { id: file.id },
+                data: {
+                    path: nextPath,
+                    status: params.action === 'delete' ? 'TRASHED' : 'VERIFIED',
+                },
+            });
+        }),
+    ]);
+}
+
 export async function POST(request: NextRequest) {
     let body: WebdiskOperationRequest | undefined;
 
@@ -270,12 +400,20 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
         }
 
-        const sourcePath = normalizeCdnPath(body.cdn_path);
-        let currentType = normalizeType(body.type);
+        const explicitFilefolder = body.filefolder_id
+            ? await prisma.fileFolder.findUnique({ where: { id: body.filefolder_id } })
+            : null;
+        const sourcePath = explicitFilefolder
+            ? normalizeCdnPath(explicitFilefolder.path)
+            : normalizeCdnPath(body.cdn_path);
+        let currentType = explicitFilefolder
+            ? folderTypeFromStoragePath(explicitFilefolder.path)
+            : normalizeType(body.type);
         let destinationPath: string | undefined;
         let newName: string | undefined;
         let nextType = currentType;
         let cdnAction: Extract<WebdiskOperationAction, 'rename' | 'move' | 'delete'> = body.action === 'restore' ? 'move' : body.action;
+        const isFolder = explicitFilefolder?.type === 'folder';
 
         if (body.action === 'rename') {
             newName = assertSafePathSegment((body.new_name || '').trim(), 'new_name');
@@ -303,15 +441,24 @@ export async function POST(request: NextRequest) {
         }
 
         if (body.action === 'restore') {
-            const filefolder = await prisma.fileFolder.findFirst({
-                where: { path: sourcePath },
+            const filefolder = explicitFilefolder || await prisma.fileFolder.findFirst({
+                where: {
+                    OR: [
+                        { path: sourcePath },
+                        { path: { startsWith: `${sourcePath}/` } },
+                    ],
+                },
                 orderBy: { created_on: 'desc' },
             });
             const details = filefolder?.details && typeof filefolder.details === 'object' && !Array.isArray(filefolder.details)
                 ? filefolder.details as Record<string, unknown>
                 : {};
-            const previousPath = typeof details.previous_path === 'string' ? details.previous_path : '';
-            const previousMode = typeof details.previous_mode === 'string' ? details.previous_mode : '';
+            const previousPath = typeof details.previous_path === 'string'
+                ? details.previous_path
+                : body.previous_path || '';
+            const previousMode = typeof details.previous_mode === 'string'
+                ? details.previous_mode
+                : body.previous_type || '';
             if (!previousPath || !previousMode) {
                 return NextResponse.json({ error: 'File cannot be restored' }, { status: 409 });
             }
@@ -362,15 +509,25 @@ export async function POST(request: NextRequest) {
             };
         }
         const finalPath = cdn.destination_path || cdn.path || destinationPath || sourcePath;
-        await syncFilefolderOperation({
-            action: body.action,
-            sourcePath,
-            currentType,
-            nextType,
-            nextName: newName,
-            finalPath,
-            cdn,
-        });
+        if (isFolder && (body.action === 'delete' || body.action === 'restore')) {
+            await syncFolderDescendants({
+                action: body.action,
+                sourcePath,
+                currentType,
+                nextType,
+                finalPath,
+            });
+        } else {
+            await syncFilefolderOperation({
+                action: body.action,
+                sourcePath,
+                currentType,
+                nextType,
+                nextName: newName,
+                finalPath,
+                cdn,
+            });
+        }
         try {
             await appendBridgeFileAccessLog({
                 owner: WEBDISK_ACCOUNT_ID,

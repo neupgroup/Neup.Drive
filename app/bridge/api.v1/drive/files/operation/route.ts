@@ -45,6 +45,126 @@ interface FileOperationRequest {
     destination_internal_path?: string;
 }
 
+function replacePathPrefix(value: string, sourcePrefix: string, destinationPrefix: string) {
+    if (value === sourcePrefix) return destinationPrefix;
+    if (!value.startsWith(`${sourcePrefix}/`)) return value;
+    return `${destinationPrefix}${value.slice(sourcePrefix.length)}`;
+}
+
+async function syncFolderDescendants(params: {
+    filefolder: NonNullable<Awaited<ReturnType<typeof prisma.fileFolder.findUnique>>>;
+    action: Extract<FileOperationAction, 'delete' | 'restore'>;
+    currentPath: string;
+    finalPath: string;
+    currentFolderType: string;
+    nextFolderType: string;
+}) {
+    const descendantRows = await prisma.fileFolder.findMany({
+        where: {
+            owner: params.filefolder.owner,
+            OR: [
+                { path: params.currentPath },
+                { path: { startsWith: `${params.currentPath}/` } },
+            ],
+        },
+        orderBy: { created_on: 'asc' },
+    });
+    const descendantFiles = await prisma.file.findMany({
+        where: {
+            userId: params.filefolder.owner,
+            OR: [
+                { path: params.currentPath },
+                { path: { startsWith: `${params.currentPath}/` } },
+            ],
+        },
+        orderBy: { createdAt: 'asc' },
+    });
+    const now = new Date();
+    const deletesIn = getTrashDeletesIn(now);
+
+    await prisma.$transaction([
+        ...descendantRows.map((row) => {
+            const rowDetails = getDetails(row.details);
+            const nextPath = params.action === 'restore'
+                ? typeof rowDetails.previous_path === 'string' && rowDetails.previous_path
+                    ? rowDetails.previous_path
+                    : replacePathPrefix(row.path, params.currentPath, params.finalPath)
+                : replacePathPrefix(row.path, params.currentPath, params.finalPath);
+            const activityUpdate = buildFileFolderActivityUpdate({
+                currentActivity: row.activity,
+                action: params.action === 'delete' ? 'deleted' : 'restored',
+                details: {
+                    path: nextPath,
+                    previous_path: row.path,
+                    folder_type: params.nextFolderType,
+                },
+            });
+
+            if (params.action === 'delete') {
+                return prisma.fileFolder.update({
+                    where: { id: row.id },
+                    data: {
+                        path: nextPath,
+                        stored_as: 'trash',
+                        details: {
+                            ...rowDetails,
+                            mode: 'trash',
+                            folder_type: '.trash',
+                            previous_mode: params.currentFolderType,
+                            previous_path: row.path,
+                            status: 'TRASHED',
+                            deleted_on: now.toISOString(),
+                            deletes_in: deletesIn,
+                            trash_path: nextPath,
+                        },
+                        activity: activityUpdate.activity,
+                        lastActivityOn: activityUpdate.lastActivityOn,
+                        totalActivity: activityUpdate.totalActivity,
+                    },
+                });
+            }
+
+            const {
+                deleted_on: _deletedOn,
+                deletes_in: _deletesIn,
+                trash_path: _trashPath,
+                ...restoredDetails
+            } = rowDetails;
+
+            return prisma.fileFolder.update({
+                where: { id: row.id },
+                data: {
+                    path: nextPath,
+                    stored_as: 'drivefile',
+                    details: {
+                        ...restoredDetails,
+                        mode: params.nextFolderType,
+                        folder_type: params.nextFolderType,
+                        previous_mode: '.trash',
+                        previous_path: row.path,
+                        status: 'VERIFIED',
+                    },
+                    activity: activityUpdate.activity,
+                    lastActivityOn: activityUpdate.lastActivityOn,
+                    totalActivity: activityUpdate.totalActivity,
+                },
+            });
+        }),
+        ...descendantFiles.map((row) => {
+            const nextPath = params.action === 'restore'
+                ? replacePathPrefix(row.path, params.currentPath, params.finalPath)
+                : replacePathPrefix(row.path, params.currentPath, params.finalPath);
+            return prisma.file.update({
+                where: { id: row.id },
+                data: {
+                    path: nextPath,
+                    status: params.action === 'delete' ? 'TRASHED' : 'VERIFIED',
+                },
+            });
+        }),
+    ]);
+}
+
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 const CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
 const CDN_OPERATION_BASE = getCdnOperationBase();
@@ -217,6 +337,8 @@ export async function POST(request: NextRequest) {
             destinationPath = makeDestinationPath(filefolder.owner, nextFolderType, filefolder.name, operation.destination_internal_path);
         }
 
+        const isFolder = filefolder.type === 'folder';
+
         if (operation.action === 'delete') {
             nextFolderType = '.trash';
             destinationPath = buildBridgeTrashPath({
@@ -308,7 +430,19 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        if (operation.action === 'delete') {
+        if (isFolder && (operation.action === 'delete' || operation.action === 'restore')) {
+            await syncFolderDescendants({
+                filefolder,
+                action: operation.action,
+                currentPath,
+                finalPath,
+                currentFolderType,
+                nextFolderType,
+            });
+            updatedFilefolder = await prisma.fileFolder.findUnique({
+                where: { id: filefolder.id },
+            });
+        } else if (operation.action === 'delete') {
             const now = new Date();
             const deletesIn = getTrashDeletesIn(now);
             updatedFilefolder = await prisma.fileFolder.update({
@@ -395,6 +529,10 @@ export async function POST(request: NextRequest) {
                     status: 'VERIFIED',
                 },
             });
+        }
+
+        if (!updatedFilefolder) {
+            throw new Error('Failed to reload updated filefolder');
         }
 
         await createFileFolderLog({

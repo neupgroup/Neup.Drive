@@ -35,8 +35,11 @@ shared viewer flow.
 'use client';
 
 import * as React from 'react';
+import { Eye, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { FileManager } from '@/components/prodrive/file-manager';
+import { toast } from '@/core/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 import type { FileOrFolder } from '@/core/lib/types';
 
 type SortMode = 'recent-desc' | 'recent-asc' | 'name-asc' | 'name-desc';
@@ -101,6 +104,50 @@ export function RecentPageManager({
     }).catch(() => undefined);
   }, []);
   const [sortMode, setSortMode] = React.useState<SortMode>('recent-desc');
+  const deleteItem = React.useCallback(async (item: FileOrFolder, action: 'delete' | 'restore' = 'delete') => {
+    const isDriveItem = item.locationType === 'drive';
+    const endpoint = isDriveItem
+      ? '/bridge/api.v1/drive/files/operation'
+      : '/bridge/api.v1/webdisk/files/operation';
+    const body = isDriveItem
+      ? { filefolder_id: item.id, action }
+      : { filefolder_id: item.id, action };
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.success) {
+      throw new Error(data?.error || 'Failed to update item');
+    }
+
+    if (action === 'delete') {
+      const trashToast = toast({
+        title: item.type === 'folder' ? 'Folder moved to Trash.' : 'File moved to Trash.',
+        hideClose: true,
+        action: (
+          <ToastAction
+            altText={`Undo deleting ${item.name}`}
+            onClick={() => {
+              trashToast.dismiss();
+              void deleteItem(item, 'restore');
+            }}
+          >
+            Undo
+          </ToastAction>
+        ),
+      });
+      window.setTimeout(() => {
+        trashToast.dismiss();
+      }, 10000);
+    } else {
+      toast({ title: item.type === 'folder' ? 'Folder restored.' : 'File restored.' });
+    }
+
+    router.refresh();
+  }, [router]);
   const sortedFiles = React.useMemo(() => [...files].sort((left, right) => {
     if (sortMode === 'name-asc') return left.name.localeCompare(right.name);
     if (sortMode === 'name-desc') return right.name.localeCompare(left.name);
@@ -149,10 +196,45 @@ export function RecentPageManager({
 
         router.push(`/viewer/${encodeURIComponent(item.id)}`);
       }}
+      onDeleteItem={(item) => deleteItem(item, 'delete')}
       onSortChange={(value) => {
         setSortMode(value as SortMode);
       }}
-      canManageItem={(item) => item.type !== 'folder'}
+      canManageItem={(item) => item.locationType === 'drive' || item.locationType === 'assets' || item.locationType === 'signed'}
+      getMoveTargets={(item) => item.type === 'folder' ? [] : ['drive', 'assets', 'signed']}
+      getItemContextMenuSections={(item) => {
+        if (item.type !== 'folder') return [];
+        return [
+          {
+            actions: [
+              {
+                icon: Eye,
+                label: 'Open',
+                onClick: () => {
+                  if (!item.navigationPath || !item.locationType) return;
+                  trackFolderOpen(item);
+                  if (item.locationType === 'drive') {
+                    router.push(`/drive?path=${encodeURIComponent(item.navigationPath)}`);
+                    return;
+                  }
+                  const params = new URLSearchParams();
+                  params.set('type', item.locationType);
+                  params.set('path', item.navigationPath);
+                  router.push(`/webdisk?${params.toString()}`);
+                },
+              },
+              {
+                icon: Trash2,
+                label: 'Delete',
+                onClick: () => {
+                  void deleteItem(item, 'delete');
+                },
+                className: 'text-destructive focus:bg-destructive focus:text-destructive-foreground',
+              },
+            ],
+          },
+        ];
+      }}
     />
   );
 }

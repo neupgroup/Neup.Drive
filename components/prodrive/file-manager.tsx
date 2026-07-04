@@ -54,6 +54,11 @@ type SortOption = {
   label: string;
 };
 
+type BusyState = {
+  itemId: string;
+  action: 'rename' | 'move' | 'delete' | 'custom';
+};
+
 type ContextMenuAction = {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -135,14 +140,19 @@ export function FileManager({
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [menu, setMenu] = React.useState<ContextMenuState | null>(null);
   const [backgroundMenu, setBackgroundMenu] = React.useState<BackgroundMenuState | null>(null);
-  const [busyItemId, setBusyItemId] = React.useState<string | null>(null);
+  const [busyState, setBusyState] = React.useState<BusyState | null>(null);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [lastSelectedId, setLastSelectedId] = React.useState<string | null>(null);
   const [renameDialog, setRenameDialog] = React.useState<RenameDialogState>(null);
   const [createFolderDialogOpen, setCreateFolderDialogOpen] = React.useState(false);
   const [createFolderName, setCreateFolderName] = React.useState('');
-  const files = React.useMemo(() => {
-    if (!uploadActionHref) return initialFiles;
+  const files = React.useMemo<FileOrFolder[]>(() => {
+    const decoratedFiles: FileOrFolder[] = initialFiles.map((item) => ({
+      ...item,
+      isPending: busyState?.action === 'delete' && busyState.itemId === item.id,
+    }));
+
+    if (!uploadActionHref) return decoratedFiles;
 
     return [
       {
@@ -154,10 +164,10 @@ export function FileManager({
         lastModified: uploadActionDescription,
         members: [],
         actionHref: uploadActionHref,
-      },
-      ...initialFiles,
+      } satisfies FileOrFolder,
+      ...decoratedFiles,
     ];
-  }, [initialFiles, uploadActionDescription, uploadActionHref]);
+  }, [busyState, initialFiles, uploadActionDescription, uploadActionHref]);
   const selectionSummary = selectedIds.length > 0
     ? `${selectedIds.length} item${selectedIds.length === 1 ? '' : 's'} selected`
     : null;
@@ -289,7 +299,12 @@ export function FileManager({
     item: FileOrFolder,
     body: Record<string, string>
   ) => {
-    setBusyItemId(item.id);
+    setBusyState({
+      itemId: item.id,
+      action: body.action === 'rename' || body.action === 'move' || body.action === 'delete'
+        ? body.action
+        : 'custom',
+    });
     setMenu(null);
     setBackgroundMenu(null);
 
@@ -342,22 +357,26 @@ export function FileManager({
         description: error instanceof Error ? error.message : 'Something went wrong.',
       });
     } finally {
-      setBusyItemId(null);
+      setBusyState(null);
     }
   }, [router]);
 
   const runCustomOperation = React.useCallback(async (
     item: FileOrFolder,
-    action: () => Promise<void> | void
+    action: () => Promise<void> | void,
+    operation: BusyState['action'] = 'custom',
   ) => {
-    setBusyItemId(item.id);
+    setBusyState({
+      itemId: item.id,
+      action: operation,
+    });
     setMenu(null);
     setBackgroundMenu(null);
 
     try {
       await action();
     } finally {
-      setBusyItemId(null);
+      setBusyState(null);
     }
   }, []);
 
@@ -397,7 +416,7 @@ export function FileManager({
     if (onRenameItem) {
       void runCustomOperation(renameDialog.item, async () => {
         await onRenameItem(renameDialog.item, newName);
-      });
+      }, 'rename');
     } else {
       void runOperation(renameDialog.item, { action: 'rename', new_name: newName });
     }
@@ -408,7 +427,7 @@ export function FileManager({
     if (onMoveItem) {
       void runCustomOperation(item, async () => {
         await onMoveItem(item, target);
-      });
+      }, 'move');
       return;
     }
 
@@ -419,7 +438,7 @@ export function FileManager({
     if (onDeleteItem) {
       void runCustomOperation(item, async () => {
         await onDeleteItem(item);
-      });
+      }, 'delete');
       return;
     }
 
@@ -549,7 +568,7 @@ export function FileManager({
           const moveTargets: MoveTarget[] = getMoveTargets ? getMoveTargets(menu.item) : ['drive', 'assets', 'signed'];
           const selectedItems = menu.selectionIds
             .map((id) => files.find((item) => item.id === id))
-            .filter((item): item is FileOrFolder => item !== undefined && item.type !== 'action');
+            .filter((item): item is FileOrFolder => Boolean(item && item.type !== 'action'));
           const selectionSections = selectedItems.length > 1
             ? getSelectionContextMenuSections?.(selectedItems)
             : undefined;
@@ -619,16 +638,16 @@ export function FileManager({
             ))
           ) : (
             <>
-              <ContextMenuButton icon={Eye} label="Open" onClick={() => openItem(menu.item)} disabled={busyItemId === menu.item.id} />
+              <ContextMenuButton icon={Eye} label="Open" onClick={() => openItem(menu.item)} disabled={busyState?.itemId === menu.item.id} />
               <div className="-mx-1 my-1 h-px bg-muted" />
-              <ContextMenuButton icon={Edit3} label="Rename" onClick={() => renameItem(menu.item)} disabled={busyItemId === menu.item.id || !manageable} />
+              <ContextMenuButton icon={Edit3} label="Rename" onClick={() => renameItem(menu.item)} disabled={busyState?.itemId === menu.item.id || !manageable} />
               {moveTargets.map((target) => (
                 <ContextMenuButton
                   key={target}
                   icon={FolderInput}
                   label={`Move to ${target === 'drive' ? 'Drive' : target === 'assets' ? 'Assets' : 'Signed'}`}
                   onClick={() => moveItem(menu.item, target)}
-                  disabled={busyItemId === menu.item.id || !manageable}
+                  disabled={busyState?.itemId === menu.item.id || !manageable}
                 />
               ))}
               <div className="-mx-1 my-1 h-px bg-muted" />
@@ -640,7 +659,7 @@ export function FileManager({
                 icon={Trash2}
                 label="Delete"
                 onClick={() => deleteItem(menu.item)}
-                disabled={busyItemId === menu.item.id || !manageable}
+                disabled={busyState?.itemId === menu.item.id || !manageable}
                 className="text-destructive focus:bg-destructive focus:text-destructive-foreground"
               />
               <ContextMenuButton icon={MoreHorizontal} label="Properties" onClick={() => setMenu(null)} disabled />
