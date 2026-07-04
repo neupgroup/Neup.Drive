@@ -13,7 +13,6 @@ const primaryNavLinks = [
   { href: '/shared', icon: Share, label: 'Shared' },
   { href: '/webdisk', icon: Globe, label: 'WebDisk' },
   { href: '/analytics', icon: BarChart3, label: 'Analytics' },
-  { href: '/errors', icon: AlertCircle, label: 'System Errors' },
   { href: '/trash', icon: Trash2, label: 'Trash' },
 ];
 
@@ -22,6 +21,7 @@ const managementNavLinks = [
   { href: '/manage/profiles', icon: Users, label: 'Profiles' },
   { href: '/manage/storage', icon: HardDrive, label: 'Storage' },
   { href: '/manage/analytics', icon: BarChart3, label: 'Analytics' },
+  { href: '/errors', icon: AlertCircle, label: 'System Errors' },
 ];
 
 function NavSection({

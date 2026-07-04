@@ -27,56 +27,14 @@ file data resolve independently.
 ::end
 */
 import { Suspense } from 'react';
-import { cookies } from 'next/headers';
 import { RecentPageManager } from '@/components/prodrive/recent-page-manager';
-import { prisma } from '@/core/lib/db';
+import { getSignedInAccountIdentity } from '@/core/lib/account-session';
 import { getRecentDriveFiles } from '@/core/lib/drive-files';
 import { Skeleton } from '@/components/ui/skeleton';
 
-function base64UrlDecode(input: string) {
-  let normalized = input.replace(/-/g, '+').replace(/_/g, '/');
-  while (normalized.length % 4) normalized += '=';
-  return Buffer.from(normalized, 'base64').toString('utf8');
-}
-
 async function getHomepageDisplayName() {
-  const authCookie = (await cookies()).get('auth_account')?.value;
-  if (!authCookie) return null;
-
-  let payload: Record<string, unknown> | null = null;
-  try {
-    const parts = authCookie.split('.');
-    if (parts.length < 2) return null;
-    payload = JSON.parse(base64UrlDecode(parts[1])) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-
-  const aid = payload?.aid || payload?.accountId || payload?.sub;
-  const sid = payload?.sid;
-  const skey = payload?.skey;
-
-  if (
-    typeof aid !== 'string' ||
-    typeof sid !== 'string' ||
-    typeof skey !== 'string'
-  ) {
-    return null;
-  }
-
-  const session = await prisma.signinSession.findFirst({
-    where: { aid, sid, skey },
-    select: { accountId: true },
-  });
-
-  if (!session) return null;
-
-  const account = await prisma.account.findUnique({
-    where: { id: session.accountId || aid },
-    select: { display_name: true, neupid: true },
-  });
-
-  return account?.display_name || account?.neupid || null;
+  const account = await getSignedInAccountIdentity();
+  return account?.displayName || null;
 }
 
 async function HomeGreetingName() {

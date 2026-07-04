@@ -15,7 +15,6 @@
 - [ ] Add `::neup.documentation::` source documentation for `app/globals.css`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/drive/files/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/shared/page.tsx`.
-- [ ] Add `::neup.documentation::` source documentation for `app/analytics/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/manage/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/manage/profiles/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/manage/storage/page.tsx`.
@@ -24,7 +23,6 @@
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/main.go`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/cmd/server/main.go`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/config/config.go`.
-- [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/files.go`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/routes.go`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/response.go`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/logger.go`.
@@ -55,6 +53,7 @@
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/error-types.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/data.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/account/connection/sign&get/route.ts`.
+- [ ] Add `::neup.documentation::` source documentation for `components/ui/card.tsx`.
 - [ ] Update `neupcdn/README.md` to reflect the current CDN routes and removed `private` storage type.
 - [ ] Fix `npx tsc --noEmit` error in `components/ui/calendar.tsx`: `IconLeft` is not a valid `CustomComponents` property.
 - [ ] Fix implicit `any` `className` bindings in `components/ui/calendar.tsx`.

@@ -15,6 +15,26 @@ import (
 	"neupcdn/internal/security"
 )
 
+/*
+::neup.documentation::cdn-file-http-handlers
+::title CDN File HTTP Handlers
+
+::private
+
+Handles public file serving, signed file viewing, and token-backed file
+operations for CDN-stored account assets.
+
+::details
+
+Successful file views now log the served file size alongside referer and origin
+metadata so downstream analytics can calculate egress totals and identify
+embedding pages more accurately.
+
+::private end
+
+::end
+*/
+
 func routeNotFound(w http.ResponseWriter) {
 	ClientErrorCode(w, http.StatusNotFound, "404_not_found", "Route not found", nil)
 }
@@ -242,6 +262,7 @@ func FileViewHandler(w http.ResponseWriter, r *http.Request) {
 		"account_id": claims.AccountID,
 		"path":       claims.Path,
 		"folder":     claims.FolderType,
+		"size":       info.Size(),
 		"status":     "served",
 	})
 }
@@ -327,6 +348,7 @@ func FileServeHandler(w http.ResponseWriter, r *http.Request) {
 		"account_id": accountID,
 		"path":       resolvedRelPath,
 		"folder":     accessType,
+		"size":       info.Size(),
 		"status":     "served",
 	})
 }
