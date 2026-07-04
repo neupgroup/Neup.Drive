@@ -121,6 +121,21 @@ export function DrivePageManager({
         trackFolderOpen(nextPath);
         router.push(`/drive?path=${encodeURIComponent(nextPath)}`);
       }}
+      onDeleteItem={async (item) => {
+        const response = await fetch('/bridge/api.v1/drive/files/operation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filefolder_id: item.id,
+            action: 'delete',
+          }),
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data?.success) {
+          throw new Error(data?.error || 'Failed to delete file');
+        }
+        router.refresh();
+      }}
       onCreateFolder={async (name) => {
         const response = await fetch('/bridge/api.v1/folders/create', {
           method: 'POST',
