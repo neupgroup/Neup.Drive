@@ -52,7 +52,11 @@
 - [ ] Add `::neup.documentation::` source documentation for `prisma/migrations/20260607170000_add_filefolder_stored_as/migration.sql`.
 - [ ] Add `::neup.documentation::` source documentation for `prisma/migrations/20260704163000_add_filefolder_activity/migration.sql`.
 - [ ] Add `::neup.documentation::` source documentation for `prisma/migrations/20260705093000_drop_user_and_account_role/migration.sql`.
+- [ ] Add `::neup.documentation::` source documentation for `prisma/migrations/20260211070731_add_error_log/migration.sql`.
+- [ ] Add `::neup.documentation::` source documentation for `prisma/migrations/20260531120000_add_signin_session/migration.sql`.
+- [ ] Add `::neup.documentation::` source documentation for `prisma/migrations/20260608090000_create_system_error/migration.sql`.
 - [ ] Add `::neup.documentation::` source documentation for `components/ui/card.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `core/lib/error-server.ts`.
 - [ ] Fix `npx tsc --noEmit` error in `components/ui/calendar.tsx`: `IconLeft` is not a valid `CustomComponents` property.
 - [ ] Fix implicit `any` `className` bindings in `components/ui/calendar.tsx`.
 - [ ] Fix missing module import in `scripts/test-hashing.ts` for `../src/lib/sha256`.

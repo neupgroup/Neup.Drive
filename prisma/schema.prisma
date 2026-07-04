@@ -85,15 +85,3 @@ model Account {
   created_on    DateTime @default(now())
   accessed_on   DateTime?
 }
-
-model SigninSession {
-  id         String   @id @default(uuid())
-  aid        String
-  sid        String
-  skey       String
-  accountId  String?
-  expires_at DateTime?
-  created_at DateTime @default(now())
-
-  @@index([aid, sid, skey])
-}
