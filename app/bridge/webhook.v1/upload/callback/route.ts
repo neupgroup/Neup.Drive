@@ -3,10 +3,33 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '@/core/lib/db';
 import { buildFileFolderActivityUpdate, createFileFolderLog } from '@/core/lib/filefolder';
 
-/**
- * Step 6: Finalization - Server Callback
- * This endpoint is called by the CDN when an upload is verified and completed.
- */
+/*
+::neup.documentation::upload-callback-route
+::api POST /bridge/webhook.v1/upload/callback
+::title Upload Callback Route
+::owner Neup Drive
+
+::public
+
+Accepts the CDN verification callback and finalizes pending upload metadata.
+
+::response 200
+
+The callback was accepted and processed.
+
+::response 400
+
+The callback payload is missing required metadata.
+
+::private
+
+Drive uploads resolve the owning `filefolder` by `details.storage_path` because
+the visible drive path is stored separately from the randomized file location.
+
+::private end
+
+::end
+*/
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
@@ -82,7 +105,17 @@ async function updateFileFolderCallbackState(
 ) {
     try {
         const filefolder = await prisma.fileFolder.findFirst({
-            where: { path: metadataPath },
+            where: {
+                OR: [
+                    { path: metadataPath },
+                    {
+                        details: {
+                            path: ['storage_path'],
+                            equals: metadataPath,
+                        },
+                    },
+                ],
+            },
             orderBy: { created_on: 'desc' },
         });
 
@@ -113,6 +146,7 @@ async function updateFileFolderCallbackState(
                     status,
                     file_hash: fileHash,
                     upload_session_id: uploadSessionId,
+                    storage_path: typeof existingDetails.storage_path === 'string' ? existingDetails.storage_path : metadataPath,
                     callback_response: callbackResponse,
                 },
                 ...(activityUpdate ? {

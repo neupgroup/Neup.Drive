@@ -141,6 +141,39 @@ func resolveStorageRelativePath(accountID, accessType, relPath string) (string, 
 	return path.Join(accountID, cleaned), true
 }
 
+func rootForAccessType(accessType string) string {
+	if accessType == "drive" {
+		return config.Cfg.DriveRoot
+	}
+	return config.Cfg.PublicRoot
+}
+
+func safeStoragePath(accessType, relPath string) (string, error) {
+	if relPath == "" || strings.ContainsRune(relPath, '\x00') {
+		return "", errors.New("empty or invalid path")
+	}
+
+	cleanRel := filepath.Clean(strings.TrimPrefix(relPath, "/"))
+	if cleanRel == "." || strings.HasPrefix(cleanRel, ".."+string(filepath.Separator)) || cleanRel == ".." || filepath.IsAbs(cleanRel) {
+		return "", errors.New("path traversal")
+	}
+
+	root, err := filepath.Abs(rootForAccessType(accessType))
+	if err != nil {
+		return "", err
+	}
+	fullPath, err := filepath.Abs(filepath.Join(root, cleanRel))
+	if err != nil {
+		return "", err
+	}
+
+	if fullPath != root && !strings.HasPrefix(fullPath, root+string(filepath.Separator)) {
+		return "", errors.New("path escapes storage root")
+	}
+
+	return fullPath, nil
+}
+
 func isReservedAssetsRootSignedPath(storagePath string) bool {
 	cleaned := strings.TrimPrefix(filepath.ToSlash(strings.TrimSpace(storagePath)), "/")
 	parts := strings.Split(cleaned, "/")
@@ -233,7 +266,7 @@ func FileViewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fullPath, err := safePublicPath(claims.Path)
+	fullPath, err := safeStoragePath(claims.FolderType, claims.Path)
 	if err != nil {
 		ClientErrorCode(w, http.StatusNotFound, "404_not_found", "File not found", err)
 		return
@@ -280,12 +313,8 @@ func FileServeHandler(w http.ResponseWriter, r *http.Request) {
 		routeNotFound(w)
 		return
 	}
-
-	fullPath, err := safePublicPath(resolvedRelPath)
-	if err != nil {
-		ClientErrorCode(w, http.StatusNotFound, "404_not_found", "File not found", err)
-		return
-	}
+	var fullPath string
+	var err error
 
 	if !isPublicAccessType(accessType) {
 		claims, ok := verifyFileOperationRequest(w, r)
@@ -303,14 +332,29 @@ func FileServeHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		tokenPath, err := safePublicPath(claims.Path)
+		tokenPath, err := safeStoragePath(accessType, claims.Path)
 		if err != nil {
 			ClientErrorCode(w, http.StatusNotFound, "404_not_found", "File not found", err)
 			return
 		}
 
-		if tokenPath != fullPath {
-			TokenNotFound(w, "Token does not match the requested file path", nil)
+		if accessType != "drive" {
+			fullPath, err := safeStoragePath(accessType, resolvedRelPath)
+			if err != nil {
+				ClientErrorCode(w, http.StatusNotFound, "404_not_found", "File not found", err)
+				return
+			}
+			if tokenPath != fullPath {
+				TokenNotFound(w, "Token does not match the requested file path", nil)
+				return
+			}
+		}
+
+		fullPath = tokenPath
+	} else {
+		fullPath, err = safeStoragePath(accessType, resolvedRelPath)
+		if err != nil {
+			ClientErrorCode(w, http.StatusNotFound, "404_not_found", "File not found", err)
 			return
 		}
 	}
@@ -377,7 +421,7 @@ func FileListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rootPath, err := safePublicPath(accountRoot)
+	rootPath, err := safeStoragePath(claims.FolderType, accountRoot)
 	if err != nil {
 		ClientErrorCode(w, http.StatusForbidden, "invalid_path", "Invalid list path", err)
 		return
@@ -497,14 +541,14 @@ func renameFile(w http.ResponseWriter, r *http.Request, claims *security.FileOpe
 		return
 	}
 
-	source, err := safePublicPath(claims.Path)
+	source, err := safeStoragePath(claims.FolderType, claims.Path)
 	if err != nil {
 		ClientErrorCode(w, http.StatusForbidden, "invalid_path", "Invalid source path", err)
 		return
 	}
 
 	destRel := filepath.ToSlash(filepath.Join(filepath.Dir(claims.Path), claims.NewName))
-	dest, err := safePublicPath(destRel)
+	dest, err := safeStoragePath(claims.FolderType, destRel)
 	if err != nil {
 		ClientErrorCode(w, http.StatusForbidden, "invalid_destination_path", "Invalid destination path", err)
 		return
@@ -541,7 +585,7 @@ func moveFile(w http.ResponseWriter, r *http.Request, claims *security.FileOpera
 		return
 	}
 
-	source, err := safePublicPath(claims.Path)
+	source, err := safeStoragePath(claims.FolderType, claims.Path)
 	if err != nil {
 		ClientErrorCode(w, http.StatusForbidden, "invalid_path", "Invalid source path", err)
 		return
@@ -552,7 +596,7 @@ func moveFile(w http.ResponseWriter, r *http.Request, claims *security.FileOpera
 		ClientErrorCode(w, http.StatusBadRequest, "reserved_signed_folder", `The "signed" folder name is reserved at the top level of assets`, nil)
 		return
 	}
-	dest, err := safePublicPath(destRel)
+	dest, err := safeStoragePath(claims.FolderType, destRel)
 	if err != nil {
 		ClientErrorCode(w, http.StatusForbidden, "invalid_destination_path", "Invalid destination path", err)
 		return
@@ -578,7 +622,7 @@ func moveFile(w http.ResponseWriter, r *http.Request, claims *security.FileOpera
 }
 
 func deleteFile(w http.ResponseWriter, r *http.Request, claims *security.FileOperationPayload) {
-	source, err := safePublicPath(claims.Path)
+	source, err := safeStoragePath(claims.FolderType, claims.Path)
 	if err != nil {
 		ClientErrorCode(w, http.StatusForbidden, "invalid_path", "Invalid source path", err)
 		return
@@ -622,7 +666,7 @@ func deleteFile(w http.ResponseWriter, r *http.Request, claims *security.FileOpe
 	}
 
 	destRel := strings.TrimPrefix(claims.DestinationPath, "/")
-	dest, err := safePublicPath(destRel)
+	dest, err := safeStoragePath(".trash", destRel)
 	if err != nil {
 		ClientErrorCode(w, http.StatusForbidden, "invalid_destination_path", "Invalid destination path", err)
 		return
@@ -669,32 +713,6 @@ func renameOrMove(source, dest string) error {
 	}
 
 	return os.Rename(source, dest)
-}
-
-func safePublicPath(relPath string) (string, error) {
-	if relPath == "" || strings.ContainsRune(relPath, '\x00') {
-		return "", errors.New("empty or invalid path")
-	}
-
-	cleanRel := filepath.Clean(strings.TrimPrefix(relPath, "/"))
-	if cleanRel == "." || strings.HasPrefix(cleanRel, ".."+string(filepath.Separator)) || cleanRel == ".." || filepath.IsAbs(cleanRel) {
-		return "", errors.New("path traversal")
-	}
-
-	root, err := filepath.Abs(config.Cfg.PublicRoot)
-	if err != nil {
-		return "", err
-	}
-	fullPath, err := filepath.Abs(filepath.Join(root, cleanRel))
-	if err != nil {
-		return "", err
-	}
-
-	if fullPath != root && !strings.HasPrefix(fullPath, root+string(filepath.Separator)) {
-		return "", errors.New("path escapes public root")
-	}
-
-	return fullPath, nil
 }
 
 func writeOperationError(w http.ResponseWriter, err error) {

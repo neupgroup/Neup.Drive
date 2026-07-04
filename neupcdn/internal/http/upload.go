@@ -18,10 +18,43 @@ import (
 	// "neupcdn/internal/storage"
 )
 
+/*
+::neup.documentation::cdn-upload-handler
+::function UploadHandler(w, r)
+::title CDN Upload Handler
+::owner Neup Drive
+
+::public
+
+Accepts chunked signed uploads and persists them into the configured storage
+root for the token path.
+
+::private
+
+Drive uploads are inferred from randomized account-relative paths and are
+stored under `DRIVE_ROOT`, while `assets`, `signed`, trash, and log paths stay
+under `PUBLIC_ROOT`.
+
+::private end
+
+::end
+*/
 // Legacy Handler for Ed25519 Signed Requests
 func PrepareUploadHandler(w http.ResponseWriter, r *http.Request) {
 	// ... (Keep existing implementation if needed, or deprecate)
 	// For now, focusing on the new handler
+}
+
+func inferUploadStorageType(relPath string) string {
+	cleaned := strings.TrimPrefix(strings.TrimSpace(relPath), "/")
+	parts := strings.Split(cleaned, "/")
+	if len(parts) >= 2 {
+		switch parts[1] {
+		case "assets", "signed", ".trash", ".logs":
+			return parts[1]
+		}
+	}
+	return "drive"
 }
 
 // Handler for Chunked Uploads with HMAC-SHA256 Token
@@ -113,7 +146,11 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		ClientErrorCode(w, http.StatusBadRequest, "reserved_signed_folder", `The "signed" folder name is reserved at the top level of assets`, nil)
 		return
 	}
-	finalPath := filepath.Join(config.Cfg.PublicRoot, relPath)
+	finalPath, err := safeStoragePath(inferUploadStorageType(relPath), relPath)
+	if err != nil {
+		ClientErrorCode(w, http.StatusForbidden, "invalid_path", "Invalid upload path", err)
+		return
+	}
 	tempPath := finalPath + ".part"
 
 	// Ensure directory exists

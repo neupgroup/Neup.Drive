@@ -85,6 +85,130 @@ function buildStoragePath(owner: string, folderType: TrashDestinationType, filen
   return path.posix.join('uploads', owner, folderType, normalizedPath, filename);
 }
 
+function replacePathPrefix(value: string, sourcePrefix: string, destinationPrefix: string) {
+  if (value === sourcePrefix) return destinationPrefix;
+  if (!value.startsWith(`${sourcePrefix}/`)) return value;
+  return `${destinationPrefix}${value.slice(sourcePrefix.length)}`;
+}
+
+function getStoragePathFromDetails(details: Prisma.JsonObject, fallbackPath: string) {
+  return typeof details.storage_path === 'string' ? details.storage_path : fallbackPath;
+}
+
+async function handleDriveTrashOperation(params: {
+  filefolder: NonNullable<Awaited<ReturnType<typeof prisma.fileFolder.findUnique>>>;
+  details: Prisma.JsonObject;
+  currentPath: string;
+  action: TrashOperationAction;
+  destinationType?: TrashDestinationType;
+  destinationPath?: string;
+}) {
+  const rows = params.filefolder.type === 'folder'
+    ? await prisma.fileFolder.findMany({
+        where: {
+          owner: params.filefolder.owner,
+          OR: [
+            { path: params.currentPath },
+            { path: { startsWith: `${params.currentPath}/` } },
+          ],
+        },
+        orderBy: { created_on: 'asc' },
+      })
+    : [params.filefolder];
+
+  if (params.action === 'delete_permanently') {
+    const storagePaths = rows
+      .filter((row) => row.type !== 'folder')
+      .map((row) => getStoragePathFromDetails(getDetails(row.details), row.path));
+
+    await prisma.$transaction([
+      prisma.file.deleteMany({ where: { path: { in: storagePaths } } }),
+      prisma.fileFolder.deleteMany({
+        where: {
+          owner: params.filefolder.owner,
+          OR: [
+            { path: params.currentPath },
+            { path: { startsWith: `${params.currentPath}/` } },
+          ],
+        },
+      }),
+    ]);
+
+    return {
+      success: true as const,
+      action: params.action,
+      metadata_only: true,
+    };
+  }
+
+  const finalPath = params.destinationPath || params.currentPath;
+  const now = new Date();
+  const activityAction = 'restored' as const;
+
+  await prisma.$transaction([
+    ...rows.map((row) => {
+      const rowDetails = getDetails(row.details);
+      const rowFinalPath = params.filefolder.type === 'folder'
+        ? typeof rowDetails.previous_path === 'string' && rowDetails.previous_path && params.action === 'restore'
+          ? rowDetails.previous_path
+          : replacePathPrefix(row.path, params.currentPath, finalPath)
+        : finalPath;
+      const {
+        deleted_on: _deletedOn,
+        deletes_in: _deletesIn,
+        trash_path: _trashPath,
+        ...restoredDetails
+      } = rowDetails as Record<string, unknown>;
+      const activityUpdate = buildFileFolderActivityUpdate({
+        currentActivity: row.activity,
+        action: activityAction,
+        at: now,
+        details: {
+          path: rowFinalPath,
+          previous_path: row.path,
+          folder_type: params.destinationType || 'drive',
+        },
+      });
+
+      return prisma.fileFolder.update({
+        where: { id: row.id },
+        data: {
+          path: rowFinalPath,
+          stored_as: 'drivefile',
+          details: {
+            ...restoredDetails,
+            mode: 'drive',
+            folder_type: params.destinationType || 'drive',
+            previous_mode: '.trash',
+            previous_path: row.path,
+            status: 'VERIFIED',
+          },
+          activity: activityUpdate.activity,
+          lastActivityOn: activityUpdate.lastActivityOn,
+          totalActivity: activityUpdate.totalActivity,
+        },
+      });
+    }),
+    ...rows
+      .filter((row) => row.type !== 'folder')
+      .map((row) => {
+        const rowDetails = getDetails(row.details);
+        const storagePath = getStoragePathFromDetails(rowDetails, row.path);
+        return prisma.file.updateMany({
+          where: { path: storagePath },
+          data: { status: 'VERIFIED' },
+        });
+      }),
+  ]);
+
+  return {
+    success: true as const,
+    action: params.action,
+    metadata_only: true,
+    destination_path: finalPath,
+  };
+}
+
 async function callCdnOperation(action: 'move' | 'delete', token: string) {
   const response = await fetch(`${CDN_OPERATION_BASE}/${encodeURIComponent(action)}`, {
     method: 'POST',
@@ -165,6 +289,7 @@ export async function POST(request: NextRequest) {
     const previousPath = typeof details.previous_path === 'string' ? details.previous_path : '';
     const currentPath = filefolder.path;
     const fileName = filefolder.name;
+    const isDriveBacked = previousMode === 'drive' || typeof details.storage_path === 'string';
 
     let destinationType: TrashDestinationType | undefined;
     let destinationPath: string | undefined;
@@ -185,6 +310,23 @@ export async function POST(request: NextRequest) {
       destinationPath = buildStoragePath(filefolder.owner, destinationType, fileName, destinationInternalPath);
     } else {
       action = 'delete';
+    }
+
+    if (isDriveBacked) {
+      if ((body.action === 'restore' || body.action === 'restore_to') && destinationType !== 'drive') {
+        return NextResponse.json({ error: 'Drive trash items can only be restored into Drive' }, { status: 400 });
+      }
+
+      const result = await handleDriveTrashOperation({
+        filefolder,
+        details,
+        currentPath,
+        action: body.action,
+        destinationType,
+        destinationPath,
+      });
+
+      return NextResponse.json(result, { status: 200 });
     }
 
     const signedToken = createSignedCdnToken(createExpiringOperationPayload({

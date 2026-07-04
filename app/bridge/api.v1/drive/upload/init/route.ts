@@ -1,109 +1,97 @@
+/*
+::neup.documentation::drive-upload-init-route
+::api POST /bridge/api.v1/drive/upload/init
+::title Drive Upload Init Route
+::owner Neup Drive
+
+::public
+
+Initializes Drive and WebDisk uploads and returns the signed CDN upload token.
+
+::response 200
+
+The upload token and destination metadata were created successfully.
+
+::response 409
+
+The requested WebDisk filename already exists in the target folder.
+
+::private
+
+Drive uploads now store a logical folder path in `filefolder.path` and a
+separate randomized physical file path in `details.storage_path`.
+
+::private end
+
+::end
+*/
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'node:path';
-import { generateNonce } from '@/core/lib/upload-client';
-import type { UploadInitRequest, UploadInitResponse, UploadSignaturePayload } from '@/core/lib/upload-types';
-import { prisma } from '@/core/lib/db';
+
+import {
+    BRIDGE_PRIVATE_KEY,
+    createBridgeUploadInit,
+    DEFAULT_BRIDGE_OWNER,
+    getDuplicateWebdiskFilename,
+    getBridgeOwner,
+    isReservedWebdiskRootFolder,
+    normalizeFolderType,
+} from '@/core/lib/bridge-api';
 import { handleServerError } from '@/core/lib/error-server';
-import { parseFileFolderMode, recordFileFolderUpload, webdiskStoredAs } from '@/core/lib/filefolder';
-import { signCdnPayloadBase64 } from '@/core/lib/cdn-token';
-import { getDuplicateWebdiskFilename, isReservedWebdiskRootFolder, sanitizeFilename } from '@/core/lib/bridge-api';
+import type { UploadInitRequest } from '@/core/lib/upload-types';
 
-// This should be stored securely in environment variables
-const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
-// Production CDN URL
-const CDN_URL = process.env.CDN_UPLOAD_URL || 'https://neupcdn.com/upload';
-const WEBDISK_TYPES = ['assets', 'signed'];
-
-async function createSignature(payloadBase64: string, privateKeyHex: string): Promise<string> {
-    return signCdnPayloadBase64(payloadBase64, privateKeyHex);
+function getBodyValue(body: Partial<UploadInitRequest> & Record<string, unknown>, name: string) {
+    const value = body[name];
+    return typeof value === 'string' ? value : undefined;
 }
 
-function normalizeWebdiskType(value: string | null) {
-    const type = value?.trim() || 'assets';
-    if (!WEBDISK_TYPES.includes(type)) {
-        throw new Error('Invalid webdisk type');
-    }
-    return type;
+function getBodyNumber(body: Partial<UploadInitRequest> & Record<string, unknown>, name: string) {
+    const value = body[name];
+    return typeof value === 'number' || typeof value === 'string' ? Number(value) : NaN;
 }
 
-function normalizeWebdiskPath(value: string | null) {
-    const cleaned = (value || '').trim().replace(/^\/+/, '');
-    if (!cleaned) return '';
-
-    const normalized = path.posix.normalize(cleaned);
-    if (normalized === '.' || normalized === '..' || normalized.startsWith('../') || path.posix.isAbsolute(normalized)) {
-        throw new Error('Invalid webdisk path');
-    }
-    return normalized;
+function getOwnerFromBody(request: NextRequest, body: Record<string, unknown>) {
+    const bodyOwner = body.account_id || body.owner;
+    return (typeof bodyOwner === 'string' && bodyOwner.trim() ? bodyOwner.trim() : getBridgeOwner(request)) || DEFAULT_BRIDGE_OWNER;
 }
 
 export async function POST(request: NextRequest) {
-    let body: any;
-    try {
-        const mode = parseFileFolderMode(request.nextUrl.searchParams.get('mode'));
-        const saveTo = request.nextUrl.searchParams.get('saveto');
+    let body: Record<string, unknown> = {};
 
-        // Validate private key exists
-        if (!PRIVATE_KEY) {
-            console.error('❌ UPLOAD_SECRET_PRIVATE_KEY is not configured');
-            return NextResponse.json(
-                { error: 'Server configuration error: Missing private key' },
-                { status: 500 }
-            );
+    try {
+        if (!BRIDGE_PRIVATE_KEY) {
+            return NextResponse.json({ error: 'Server configuration error: Missing private key' }, { status: 500 });
         }
 
         try {
             body = await request.json();
-        } catch (e) {
+        } catch {
             return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
         }
-        const { file_id, filename, size, mime, file_hash } = body as UploadInitRequest;
 
-        console.log('📤 Upload init request:', { file_id, filename, size, mime });
+        const owner = getOwnerFromBody(request, body);
+        const fileId = getBodyValue(body, 'file_id') || crypto.randomUUID();
+        const filename = getBodyValue(body, 'filename');
+        const size = getBodyNumber(body, 'size');
+        const mime = getBodyValue(body, 'mime') || 'application/octet-stream';
+        const fileHash = getBodyValue(body, 'file_hash') || getBodyValue(body, 'hash');
+        const requestedFolderType = request.nextUrl.searchParams.get('type') || getBodyValue(body, 'type') || 'drive';
+        const requestedPath = request.nextUrl.searchParams.get('path') || getBodyValue(body, 'path');
+        const folderType = normalizeFolderType(requestedFolderType);
 
-        // 1. Validate Input
-        if (!file_id || !filename || !size || !mime || !file_hash) {
-            console.error('❌ Missing required metadata:', { file_id, filename, size, mime, file_hash });
-            return NextResponse.json(
-                { error: 'Missing required metadata' },
-                { status: 400 }
-            );
+        if (isReservedWebdiskRootFolder(folderType, requestedPath)) {
+            return NextResponse.json({ error: 'The "signed" folder name is reserved at the top level of assets' }, { status: 400 });
         }
 
-        // 2. Validate Authorization & Quota (Mocked)
-        // In a real app:
-        // - Get user session
-        // - Check if user has permission to upload
-        // - Check if user has enough storage quota
-        // - Validate file type against allowed policy
-        const userId = 'demo-user-123'; // Mocked user ID
-
-        // Ensure user exists (Mock logic)
-        await prisma.user.upsert({
-            where: { id: userId },
-            create: { id: userId, email: 'demo@neupgroup.com', name: 'Demo User' },
-            update: {},
-        });
-
-        // 3. Generate Upload Session & Token
-        const upload_session_id = crypto.randomUUID();
-        const timestamp = Date.now();
-        const sanitizedName = sanitizeFilename(filename);
-        const webdiskType = normalizeWebdiskType(request.nextUrl.searchParams.get('type'));
-        const webdiskPath = normalizeWebdiskPath(request.nextUrl.searchParams.get('path'));
-        const isWebdiskUpload = mode === 'webdisk' && saveTo === 'webdisk';
-        if (isWebdiskUpload) {
-            if (isReservedWebdiskRootFolder(webdiskType, webdiskPath)) {
-                return NextResponse.json({ error: 'The "signed" folder name is reserved at the top level of assets' }, { status: 400 });
-            }
+        if (!filename || !Number.isFinite(size) || size <= 0 || !fileHash) {
+            return NextResponse.json({ error: 'filename, size, and file_hash are required' }, { status: 400 });
         }
 
-        if (isWebdiskUpload) {
+        if (folderType !== 'drive') {
             const duplicate = await getDuplicateWebdiskFilename({
-                owner: userId,
-                folderType: webdiskType,
-                filename: sanitizedName,
-                internalPath: webdiskPath,
+                owner,
+                folderType,
+                filename,
+                internalPath: requestedPath,
             });
             if (duplicate) {
                 return NextResponse.json({
@@ -116,81 +104,25 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        const destination_path = isWebdiskUpload
-            ? path.posix.join(userId, webdiskType, webdiskPath, sanitizedName)
-            : `${userId}/${timestamp}-${sanitizedName}`;
-        const expires_at = Math.floor(Date.now() / 1000) + (15 * 60); // 15 minutes expiration
-
-        // Create Pending File Record
-        await prisma.file.create({
-            data: {
-                name: filename,
-                size: BigInt(size),
-                mimeType: mime,
-                hash: file_hash,
-                path: destination_path,
-                status: 'PENDING',
-                userId: userId,
-            }
-        });
-
-        const payload: UploadSignaturePayload = {
-            path: destination_path,
-            account_id: userId,
-            method: 'PUT',
-            max_size: size, // Strict size limit matching exact file size
-            content_type: mime,
-            expires_at,
-            nonce: generateNonce(),
-            key_id: 'demo-key', // Should come from config
-        };
-
-        // Create Base64URL encoded payload string
-        const payloadStr = JSON.stringify(payload);
-        const payloadBase64 = Buffer.from(payloadStr).toString('base64')
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=/g, '');
-
-        console.log('📝 Payload Base64:', payloadBase64);
-        console.log('🔐 Signing payload...');
-
-        // Sign the Base64 string directly
-        const signature = await createSignature(payloadBase64, PRIVATE_KEY);
-        console.log('✅ Signature created successfully');
-
-        const response: UploadInitResponse = {
-            upload_session_id,
-            destination_path,
-            upload_endpoint: CDN_URL,
-            signed_upload_token: {
-                payload: payloadBase64, // Send Base64 string
-                signature
-            },
-            expires_at
-        };
-
-        await recordFileFolderUpload({
-            name: filename,
-            path: destination_path,
-            mimeType: mime,
-            owner: userId,
+        const response = await createBridgeUploadInit({
+            owner,
+            fileId,
+            filename,
             size,
-            mode,
-            storedAs: mode === 'drive' ? 'drivefile' : webdiskStoredAs(request.nextUrl.searchParams.get('type')),
-            details: {
-                file_id,
-                file_hash,
-                upload_session_id,
-                destination_path,
-                status: 'PENDING',
-                api_response: response as any,
-            },
+            mime,
+            fileHash,
+            folderType,
+            internalPath: requestedPath,
         });
 
-        return NextResponse.json(response);
-
+        return NextResponse.json({
+            success: true,
+            token: response.signed_upload_token,
+            ...response,
+        }, { status: 200 });
     } catch (error) {
-        return handleServerError(error, 'bridge/api.v1/drive/upload/init', { body: body ? { ...body, file_hash: 'REDACTED' } : undefined });
+        return handleServerError(error, 'bridge/api.v1/drive/upload/init', {
+            body: { ...body, file_hash: 'REDACTED', hash: 'REDACTED' },
+        });
     }
 }

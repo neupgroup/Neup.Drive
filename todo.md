@@ -1,9 +1,7 @@
 - [ ] Add a local `documentation.guide.md` for this repo or sync the Neup standard into a source-owned guide file.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/webdisk/files/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/webdisk/record/route.ts`.
-- [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/drive/upload/init/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/upload/init/route.ts`.
-- [ ] Add `::neup.documentation::` source documentation for `app/bridge/webhook.v1/upload/callback/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `prisma/schema.prisma`.
 - [ ] Add `::neup.documentation::` source documentation for `components/prodrive/file-manager.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `components/prodrive/nav-links.tsx`.
@@ -13,7 +11,6 @@
 - [ ] Add `::neup.documentation::` source documentation for `app/webdisk/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/layout.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/globals.css`.
-- [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/drive/files/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/shared/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/manage/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/manage/profiles/page.tsx`.
@@ -22,11 +19,9 @@
 - [ ] Add `::neup.documentation::` source documentation for `app/manage/accounts/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/main.go`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/cmd/server/main.go`.
-- [ ] Add `::neup.documentation::` source documentation for `neupcdn/config/config.go`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/routes.go`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/response.go`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/logger.go`.
-- [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/upload.go`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/serve.go`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/security/signer.go`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/storage/filesystem.go`.
@@ -43,7 +38,6 @@
 - [ ] Add `::neup.documentation::` source documentation for `components/prodrive/file-manager.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/download/init/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/list/route.ts`.
-- [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/drive/files/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/upload/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/upload-test/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `tailwind.config.ts`.

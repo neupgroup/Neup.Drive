@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import type { NextRequest } from 'next/server';
 import type { Prisma } from '@prisma/client';
@@ -43,6 +44,8 @@ export const BRIDGE_UPLOAD_URL = process.env.CDN_UPLOAD_URL || 'https://neupcdn.
 export const BRIDGE_CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
 export const BRIDGE_CDN_OPERATION_BASE = getCdnOperationBase();
 export const DEFAULT_BRIDGE_OWNER = 'demo-user-123';
+const DRIVE_LOGICAL_ROOT = 'drive';
+const DRIVE_STORAGE_DEPTH = 4;
 const BRIDGE_FOLDER_TYPES = new Set(['drive', 'assets', 'signed']);
 const TRASH_RETENTION_DAYS = 30;
 
@@ -225,6 +228,36 @@ export function buildBridgeStoragePath(params: {
     return path.posix.join(safeOwner, safeFolderType, internalPath, prefix);
 }
 
+function randomDriveStorageSegments() {
+    return Array.from({ length: DRIVE_STORAGE_DEPTH }, () => randomBytes(2).toString('hex'));
+}
+
+function buildRandomDriveFilename(filename: string) {
+    const dotIndex = filename.lastIndexOf('.');
+    const extension = dotIndex > 0 ? filename.slice(dotIndex) : '';
+    return `${crypto.randomUUID()}${extension}`;
+}
+
+export function buildDriveLogicalPath(params: {
+    owner: string;
+    filename: string;
+    internalPath?: string | null;
+}) {
+    const owner = assertSafePathSegment(params.owner, 'owner');
+    const filename = sanitizeFilename(params.filename);
+    const internalPath = normalizeInternalPath(params.internalPath);
+    return path.posix.join(owner, DRIVE_LOGICAL_ROOT, internalPath, filename);
+}
+
+export function buildDriveStoragePath(params: {
+    owner: string;
+    filename: string;
+}) {
+    const owner = assertSafePathSegment(params.owner, 'owner');
+    const filename = sanitizeFilename(params.filename);
+    return path.posix.join(owner, ...randomDriveStorageSegments(), buildRandomDriveFilename(filename));
+}
+
 export function addUniqueFilenameSuffix(filename: string, suffix = Date.now().toString()) {
     const dotIndex = filename.lastIndexOf('.');
     if (dotIndex > 0) {
@@ -282,6 +315,14 @@ export function getFolderType(filefolder: { path: string; details: Prisma.JsonVa
     return parts.length >= 2 ? parts[1] : 'drive';
 }
 
+export function getDriveStoragePath(filefolder: { path: string; details: Prisma.JsonValue }) {
+    const details = getDetails(filefolder.details);
+    if (typeof details.storage_path === 'string' && details.storage_path.trim()) {
+        return details.storage_path.trim();
+    }
+    return filefolder.path;
+}
+
 export function createBridgeViewToken(
     filefolder: { owner: string; path: string; details: Prisma.JsonValue },
     action: 'view' | 'download' = 'view',
@@ -292,12 +333,13 @@ export function createBridgeViewToken(
     } = {},
 ) {
     const folderType = getFolderType(filefolder);
+    const tokenPath = folderType === 'drive' ? getDriveStoragePath(filefolder) : filefolder.path;
     return encodeSignedCdnToken(createSignedCdnToken(createExpiringOperationPayload({
         action: 'view',
         account_id: filefolder.owner,
         account_folder: filefolder.owner,
         folder_type: folderType,
-        path: filefolder.path,
+        path: tokenPath,
         method: 'GET',
         device_ip: options.deviceIp,
         user_agent: options.userAgent,
@@ -372,17 +414,23 @@ export async function createBridgeUploadInit(params: {
     internalPath?: string | null;
 }) {
     const owner = assertSafePathSegment(params.owner, 'owner');
-    const timestamp = Date.now();
     const folderType = normalizeFolderType(params.folderType);
-    const isWebdiskUpload = folderType !== 'drive';
     const filename = sanitizeFilename(params.filename);
-    const destinationPath = buildBridgeStoragePath({
-        owner,
-        folderType,
-        filename,
-        internalPath: params.internalPath,
-        timestamp: isWebdiskUpload ? undefined : timestamp,
-    });
+    const logicalPath = folderType === 'drive'
+        ? buildDriveLogicalPath({
+            owner,
+            filename,
+            internalPath: params.internalPath,
+        })
+        : buildBridgeStoragePath({
+            owner,
+            folderType,
+            filename,
+            internalPath: params.internalPath,
+        });
+    const destinationPath = folderType === 'drive'
+        ? buildDriveStoragePath({ owner, filename })
+        : logicalPath;
     const expiresAt = Math.floor(Date.now() / 1000) + 15 * 60;
     const uploadSessionId = crypto.randomUUID();
 
@@ -433,7 +481,7 @@ export async function createBridgeUploadInit(params: {
 
     const filefolder = await recordFileFolderUpload({
         name: filename,
-        path: destinationPath,
+        path: logicalPath,
         mimeType: params.mime,
         owner,
         size: params.size,
@@ -443,6 +491,8 @@ export async function createBridgeUploadInit(params: {
             file_id: params.fileId,
             file_hash: params.fileHash,
             upload_session_id: uploadSessionId,
+            logical_path: logicalPath,
+            storage_path: destinationPath,
             destination_path: destinationPath,
             status: 'PENDING',
             source: 'bridge',

@@ -1,3 +1,26 @@
+/*
+::neup.documentation::drive-files-route
+::api GET /bridge/api.v1/drive/files
+::title Drive Files Route
+::owner Neup Drive
+
+::public
+
+Returns active Drive file and folder metadata for the current owner.
+
+::response 200
+
+The Drive metadata rows were returned successfully.
+
+::private
+
+Drive listing is database-driven. The returned `path` is the logical folder
+path, while signed file URLs resolve against `details.storage_path`.
+
+::private end
+
+::end
+*/
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
