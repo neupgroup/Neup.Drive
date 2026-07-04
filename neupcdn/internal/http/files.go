@@ -312,6 +312,16 @@ func FileServeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.URL.Query().Get("download") == "1" {
+		if disposition := mime.FormatMediaType("attachment", map[string]string{
+			"filename": path.Base(fullPath),
+		}); disposition != "" {
+			w.Header().Set("Content-Disposition", disposition)
+		} else {
+			w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", path.Base(fullPath)))
+		}
+	}
+
 	http.ServeFile(w, r, fullPath)
 	LogActivity("file_view", r, map[string]interface{}{
 		"account_id": accountID,

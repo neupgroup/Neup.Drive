@@ -295,7 +295,7 @@ export default async function ViewerPage({
             </a>
           </Button>
           <Button asChild>
-            <a href={downloadUrl}>
+            <a href={downloadUrl} download={file.name}>
               <Download className="mr-2 h-4 w-4" />
               Download
             </a>

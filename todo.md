@@ -48,7 +48,6 @@
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/drive/files/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/upload/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/upload-test/page.tsx`.
-- [ ] Add `::neup.documentation::` source documentation for `app/viewer/[id]/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `tailwind.config.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/storage-tiers.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/db.ts`.
