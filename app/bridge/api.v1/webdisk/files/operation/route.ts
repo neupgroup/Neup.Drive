@@ -6,7 +6,7 @@ import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
 import { logToDatabase } from '@/core/lib/error-server';
 import { webdiskStoredAs } from '@/core/lib/filefolder';
-import { buildBridgeTrashPath, getTrashDeletesIn, isMissingCdnFileError } from '@/core/lib/bridge-api';
+import { buildBridgeTrashPath, getTrashDeletesIn, isMissingCdnFileError, isReservedWebdiskRootFolder } from '@/core/lib/bridge-api';
 import { ErrorType } from '@/core/lib/error-types';
 
 /*
@@ -260,6 +260,9 @@ export async function POST(request: NextRequest) {
         if (body.action === 'move') {
             const destinationType = normalizeType(body.to_type);
             const destinationFolder = normalizeFolderPath(body.to_path);
+            if (isReservedWebdiskRootFolder(destinationType, destinationFolder)) {
+                return NextResponse.json({ error: 'The "signed" folder name is reserved at the top level of assets' }, { status: 400 });
+            }
             const filename = path.posix.basename(sourcePath);
             destinationPath = path.posix.join('uploads', WEBDISK_ACCOUNT_ID, destinationType, destinationFolder, filename);
             nextType = destinationType;

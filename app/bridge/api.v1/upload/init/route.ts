@@ -7,6 +7,7 @@ import {
     getDuplicateWebdiskFilename,
     getBridgeOwner,
     getParam,
+    isReservedWebdiskRootFolder,
     normalizeFolderType,
 } from '@/core/lib/bridge-api';
 import { handleServerError } from '@/core/lib/error-server';
@@ -42,6 +43,9 @@ export async function GET(request: NextRequest) {
         const folderType = getParam(request, 'folder_type') || getParam(request, 'type');
         const internalPath = getParam(request, 'path') || getParam(request, 'folder_path');
         const normalizedFolderType = normalizeFolderType(folderType);
+        if (isReservedWebdiskRootFolder(normalizedFolderType, internalPath)) {
+            return NextResponse.json({ error: 'The "signed" folder name is reserved at the top level of assets' }, { status: 400 });
+        }
 
         const size = Number(sizeValue);
         if (!filename || !sizeValue || !Number.isFinite(size) || size <= 0 || !fileHash) {
@@ -112,6 +116,9 @@ export async function POST(request: NextRequest) {
         const folderType = getParam(request, 'folder_type') || getParam(request, 'type') || getBodyValue(body, 'folder_type') || getBodyValue(body, 'type');
         const internalPath = getParam(request, 'path') || getParam(request, 'folder_path') || getBodyValue(body, 'path') || getBodyValue(body, 'folder_path');
         const normalizedFolderType = normalizeFolderType(folderType);
+        if (isReservedWebdiskRootFolder(normalizedFolderType, internalPath)) {
+            return NextResponse.json({ error: 'The "signed" folder name is reserved at the top level of assets' }, { status: 400 });
+        }
 
         if (!filename || !Number.isFinite(size) || size <= 0 || !fileHash) {
             return NextResponse.json({

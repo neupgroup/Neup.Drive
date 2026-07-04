@@ -6,7 +6,7 @@ import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
 import { parseFileFolderMode, recordFileFolderUpload, webdiskStoredAs } from '@/core/lib/filefolder';
 import { signCdnPayloadBase64 } from '@/core/lib/cdn-token';
-import { getDuplicateWebdiskFilename, sanitizeFilename } from '@/core/lib/bridge-api';
+import { getDuplicateWebdiskFilename, isReservedWebdiskRootFolder, sanitizeFilename } from '@/core/lib/bridge-api';
 
 // This should be stored securely in environment variables
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
@@ -92,6 +92,11 @@ export async function POST(request: NextRequest) {
         const webdiskType = normalizeWebdiskType(request.nextUrl.searchParams.get('type'));
         const webdiskPath = normalizeWebdiskPath(request.nextUrl.searchParams.get('path'));
         const isWebdiskUpload = mode === 'webdisk' && saveTo === 'webdisk';
+        if (isWebdiskUpload) {
+            if (isReservedWebdiskRootFolder(webdiskType, webdiskPath)) {
+                return NextResponse.json({ error: 'The "signed" folder name is reserved at the top level of assets' }, { status: 400 });
+            }
+        }
 
         if (isWebdiskUpload) {
             const duplicate = await getDuplicateWebdiskFilename({

@@ -307,8 +307,24 @@ function WebdiskContent() {
       }
     }
 
+    if (selectedType === 'assets' && !selectedPath) {
+      const signedCount = filesByType.filter((item) => item.location.type === 'signed').length;
+      folders.set('__signed_root__', {
+        name: 'signed',
+        type: 'signed',
+        path: '',
+        count: signedCount,
+      });
+    }
+
+    const sortedFolders = Array.from(folders.values()).sort((a, b) => {
+      if (a.type === 'signed' && !a.path) return -1;
+      if (b.type === 'signed' && !b.path) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
     return {
-      folders: Array.from(folders.values()).sort((a, b) => a.name.localeCompare(b.name)),
+      folders: sortedFolders,
       files: currentFiles.sort((a, b) => a.filename.localeCompare(b.filename)),
     };
   }, [filesByType, selectedPath, selectedType]);

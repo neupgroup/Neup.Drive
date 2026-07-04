@@ -93,6 +93,19 @@ export function normalizeInternalPath(value?: string | null) {
     return normalized;
 }
 
+export function assertNoReservedWebdiskRootFolder(folderType: string, internalPath?: string | null) {
+    if (!isReservedWebdiskRootFolder(folderType, internalPath)) return;
+    throw new Error('The "signed" folder name is reserved at the top level of assets');
+}
+
+export function isReservedWebdiskRootFolder(folderType: string, internalPath?: string | null) {
+    if (folderType !== 'assets') return false;
+
+    const normalized = normalizeInternalPath(internalPath);
+    const [firstSegment] = normalized.split('/');
+    return firstSegment === 'signed';
+}
+
 export function sanitizeFilename(filename: string) {
     return assertSafePathSegment(filename.trim().replace(/[^a-zA-Z0-9._ -]/g, '_'), 'filename');
 }
@@ -208,6 +221,7 @@ export function buildBridgeStoragePath(params: {
     const safeFilename = sanitizeFilename(params.filename);
     const prefix = params.timestamp ? `${params.timestamp}-${safeFilename}` : safeFilename;
     const internalPath = normalizeInternalPath(params.internalPath);
+    assertNoReservedWebdiskRootFolder(safeFolderType, internalPath);
     return path.posix.join('uploads', safeOwner, safeFolderType, internalPath, prefix);
 }
 

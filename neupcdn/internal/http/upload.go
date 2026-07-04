@@ -109,6 +109,10 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 5. Determine File Paths
 	relPath := claims.Path
+	if isReservedAssetsRootSignedPath(relPath) {
+		ClientErrorCode(w, http.StatusBadRequest, "reserved_signed_folder", `The "signed" folder name is reserved at the top level of assets`, nil)
+		return
+	}
 	finalPath := filepath.Join(config.Cfg.PublicRoot, relPath)
 	tempPath := finalPath + ".part"
 

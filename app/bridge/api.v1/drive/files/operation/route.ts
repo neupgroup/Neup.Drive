@@ -8,7 +8,7 @@ import { handleServerError } from '@/core/lib/error-server';
 import { logToDatabase } from '@/core/lib/error-server';
 import { appendBridgeFileAccessLog } from '@/core/lib/file-access-log';
 import { createFileFolderLog } from '@/core/lib/filefolder';
-import { buildBridgeTrashPath, getTrashDeletesIn, isActiveFileDetails, isMissingCdnFileError } from '@/core/lib/bridge-api';
+import { buildBridgeTrashPath, getTrashDeletesIn, isActiveFileDetails, isMissingCdnFileError, isReservedWebdiskRootFolder } from '@/core/lib/bridge-api';
 import { ErrorType } from '@/core/lib/error-types';
 
 /*
@@ -93,6 +93,9 @@ function makeDestinationPath(owner: string, toFolderType: string, filename: stri
     const safeFolderType = assertSafePathSegment(toFolderType, 'to_folder_type');
     if (!FOLDER_TYPES.has(safeFolderType)) {
         throw new Error('Invalid to_folder_type');
+    }
+    if (isReservedWebdiskRootFolder(safeFolderType, destinationInternalPath)) {
+        throw new Error('The "signed" folder name is reserved at the top level of assets');
     }
     const internalPath = destinationInternalPath
         ? normalizeInternalPath(destinationInternalPath)
@@ -206,6 +209,9 @@ export async function POST(request: NextRequest) {
         if (operation.action === 'move') {
             if (!operation.to_folder_type) {
                 return NextResponse.json({ error: 'to_folder_type is required for move' }, { status: 400 });
+            }
+            if (isReservedWebdiskRootFolder(operation.to_folder_type, operation.destination_internal_path)) {
+                return NextResponse.json({ error: 'The "signed" folder name is reserved at the top level of assets' }, { status: 400 });
             }
             nextFolderType = operation.to_folder_type;
             destinationPath = makeDestinationPath(filefolder.owner, nextFolderType, filefolder.name, operation.destination_internal_path);

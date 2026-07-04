@@ -125,6 +125,12 @@ func resolveStorageRelativePath(accountID, accessType, relPath string) (string, 
 	return path.Join("uploads", accountID, cleaned), true
 }
 
+func isReservedAssetsRootSignedPath(storagePath string) bool {
+	cleaned := strings.TrimPrefix(filepath.ToSlash(strings.TrimSpace(storagePath)), "/")
+	parts := strings.Split(cleaned, "/")
+	return len(parts) >= 4 && parts[0] == "uploads" && parts[2] == "assets" && parts[3] == "signed"
+}
+
 func requestDeviceIP(r *http.Request) string {
 	for _, header := range []string{"CF-Connecting-IP", "X-Real-IP", "X-Forwarded-For"} {
 		value := strings.TrimSpace(r.Header.Get(header))
@@ -508,6 +514,10 @@ func moveFile(w http.ResponseWriter, r *http.Request, claims *security.FileOpera
 	}
 
 	destRel := strings.TrimPrefix(claims.DestinationPath, "/")
+	if isReservedAssetsRootSignedPath(destRel) {
+		ClientErrorCode(w, http.StatusBadRequest, "reserved_signed_folder", `The "signed" folder name is reserved at the top level of assets`, nil)
+		return
+	}
 	dest, err := safePublicPath(destRel)
 	if err != nil {
 		ClientErrorCode(w, http.StatusForbidden, "invalid_destination_path", "Invalid destination path", err)
