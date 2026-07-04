@@ -31,7 +31,7 @@ export function NavLinks() {
             variant="ghost"
             asChild
             className={cn(
-              'justify-start',
+              'justify-start rounded-xl text-muted-foreground transition-colors hover:bg-primary/[0.07] hover:text-foreground',
               isActive && 'bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary'
             )}
           >
@@ -58,10 +58,10 @@ export function MobileNavLinks() {
             key={link.href}
             href={link.href}
             className={cn(
-              'flex items-center gap-4 px-2.5',
+              'flex items-center gap-4 rounded-lg px-2.5 py-2 transition-colors',
               isActive
-                ? 'text-foreground'
-                : 'text-muted-foreground hover:text-foreground'
+                ? 'bg-primary/10 text-primary'
+                : 'text-muted-foreground hover:bg-primary/[0.07] hover:text-foreground'
             )}
           >
             <link.icon className="h-5 w-5" />

@@ -18,7 +18,7 @@ export function FileGridView({
         <Card
           key={item.id}
           onContextMenu={(event) => onItemContextMenu?.(event, item)}
-          className="cursor-default overflow-hidden transition-all hover:shadow-md"
+          className="cursor-default overflow-hidden border-border/70 transition-colors hover:border-primary/20 hover:bg-primary/[0.02]"
         >
           <CardContent className="p-0">
             <div className="relative aspect-video">

@@ -26,7 +26,17 @@ type ContextMenuState = {
   y: number;
 };
 
-export function FileManager({ initialFiles = [] }: { initialFiles?: FileOrFolder[] }) {
+export function FileManager({
+  initialFiles = [],
+  title = 'My Drive',
+  subtitle,
+  emptyMessage = 'No files yet.',
+}: {
+  initialFiles?: FileOrFolder[];
+  title?: string;
+  subtitle?: string;
+  emptyMessage?: string;
+}) {
   const router = useRouter();
   const [viewMode, setViewMode] = React.useState<ViewMode>('list');
   const [menu, setMenu] = React.useState<ContextMenuState | null>(null);
@@ -142,7 +152,10 @@ export function FileManager({ initialFiles = [] }: { initialFiles?: FileOrFolder
       if (event.target === event.currentTarget) event.preventDefault();
     }}>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold font-headline tracking-tight">My Drive</h1>
+        <div>
+          <h1 className="text-2xl font-bold font-headline tracking-tight">{title}</h1>
+          {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
+        </div>
         <div className="flex items-center gap-2">
           <TooltipProvider>
             <Tooltip>
@@ -179,7 +192,7 @@ export function FileManager({ initialFiles = [] }: { initialFiles?: FileOrFolder
       {files.length === 0 ? (
         <Card>
           <CardContent className="flex min-h-48 items-center justify-center p-6 text-sm text-muted-foreground">
-            No files yet.
+            {emptyMessage}
           </CardContent>
         </Card>
       ) : viewMode === 'list' ? (

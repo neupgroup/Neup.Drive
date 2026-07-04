@@ -1,6 +1,8 @@
 'use client';
 import Link from 'next/link';
+import * as React from 'react';
 import { PanelLeft, Search, PlusCircle } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -44,6 +46,27 @@ function MobileSidebar() {
 
 
 export function Header() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [query, setQuery] = React.useState(searchParams.get('q') ?? '');
+
+  React.useEffect(() => {
+    setQuery(searchParams.get('q') ?? '');
+  }, [searchParams]);
+
+  const handleSearchSubmit = React.useCallback((event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) {
+      router.push('/search');
+      return;
+    }
+
+    const params = new URLSearchParams({ q: trimmedQuery });
+    router.push(`/search?${params.toString()}`);
+  }, [query, router]);
+
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center border-b bg-white backdrop-blur-sm shadow-lg">
       <div className="w-full max-w-[1440px] mx-auto px-4 md:px-6 flex items-center gap-4">
@@ -63,18 +86,20 @@ export function Header() {
             Recent
           </Link>
         </nav>
-        <div className="relative flex-1 ml-auto max-w-md">
+        <form onSubmit={handleSearchSubmit} className="relative flex-1 ml-auto max-w-md">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search files..."
             className="w-full rounded-lg bg-background pl-8"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
           />
-        </div>
+        </form>
         <div className="hidden sm:flex items-center gap-2">
           <Button variant="ghost" size="icon">
             <PanelLeft className="h-5 w-5" />
-          </Button>
+            </Button>
           <Button size="sm">
             <PlusCircle className="mr-2 h-4 w-4" />
             New

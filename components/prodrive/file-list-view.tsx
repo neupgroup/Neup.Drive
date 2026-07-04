@@ -32,7 +32,7 @@ export function FileListView({
           <Card
             key={item.id}
             onContextMenu={(event) => onItemContextMenu?.(event, item)}
-            className={`cursor-default rounded-none border-b-0 shadow-none transition-colors hover:bg-muted/40 ${
+            className={`cursor-default rounded-none border-b-0 shadow-none transition-colors hover:border-primary/20 hover:bg-primary/[0.03] ${
               index === 0 ? 'rounded-t-3xl' : ''
             } ${index === data.length - 1 ? 'rounded-b-3xl border-b' : ''}`}
           >
