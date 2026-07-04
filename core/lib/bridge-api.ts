@@ -10,10 +10,32 @@ import {
     parseDurationSeconds,
 } from '@/core/lib/cdn-token';
 import { prisma } from '@/core/lib/db';
+import { appendBridgeFileAccessLog } from '@/core/lib/file-access-log';
 import { createFileFolderLog, fileFolderTypeFromMime, recordFileFolderUpload, webdiskStoredAs } from '@/core/lib/filefolder';
 import { generateNonce } from '@/core/lib/upload-client';
 import type { UploadInitResponse, UploadSignaturePayload } from '@/core/lib/upload-types';
 import { signCdnPayloadBase64 } from '@/core/lib/cdn-token';
+
+/*
+::neup.documentation::bridge-api-file-operations
+::title Bridge File Operation Helpers
+
+Provides shared bridge file path, token, upload, preview, trash, and organize helpers used by the App Router bridge endpoints.
+
+::private
+
+::function organizeBridgeFile(params)
+
+Executes rename, move, and delete operations against the CDN, keeps database state in sync, and appends storage-backed access log entries for the resulting action.
+
+::details
+
+Delete operations now preserve the original file-type subpath inside `.trash`, and a CDN `404_not_found` during delete is treated as a soft-delete success so metadata still moves into trash and the missing-source event is logged.
+
+::private end
+
+::end
+*/
 
 export type BridgeOrganizeType = 'rename' | 'move' | 'delete';
 
@@ -88,10 +110,91 @@ export function getTrashDeletesIn(from = new Date()) {
     return new Date(from.getTime() + TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
 }
 
-export function buildBridgeTrashPath(owner: string, filename: string) {
-    const safeOwner = assertSafePathSegment(owner, 'owner');
-    const safeFilename = sanitizeFilename(path.posix.basename(filename));
-    return path.posix.join('uploads', safeOwner, '.trash', safeFilename);
+export function buildBridgeTrashPath(params: {
+    owner: string;
+    folderType: string;
+    currentPath: string;
+}) {
+    const safeOwner = assertSafePathSegment(params.owner, 'owner');
+    const safeFolderType = assertSafePathSegment(params.folderType, 'folder_type');
+    const cleanCurrentPath = params.currentPath.replace(/^\/+/, '');
+    const accountPrefix = `uploads/${safeOwner}/`;
+    const accountRelativePath = cleanCurrentPath.startsWith(accountPrefix)
+        ? cleanCurrentPath.slice(accountPrefix.length)
+        : cleanCurrentPath;
+    const folderPrefix = `${safeFolderType}/`;
+    const relativePath = accountRelativePath.startsWith(folderPrefix)
+        ? accountRelativePath.slice(folderPrefix.length)
+        : path.posix.basename(accountRelativePath);
+    const normalizedRelativePath = normalizeInternalPath(relativePath);
+    return path.posix.join('uploads', safeOwner, '.trash', safeFolderType, normalizedRelativePath);
+}
+
+function createBridgeOperationError(response: Response, data: any) {
+    const message = data?.error || data?.message || `CDN operation failed with ${response.status}`;
+    const error = new Error(message) as Error & {
+        status?: number;
+        code?: string;
+        response?: unknown;
+    };
+    error.status = response.status;
+    error.code = typeof data?.error === 'string' ? data.error : undefined;
+    error.response = data;
+    return error;
+}
+
+export function isMissingCdnFileError(error: unknown) {
+    if (!error || typeof error !== 'object') return false;
+    const maybeError = error as { status?: unknown; code?: unknown; message?: unknown };
+    return (
+        maybeError.status === 404 ||
+        maybeError.code === '404_not_found' ||
+        String(maybeError.message ?? '').includes('404_not_found')
+    );
+}
+
+function getActionSourcePage(sourcePage?: string | null) {
+    const normalized = sourcePage?.trim();
+    return normalized || 'bridge/api.v1';
+}
+
+function buildActionViewerInfo(params: {
+    filefolderId: string;
+    sourcePath: string;
+    finalPath: string;
+    folderType: string;
+    details?: Record<string, unknown>;
+}) {
+    return {
+        filefolder_id: params.filefolderId,
+        source_path: params.sourcePath,
+        final_path: params.finalPath,
+        folder_type: params.folderType,
+        ...(params.details ?? {}),
+    };
+}
+
+async function appendBridgeActionLog(params: {
+    owner: string;
+    folderType: string;
+    location: string;
+    sourcePage?: string | null;
+    action: string;
+    viewerInfo?: Record<string, unknown>;
+}) {
+    try {
+        const safeOwner = assertSafePathSegment(params.owner, 'owner');
+        await appendBridgeFileAccessLog({
+            owner: safeOwner,
+            fileType: params.folderType,
+            location: params.location,
+            sourcePage: getActionSourcePage(params.sourcePage),
+            viewerInfo: params.viewerInfo,
+            action: params.action,
+        });
+    } catch {
+        // Keep file mutations user-facing even if the storage-backed access log cannot be updated.
+    }
 }
 
 export function buildBridgeStoragePath(params: {
@@ -412,8 +515,7 @@ export async function callBridgeCdnOperation(action: BridgeOrganizeType, token: 
     }
 
     if (!response.ok || !data?.success) {
-        const message = data?.error || data?.message || `CDN operation failed with ${response.status}`;
-        throw new Error(message);
+        throw createBridgeOperationError(response, data);
     }
 
     return data as { success: true; action: BridgeOrganizeType; path?: string; destination_path?: string; deleted_path?: string };
@@ -425,6 +527,8 @@ export async function organizeBridgeFile(params: {
     newName?: string | null;
     toFolderType?: string | null;
     destinationInternalPath?: string | null;
+    sourcePage?: string | null;
+    viewerInfo?: Record<string, unknown>;
 }) {
     const details = getDetails(params.filefolder.details);
     if (!isActiveFileDetails(params.filefolder.details)) throw new Error('File is already deleted');
@@ -454,7 +558,11 @@ export async function organizeBridgeFile(params: {
 
     if (params.action === 'delete') {
         nextFolderType = '.trash';
-        destinationPath = buildBridgeTrashPath(params.filefolder.owner, params.filefolder.name);
+        destinationPath = buildBridgeTrashPath({
+            owner: params.filefolder.owner,
+            folderType: currentFolderType,
+            currentPath,
+        });
     }
 
     const token = encodeSignedCdnToken(createSignedCdnToken(createExpiringOperationPayload({
@@ -468,11 +576,25 @@ export async function organizeBridgeFile(params: {
         method: 'POST',
     }, params.action === 'delete' ? 60 : undefined), BRIDGE_PRIVATE_KEY));
 
-    const cdnResult = await callBridgeCdnOperation(params.action, token);
+    let cdnResult: Awaited<ReturnType<typeof callBridgeCdnOperation>>;
+    let missingSource = false;
+    try {
+        cdnResult = await callBridgeCdnOperation(params.action, token);
+    } catch (error) {
+        if (params.action !== 'delete' || !isMissingCdnFileError(error)) throw error;
+        missingSource = true;
+        cdnResult = {
+            success: true,
+            action: params.action,
+            path: currentPath,
+            destination_path: destinationPath,
+            deleted_path: currentPath,
+        };
+    }
 
     let updatedFilefolder;
+    const finalPath = cdnResult.destination_path || cdnResult.path || destinationPath || currentPath;
     if (params.action === 'delete') {
-        const finalPath = cdnResult.destination_path || cdnResult.path || destinationPath || currentPath;
         const now = new Date();
         const deletesIn = getTrashDeletesIn(now);
         updatedFilefolder = await prisma.fileFolder.update({
@@ -495,7 +617,6 @@ export async function organizeBridgeFile(params: {
         });
         await prisma.file.updateMany({ where: { path: currentPath }, data: { path: finalPath, status: 'TRASHED' } });
     } else {
-        const finalPath = cdnResult.destination_path || cdnResult.path || destinationPath || currentPath;
         updatedFilefolder = await prisma.fileFolder.update({
             where: { id: params.filefolder.id },
             data: {
@@ -537,5 +658,25 @@ export async function organizeBridgeFile(params: {
         doneBy: params.filefolder.owner,
     });
 
-    return { updatedFilefolder, cdnResult };
+    await appendBridgeActionLog({
+        owner: params.filefolder.owner,
+        folderType: params.action === 'delete' ? currentFolderType : nextFolderType,
+        location: finalPath,
+        sourcePage: params.sourcePage,
+        action: params.action,
+        viewerInfo: buildActionViewerInfo({
+            filefolderId: params.filefolder.id,
+            sourcePath: currentPath,
+            finalPath,
+            folderType: currentFolderType,
+            details: {
+                missing_source: missingSource,
+                mode: 'bridge-organize',
+                requested_action: params.action,
+                ...(params.viewerInfo ?? {}),
+            },
+        }),
+    });
+
+    return { updatedFilefolder, cdnResult, missingSource };
 }

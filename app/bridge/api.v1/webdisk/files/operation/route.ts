@@ -1,12 +1,27 @@
 import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
+import { appendBridgeFileAccessLog } from '@/core/lib/file-access-log';
 import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/core/lib/cdn-token';
 import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
 import { webdiskStoredAs } from '@/core/lib/filefolder';
-import { buildBridgeTrashPath, getTrashDeletesIn } from '@/core/lib/bridge-api';
+import { buildBridgeTrashPath, getTrashDeletesIn, isMissingCdnFileError } from '@/core/lib/bridge-api';
 
-type WebdiskOperationAction = 'rename' | 'move' | 'delete';
+/*
+::neup.documentation::webdisk-files-operation-route
+::api POST /bridge/api.v1/webdisk/files/operation
+::title Webdisk File Operation Route
+
+Handles rename, move, delete, and restore requests for CDN-listed WebDisk files.
+
+::details
+
+Delete operations now move files into `.trash/<filetype>/<original-location>`, log every API action into `uploads/<account>/.logs/2026jun25`, treat CDN `404_not_found` delete responses as soft-delete success, and allow an undo through the `restore` action.
+
+::end
+*/
+
+type WebdiskOperationAction = 'rename' | 'move' | 'delete' | 'restore';
 
 interface WebdiskOperationRequest {
     action?: WebdiskOperationAction;
@@ -74,7 +89,7 @@ function normalizeCdnPath(value?: string) {
     return normalized;
 }
 
-async function callCdnOperation(action: WebdiskOperationAction, token: string) {
+async function callCdnOperation(action: Extract<WebdiskOperationAction, 'rename' | 'move' | 'delete'>, token: string) {
     const response = await fetch(`${CDN_OPERATION_BASE}/${encodeURIComponent(action)}`, {
         method: 'POST',
         headers: {
@@ -95,7 +110,7 @@ async function callCdnOperation(action: WebdiskOperationAction, token: string) {
         throw new Error(message);
     }
 
-    return data as { success: true; action: WebdiskOperationAction; path?: string; destination_path?: string; deleted_path?: string };
+    return data as { success: true; action: 'rename' | 'move' | 'delete'; path?: string; destination_path?: string; deleted_path?: string };
 }
 
 function isMissingFileFolderTableError(error: unknown) {
@@ -151,6 +166,32 @@ async function syncFilefolderOperation(params: {
             return;
         }
 
+        if (params.action === 'restore') {
+            const {
+                deleted_on: _deletedOn,
+                deletes_in: _deletesIn,
+                trash_path: _trashPath,
+                ...restoredDetails
+            } = details as Record<string, unknown>;
+
+            await prisma.fileFolder.update({
+                where: { id: filefolder.id },
+                data: {
+                    path: params.finalPath,
+                    stored_as: webdiskStoredAs(params.nextType),
+                    details: {
+                        ...restoredDetails,
+                        mode: 'webdisk',
+                        folder_type: params.nextType,
+                        previous_mode: '.trash',
+                        previous_path: params.sourcePath,
+                        status: 'VERIFIED',
+                    },
+                },
+            });
+            return;
+        }
+
         await prisma.fileFolder.update({
             where: { id: filefolder.id },
             data: {
@@ -180,14 +221,16 @@ export async function POST(request: NextRequest) {
         }
 
         body = await request.json();
-        if (!body?.action || !['rename', 'move', 'delete'].includes(body.action)) {
+        if (!body?.action || !['rename', 'move', 'delete', 'restore'].includes(body.action)) {
             return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
         }
 
         const sourcePath = normalizeCdnPath(body.cdn_path);
-        const currentType = normalizeType(body.type);
+        let currentType = normalizeType(body.type);
         let destinationPath: string | undefined;
         let newName: string | undefined;
+        let nextType = currentType;
+        let cdnAction: Extract<WebdiskOperationAction, 'rename' | 'move' | 'delete'> = body.action === 'restore' ? 'move' : body.action;
 
         if (body.action === 'rename') {
             newName = assertSafePathSegment((body.new_name || '').trim(), 'new_name');
@@ -199,14 +242,38 @@ export async function POST(request: NextRequest) {
             const destinationFolder = normalizeFolderPath(body.to_path);
             const filename = path.posix.basename(sourcePath);
             destinationPath = path.posix.join('uploads', WEBDISK_ACCOUNT_ID, destinationType, destinationFolder, filename);
+            nextType = destinationType;
         }
 
         if (body.action === 'delete') {
-            destinationPath = buildBridgeTrashPath(WEBDISK_ACCOUNT_ID, path.posix.basename(sourcePath));
+            destinationPath = buildBridgeTrashPath({
+                owner: WEBDISK_ACCOUNT_ID,
+                folderType: currentType,
+                currentPath: sourcePath,
+            });
+            nextType = '.trash';
+        }
+
+        if (body.action === 'restore') {
+            const filefolder = await prisma.fileFolder.findFirst({
+                where: { path: sourcePath },
+                orderBy: { created_on: 'desc' },
+            });
+            const details = filefolder?.details && typeof filefolder.details === 'object' && !Array.isArray(filefolder.details)
+                ? filefolder.details as Record<string, unknown>
+                : {};
+            const previousPath = typeof details.previous_path === 'string' ? details.previous_path : '';
+            const previousMode = typeof details.previous_mode === 'string' ? details.previous_mode : '';
+            if (!previousPath || !previousMode) {
+                return NextResponse.json({ error: 'File cannot be restored' }, { status: 409 });
+            }
+            currentType = '.trash';
+            nextType = normalizeType(previousMode);
+            destinationPath = previousPath;
         }
 
         const signedToken = createSignedCdnToken(createExpiringOperationPayload({
-            action: body.action,
+            action: cdnAction,
             account_id: WEBDISK_ACCOUNT_ID,
             account_folder: WEBDISK_ACCOUNT_ID,
             folder_type: currentType,
@@ -216,17 +283,50 @@ export async function POST(request: NextRequest) {
             method: 'POST',
         }, body.action === 'delete' ? 60 : undefined), PRIVATE_KEY);
 
-        const cdn = await callCdnOperation(body.action, encodeSignedCdnToken(signedToken));
+        let cdn: Awaited<ReturnType<typeof callCdnOperation>>;
+        let missingSource = false;
+        try {
+            cdn = await callCdnOperation(cdnAction, encodeSignedCdnToken(signedToken));
+        } catch (error) {
+            if (body.action !== 'delete' || !isMissingCdnFileError(error)) throw error;
+            missingSource = true;
+            cdn = {
+                success: true,
+                action: cdnAction,
+                path: sourcePath,
+                destination_path: destinationPath,
+                deleted_path: sourcePath,
+            };
+        }
+        const finalPath = cdn.destination_path || cdn.path || destinationPath || sourcePath;
         await syncFilefolderOperation({
             action: body.action,
             sourcePath,
             currentType,
-            nextType: body.action === 'delete' ? '.trash' : body.action === 'move' ? normalizeType(body.to_type) : currentType,
+            nextType,
             nextName: newName,
-            finalPath: cdn.destination_path || cdn.path || destinationPath || sourcePath,
+            finalPath,
             cdn,
         });
-        return NextResponse.json({ success: true, action: body.action, cdn });
+        try {
+            await appendBridgeFileAccessLog({
+                owner: WEBDISK_ACCOUNT_ID,
+                fileType: currentType,
+                location: finalPath,
+                sourcePage: request.headers.get('referer') || request.headers.get('origin') || 'bridge/api.v1/webdisk/files/operation',
+                viewerInfo: {
+                    source_path: sourcePath,
+                    final_path: finalPath,
+                    requested_action: body.action,
+                    missing_source: missingSource,
+                    user_agent: request.headers.get('user-agent') || '',
+                },
+                action: body.action,
+            });
+        } catch {
+            // Preserve the successful file operation even if log persistence fails.
+        }
+        return NextResponse.json({ success: true, action: body.action, missing_source: missingSource, cdn });
     } catch (error) {
         return handleServerError(error, '/bridge/api.v1/webdisk/files/operation', { body });
     }

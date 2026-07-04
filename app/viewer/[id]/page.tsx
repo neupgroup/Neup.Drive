@@ -6,8 +6,26 @@ import type { Prisma } from '@prisma/client';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { appendBridgeFileAccessLog } from '@/core/lib/file-access-log';
 import { prisma } from '@/core/lib/db';
 import { createBridgeFileUrl, isActiveFileDetails } from '@/core/lib/bridge-api';
+
+/*
+::neup.documentation::viewer-page
+::title Viewer Page
+
+Renders a direct file viewer for bridge-managed files and degrades gracefully when the CDN file cannot be retrieved.
+
+::private
+
+::details
+
+Successful viewer loads append a `viewed` record into the account-scoped `.logs/2026jun25` bridge access log with the originating page and request metadata.
+
+::private end
+
+::end
+*/
 
 function getDetails(details: Prisma.JsonValue): Prisma.JsonObject {
   return details && typeof details === 'object' && !Array.isArray(details) ? details : {};
@@ -218,6 +236,25 @@ export default async function ViewerPage({
     deviceIp: tokenOptions.deviceIp,
     userAgent: tokenOptions.userAgent,
   });
+  if (exists) {
+    try {
+      await appendBridgeFileAccessLog({
+        owner: file.owner,
+        fileType: typeof details.folder_type === 'string' ? details.folder_type : 'drive',
+        location: file.path,
+        sourcePage: requestHeaders.get('referer') || '/viewer/[id]',
+        viewerInfo: {
+          filefolder_id: file.id,
+          user_agent: tokenOptions.userAgent,
+          device_ip: tokenOptions.deviceIp,
+          viewer_page: `/viewer/${encodeURIComponent(file.id)}`,
+        },
+        action: 'viewed',
+      });
+    } catch {
+      // Keep the viewer user-facing if audit logging fails.
+    }
+  }
 
   return (
     <div className="w-full min-w-0 space-y-4 overflow-hidden">

@@ -6,7 +6,9 @@ import { ArrowLeft, Calendar, ExternalLink, FileCode, FileIcon, FileText, Folder
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { ToastAction } from "@/components/ui/toast";
 import { handleClientError } from '@/core/lib/error-client';
+import { toast } from '@/core/hooks/use-toast';
 import { format } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
 import { storageTierBadgeClass, storageTierFromWebdiskType, storageTierLabel, type StorageTier } from '@/core/lib/storage-tiers';
@@ -321,7 +323,7 @@ function WebdiskContent() {
     };
   }, [filesByType, selectedPath, selectedType, topLevelFolders]);
 
-  const runOperation = React.useCallback(async (file: WebDiskRecord, action: 'rename' | 'move' | 'delete') => {
+  const runOperation = React.useCallback(async (file: WebDiskRecord, action: 'rename' | 'move' | 'delete' | 'restore') => {
     if (!selectedType) return;
 
     let body: Record<string, string> = {
@@ -352,10 +354,6 @@ function WebdiskContent() {
       body.to_path = destinationPath.trim().replace(/^\/+/, '');
     }
 
-    if (action === 'delete' && !window.confirm(`Delete ${file.filename} from WebDisk?`)) {
-      return;
-    }
-
     try {
       setOperatingPath(file.cdn_path || file.id);
       const response = await fetch('/bridge/api.v1/webdisk/files/operation', {
@@ -363,22 +361,40 @@ function WebdiskContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        let responseData: unknown = null;
-        try {
-          responseData = await response.json();
-        } catch {
-          responseData = await response.text().catch(() => '');
-        }
         const operationError = new Error('WebDisk operation failed') as Error & { status?: number; response?: unknown };
         operationError.status = response.status;
-        operationError.response = responseData;
+        operationError.response = data;
         throw operationError;
       }
 
       await fetchFiles();
       setError(null);
+      if (action === 'delete') {
+        const trashPath = typeof data?.cdn?.destination_path === 'string'
+          ? data.cdn.destination_path as string
+          : '';
+        toast({
+          title: 'File moved to Trash.',
+          action: trashPath ? (
+            <ToastAction
+              altText={`Undo deleting ${file.filename}`}
+              onClick={() => {
+                void runOperation({
+                  ...file,
+                  cdn_path: trashPath,
+                }, 'restore');
+              }}
+            >
+              Undo
+            </ToastAction>
+          ) : undefined,
+        });
+      } else if (action === 'restore') {
+        toast({ title: 'File restored.' });
+      }
     } catch (err) {
       const message = await handleClientError(err, 'WebDiskOperation', {
         status: typeof err === 'object' && err && 'status' in err ? (err as { status?: number }).status : undefined,

@@ -5,10 +5,35 @@ import type { Prisma } from '@prisma/client';
 import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/core/lib/cdn-token';
 import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
+import { appendBridgeFileAccessLog } from '@/core/lib/file-access-log';
 import { createFileFolderLog } from '@/core/lib/filefolder';
-import { buildBridgeTrashPath, getTrashDeletesIn, isActiveFileDetails } from '@/core/lib/bridge-api';
+import { buildBridgeTrashPath, getTrashDeletesIn, isActiveFileDetails, isMissingCdnFileError } from '@/core/lib/bridge-api';
 
-type FileOperationAction = 'rename' | 'move' | 'delete';
+/*
+::neup.documentation::drive-files-operation-route
+::api POST /bridge/api.v1/drive/files/operation
+::title Drive File Operation Route
+
+Handles rename, move, delete, and restore requests for bridge-managed files and keeps metadata in sync with CDN operations.
+
+::param filefolder_id
+::location body
+
+The `filefolder` record to mutate.
+
+::param action
+::location body
+
+The requested operation: `rename`, `move`, `delete`, or `restore`.
+
+::details
+
+Delete requests soft-succeed when the CDN reports `404_not_found`, still move metadata into the account trash path, append an audit line into `uploads/<account>/.logs/2026jun25`, and can be undone through the `restore` action.
+
+::end
+*/
+
+type FileOperationAction = 'rename' | 'move' | 'delete' | 'restore';
 
 interface FileOperationRequest {
     filefolder_id?: string;
@@ -92,7 +117,15 @@ async function callCdnOperation(action: FileOperationAction, token: string) {
 
     if (!response.ok || !data?.success) {
         const message = data?.error || data?.message || `CDN operation failed with ${response.status}`;
-        throw new Error(message);
+        const error = new Error(message) as Error & {
+            status?: number;
+            code?: string;
+            response?: unknown;
+        };
+        error.status = response.status;
+        error.code = typeof data?.error === 'string' ? data.error : undefined;
+        error.response = data;
+        throw error;
     }
 
     return data as { success: true; action: FileOperationAction; path?: string; destination_path?: string; deleted_path?: string };
@@ -113,7 +146,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'filefolder_id and action are required' }, { status: 400 });
         }
 
-        if (!['rename', 'move', 'delete'].includes(operation.action)) {
+        if (!['rename', 'move', 'delete', 'restore'].includes(operation.action)) {
             return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
         }
 
@@ -126,8 +159,11 @@ export async function POST(request: NextRequest) {
         }
 
         const details = getDetails(filefolder.details);
-        if (!isActiveFileDetails(filefolder.details)) {
+        if (operation.action !== 'restore' && !isActiveFileDetails(filefolder.details)) {
             return NextResponse.json({ error: 'File is already deleted' }, { status: 409 });
+        }
+        if (operation.action === 'restore' && isActiveFileDetails(filefolder.details)) {
+            return NextResponse.json({ error: 'File is already active' }, { status: 409 });
         }
 
         const currentFolderType = getFolderType(details);
@@ -135,6 +171,7 @@ export async function POST(request: NextRequest) {
         let destinationPath: string | undefined;
         let nextName = filefolder.name;
         let nextFolderType = currentFolderType;
+        let cdnAction: Extract<FileOperationAction, 'rename' | 'move' | 'delete'> = operation.action === 'restore' ? 'move' : operation.action;
 
         if (operation.action === 'rename') {
             if (!operation.new_name) {
@@ -154,11 +191,25 @@ export async function POST(request: NextRequest) {
 
         if (operation.action === 'delete') {
             nextFolderType = '.trash';
-            destinationPath = buildBridgeTrashPath(filefolder.owner, filefolder.name);
+            destinationPath = buildBridgeTrashPath({
+                owner: filefolder.owner,
+                folderType: currentFolderType,
+                currentPath,
+            });
+        }
+
+        if (operation.action === 'restore') {
+            const previousPath = typeof details.previous_path === 'string' ? details.previous_path : '';
+            const previousMode = typeof details.previous_mode === 'string' ? details.previous_mode : '';
+            if (!previousPath || !previousMode) {
+                return NextResponse.json({ error: 'File cannot be restored' }, { status: 409 });
+            }
+            nextFolderType = previousMode;
+            destinationPath = previousPath;
         }
 
         const signedToken = createSignedCdnToken(createExpiringOperationPayload({
-            action: operation.action,
+            action: cdnAction,
             account_id: filefolder.owner,
             account_folder: filefolder.owner,
             folder_type: currentFolderType,
@@ -168,7 +219,21 @@ export async function POST(request: NextRequest) {
             method: 'POST',
         }, operation.action === 'delete' ? 60 : undefined), PRIVATE_KEY);
 
-        const cdnResult = await callCdnOperation(operation.action, encodeSignedCdnToken(signedToken));
+        let cdnResult: Awaited<ReturnType<typeof callCdnOperation>>;
+        let missingSource = false;
+        try {
+            cdnResult = await callCdnOperation(cdnAction, encodeSignedCdnToken(signedToken));
+        } catch (error) {
+            if (operation.action !== 'delete' || !isMissingCdnFileError(error)) throw error;
+            missingSource = true;
+            cdnResult = {
+                success: true,
+                action: cdnAction,
+                path: currentPath,
+                destination_path: destinationPath,
+                deleted_path: currentPath,
+            };
+        }
 
         const operationDetails: Prisma.InputJsonObject = {
             action: operation.action,
@@ -176,13 +241,14 @@ export async function POST(request: NextRequest) {
             path: cdnResult.path ?? currentPath,
             destination_path: cdnResult.destination_path,
             folder_type: nextFolderType,
+            missing_source: missingSource,
             cdn_result: cdnResult as any,
         };
 
         let updatedFilefolder;
+        const finalPath = cdnResult.destination_path || cdnResult.path || destinationPath || currentPath;
 
         if (operation.action === 'delete') {
-            const finalPath = cdnResult.destination_path || cdnResult.path || destinationPath || currentPath;
             const now = new Date();
             const deletesIn = getTrashDeletesIn(now);
             updatedFilefolder = await prisma.fileFolder.update({
@@ -207,8 +273,37 @@ export async function POST(request: NextRequest) {
                 where: { path: currentPath },
                 data: { path: finalPath, status: 'TRASHED' },
             });
+        } else if (operation.action === 'restore') {
+            const {
+                deleted_on: _deletedOn,
+                deletes_in: _deletesIn,
+                trash_path: _trashPath,
+                ...restoredDetails
+            } = details;
+
+            updatedFilefolder = await prisma.fileFolder.update({
+                where: { id: filefolder.id },
+                data: {
+                    path: finalPath,
+                    stored_as: 'drivefile',
+                    details: {
+                        ...restoredDetails,
+                        mode: nextFolderType,
+                        folder_type: nextFolderType,
+                        previous_mode: '.trash',
+                        previous_path: currentPath,
+                        status: 'VERIFIED',
+                    },
+                },
+            });
+            await prisma.file.updateMany({
+                where: { path: currentPath },
+                data: {
+                    path: finalPath,
+                    status: 'VERIFIED',
+                },
+            });
         } else {
-            const finalPath = cdnResult.destination_path || cdnResult.path || destinationPath || currentPath;
             updatedFilefolder = await prisma.fileFolder.update({
                 where: { id: filefolder.id },
                 data: {
@@ -240,9 +335,30 @@ export async function POST(request: NextRequest) {
             doneBy: filefolder.owner,
         });
 
+        try {
+            await appendBridgeFileAccessLog({
+                owner: filefolder.owner,
+                fileType: currentFolderType,
+                location: finalPath,
+                sourcePage: request.headers.get('referer') || request.headers.get('origin') || 'bridge/api.v1/drive/files/operation',
+                viewerInfo: {
+                    filefolder_id: filefolder.id,
+                    source_path: currentPath,
+                    final_path: finalPath,
+                    requested_action: operation.action,
+                    missing_source: missingSource,
+                    user_agent: request.headers.get('user-agent') || '',
+                },
+                action: operation.action,
+            });
+        } catch {
+            // Preserve the successful file operation even if log persistence fails.
+        }
+
         return NextResponse.json({
             success: true,
             action: operation.action,
+            missing_source: missingSource,
             file: {
                 id: updatedFilefolder.id,
                 name: updatedFilefolder.name,

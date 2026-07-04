@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { FileOrFolder } from '@/core/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { ToastAction } from '@/components/ui/toast';
 import { toast } from '@/core/hooks/use-toast';
 import {
   Tooltip,
@@ -78,10 +79,30 @@ export function FileManager({ initialFiles = [] }: { initialFiles?: FileOrFolder
         throw new Error(data?.error || 'File operation failed');
       }
 
-      toast({
-        title: 'Updated',
-        description: `${item.name} was ${body.action === 'delete' ? 'deleted' : 'updated'}.`,
-      });
+      if (body.action === 'delete') {
+        toast({
+          title: 'File moved to Trash.',
+          action: (
+            <ToastAction
+              altText={`Undo deleting ${item.name}`}
+              onClick={() => {
+                void runOperation(item, { action: 'restore' });
+              }}
+            >
+              Undo
+            </ToastAction>
+          ),
+        });
+      } else if (body.action === 'restore') {
+        toast({
+          title: 'File restored.',
+        });
+      } else {
+        toast({
+          title: 'Updated',
+          description: `${item.name} was updated.`,
+        });
+      }
       router.refresh();
     } catch (error) {
       toast({
@@ -108,10 +129,6 @@ export function FileManager({ initialFiles = [] }: { initialFiles?: FileOrFolder
   }, [runOperation]);
 
   const deleteItem = React.useCallback((item: FileOrFolder) => {
-    if (!window.confirm(`Delete "${item.name}"?`)) {
-      setMenu(null);
-      return;
-    }
     void runOperation(item, { action: 'delete' });
   }, [runOperation]);
 
