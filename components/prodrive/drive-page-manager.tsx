@@ -7,12 +7,13 @@
 ::public
 
 Renders the shared drive file manager with folder-aware breadcrumbs and
-navigation for the homepage.
+navigation for the dedicated `/drive` route.
 
 ::param external props
 ::datatype object
 
-The current folder path and preloaded drive file items for the homepage.
+The current folder path and preloaded drive file items for the main drive
+browser.
 
 ::returns
 ::datatype JSX.Element
@@ -49,14 +50,14 @@ function buildDriveBreadcrumbs(currentPath: string) {
   const segments = currentPath.split('/').filter(Boolean);
   if (segments.length === 0) return [];
 
-  const breadcrumbs: Array<{ label: string; href?: string }> = [{ label: 'Drive', href: '/' }];
+  const breadcrumbs: Array<{ label: string; href?: string }> = [{ label: 'Drive', href: '/drive' }];
 
   let accumulatedPath = '';
   for (const segment of segments) {
     accumulatedPath = accumulatedPath ? `${accumulatedPath}/${segment}` : segment;
     breadcrumbs.push({
       label: segment,
-      href: `/?path=${encodeURIComponent(accumulatedPath)}`,
+      href: `/drive?path=${encodeURIComponent(accumulatedPath)}`,
     });
   }
 
@@ -114,7 +115,7 @@ export function DrivePageManager({
         if (item.type !== 'folder') return;
         const nextPath = item.navigationPath || (item.id.startsWith('folder:') ? item.id.slice('folder:'.length) : item.name);
         trackFolderOpen(nextPath);
-        router.push(`/?path=${encodeURIComponent(nextPath)}`);
+        router.push(`/drive?path=${encodeURIComponent(nextPath)}`);
       }}
       onCreateFolder={async (name) => {
         const response = await fetch('/bridge/api.v1/folders/create', {

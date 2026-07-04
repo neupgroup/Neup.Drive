@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, HardDrive, Home, Share, Trash2, Globe, Clock, AlertCircle, Users } from 'lucide-react';
+import { AlertCircle, BarChart3, Globe, HardDrive, Home, Share, Trash2, Users } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/core/lib/utils';
 
 const primaryNavLinks = [
   { href: '/', icon: Home, label: 'Home' },
-  { href: '/recents', icon: Clock, label: 'Recent' },
+  { href: '/drive', icon: HardDrive, label: 'Drive' },
   { href: '/shared', icon: Share, label: 'Shared' },
   { href: '/webdisk', icon: Globe, label: 'WebDisk' },
   { href: '/analytics', icon: BarChart3, label: 'Analytics' },

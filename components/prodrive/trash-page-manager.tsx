@@ -72,7 +72,7 @@ export function TrashPageManager({
     if (!item.secondaryNavigationPath || !item.locationType) return;
 
     if (item.locationType === 'drive') {
-      router.push(item.secondaryNavigationPath ? `/?path=${encodeURIComponent(item.secondaryNavigationPath)}` : '/');
+      router.push(item.secondaryNavigationPath ? `/drive?path=${encodeURIComponent(item.secondaryNavigationPath)}` : '/drive');
       return;
     }
 

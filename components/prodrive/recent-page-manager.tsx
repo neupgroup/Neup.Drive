@@ -12,7 +12,8 @@ navigation back into the main drive surface.
 ::param external props
 ::datatype object
 
-The preloaded recent drive items to show in the recent page.
+The preloaded recent items plus optional heading copy for the current recent
+surface.
 
 ::returns
 ::datatype JSX.Element
@@ -75,8 +76,12 @@ function recencyRank(label: string) {
 
 export function RecentPageManager({
   files,
+  title = 'Recent',
+  subtitle = 'Recent activity across Drive, WebDisk, and Signed files.',
 }: {
   files: FileOrFolder[];
+  title?: string;
+  subtitle?: string;
 }) {
   const router = useRouter();
   const trackFolderOpen = React.useCallback((item: FileOrFolder) => {
@@ -110,8 +115,8 @@ export function RecentPageManager({
   return (
     <FileManager
       initialFiles={sortedFiles}
-      title="Recent"
-      subtitle="Recent activity across Drive, WebDisk, and Signed files."
+      title={title}
+      subtitle={subtitle}
       emptyMessage="No recent files yet."
       sortOptions={[
         { value: 'recent-desc', label: 'Recently updated' },
@@ -128,7 +133,7 @@ export function RecentPageManager({
           trackFolderOpen(item);
 
           if (item.locationType === 'drive') {
-            router.push(`/?path=${encodeURIComponent(item.navigationPath)}`);
+            router.push(`/drive?path=${encodeURIComponent(item.navigationPath)}`);
             return;
           }
 

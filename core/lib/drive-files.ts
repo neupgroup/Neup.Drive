@@ -173,7 +173,7 @@ Owner and result-limit options for the recent activity lookup.
 ::returns
 ::datatype Promise<FileOrFolder[]>
 
-The mapped recent items ready for the `/recents` UI.
+The mapped recent items ready for the homepage recent-items UI.
 
 ::public end
 
