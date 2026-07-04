@@ -23,12 +23,16 @@ export function FileListView({
   onItemClick,
   onItemDoubleClick,
   onItemContextMenu,
+  onSecondaryAction,
+  onSecondaryNavigation,
 }: {
   data: FileOrFolder[];
   selectedIds?: string[];
   onItemClick?: (item: FileOrFolder, index: number, event: React.MouseEvent) => void;
   onItemDoubleClick?: (item: FileOrFolder, index: number, event: React.MouseEvent) => void;
   onItemContextMenu?: (event: React.MouseEvent, item: FileOrFolder) => void;
+  onSecondaryAction?: (item: FileOrFolder) => void;
+  onSecondaryNavigation?: (item: FileOrFolder) => void;
 }) {
   return (
     <div className="space-y-0">
@@ -65,8 +69,43 @@ export function FileListView({
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
                 {isAction || item.description ? (
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {item.description || item.lastModified}
+                  <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+                    <span>{item.description || item.lastModified}</span>
+                    {item.secondaryNavigationLabel && onSecondaryNavigation ? (
+                      <>
+                        <span aria-hidden="true" className="px-1">•</span>
+                        <span className="inline-flex items-center gap-0.5 font-medium text-muted-foreground">
+                          {item.secondaryNavigationPrefix ? (
+                            <span>{item.secondaryNavigationPrefix}</span>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="transition-colors hover:text-primary"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onSecondaryNavigation(item);
+                            }}
+                          >
+                            {item.secondaryNavigationLabel}
+                          </button>
+                        </span>
+                      </>
+                    ) : null}
+                    {item.secondaryActionLabel && onSecondaryAction ? (
+                      <>
+                        <span aria-hidden="true" className="px-1">•</span>
+                        <button
+                          type="button"
+                          className="font-medium text-muted-foreground transition-colors hover:text-primary"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onSecondaryAction(item);
+                          }}
+                        >
+                          {item.secondaryActionLabel}
+                        </button>
+                      </>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
@@ -82,7 +121,7 @@ export function FileListView({
                       </Tooltip>
                     </TooltipProvider>
                     <span className="truncate">Uploaded by {uploader}</span>
-                    <span aria-hidden="true">.</span>
+                    <span aria-hidden="true" className="px-1">•</span>
                     <span>{item.lastModified}</span>
                   </div>
                 )}

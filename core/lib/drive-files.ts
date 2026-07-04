@@ -150,8 +150,8 @@ function getLocationTypeFromRow(row: {
 }
 
 function locationLabel(locationType: FileOrFolder['locationType']) {
-  if (locationType === 'signed') return 'Signed';
-  if (locationType === 'assets') return 'WebDisk';
+  if (locationType === 'signed') return 'Webdisk Signed';
+  if (locationType === 'assets') return 'Webdisk';
   return 'Drive';
 }
 

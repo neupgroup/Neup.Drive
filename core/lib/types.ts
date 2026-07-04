@@ -33,4 +33,8 @@ export type FileOrFolder = {
   description?: string;
   locationType?: 'drive' | 'assets' | 'signed';
   navigationPath?: string;
+  secondaryNavigationPrefix?: string;
+  secondaryNavigationLabel?: string;
+  secondaryNavigationPath?: string;
+  secondaryActionLabel?: string;
 };

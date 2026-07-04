@@ -11,7 +11,6 @@
 - [ ] Add `::neup.documentation::` source documentation for `components/prodrive/header.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `components/prodrive/upload-status-toast.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/webdisk/page.tsx`.
-- [ ] Add `::neup.documentation::` source documentation for `app/trash/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/layout.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/globals.css`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/drive/files/route.ts`.

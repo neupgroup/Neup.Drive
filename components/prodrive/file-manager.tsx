@@ -53,6 +53,19 @@ type SortOption = {
   label: string;
 };
 
+type ContextMenuAction = {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  className?: string;
+};
+
+type ContextMenuSection = {
+  title?: string;
+  actions: ContextMenuAction[];
+};
+
 function splitEditableName(name: string) {
   const lastDotIndex = name.lastIndexOf('.');
   if (lastDotIndex <= 0 || lastDotIndex === name.length - 1) {
@@ -86,6 +99,10 @@ export function FileManager({
   onSortChange,
   getMoveTargets,
   canManageItem,
+  onSecondaryAction,
+  onSecondaryNavigation,
+  disableContextMenu = false,
+  getItemContextMenuSections,
 }: {
   initialFiles?: FileOrFolder[];
   title?: string;
@@ -104,6 +121,10 @@ export function FileManager({
   onSortChange?: (value: string) => void;
   getMoveTargets?: (item: ManagedActionTarget) => MoveTarget[];
   canManageItem?: (item: ManagedActionTarget) => boolean;
+  onSecondaryAction?: (item: ManagedActionTarget) => Promise<void> | void;
+  onSecondaryNavigation?: (item: ManagedActionTarget) => Promise<void> | void;
+  disableContextMenu?: boolean;
+  getItemContextMenuSections?: (item: ManagedActionTarget) => ContextMenuSection[];
 }) {
   const router = useRouter();
   const containerRef = React.useRef<HTMLDivElement | null>(null);
@@ -182,6 +203,7 @@ export function FileManager({
   }, [backgroundMenu, menu, selectedIds.length]);
 
   const openContextMenu = React.useCallback((event: React.MouseEvent, item: FileOrFolder) => {
+    if (disableContextMenu) return;
     if (item.type === 'action') return;
 
     event.preventDefault();
@@ -196,7 +218,7 @@ export function FileManager({
     setLastSelectedId(item.id);
     setBackgroundMenu(null);
     setMenu({ item, x: Math.max(8, x), y: Math.max(8, y) });
-  }, []);
+  }, [disableContextMenu]);
 
   const openBackgroundContextMenu = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -490,7 +512,9 @@ export function FileManager({
           }
         }}
         onContextMenu={(event) => {
-          openBackgroundContextMenu(event);
+          if (!disableContextMenu) {
+            openBackgroundContextMenu(event);
+          }
         }}
       >
         {files.length === 0 ? (
@@ -506,6 +530,8 @@ export function FileManager({
             onItemClick={selectItem}
             onItemDoubleClick={(item) => openItem(item)}
             onItemContextMenu={openContextMenu}
+            onSecondaryAction={onSecondaryAction}
+            onSecondaryNavigation={onSecondaryNavigation}
           />
         )}
       </div>
@@ -513,6 +539,8 @@ export function FileManager({
         (() => {
           const manageable = isManageable(menu.item);
           const moveTargets: MoveTarget[] = getMoveTargets ? getMoveTargets(menu.item) : ['drive', 'assets', 'signed'];
+          const customSections = getItemContextMenuSections?.(menu.item);
+          const hasCustomSections = Boolean(customSections && customSections.length > 0);
 
           return (
         <div
@@ -526,31 +554,59 @@ export function FileManager({
           <div className="truncate px-2 py-1.5 text-xs font-medium text-muted-foreground">
             {menu.item.name}
           </div>
-          <ContextMenuButton icon={Eye} label="Open" onClick={() => openItem(menu.item)} disabled={busyItemId === menu.item.id} />
-          <div className="-mx-1 my-1 h-px bg-muted" />
-          <ContextMenuButton icon={Edit3} label="Rename" onClick={() => renameItem(menu.item)} disabled={busyItemId === menu.item.id || !manageable} />
-          {moveTargets.map((target) => (
-            <ContextMenuButton
-              key={target}
-              icon={FolderInput}
-              label={`Move to ${target === 'drive' ? 'Drive' : target === 'assets' ? 'Assets' : 'Signed'}`}
-              onClick={() => moveItem(menu.item, target)}
-              disabled={busyItemId === menu.item.id || !manageable}
-            />
-          ))}
-          <div className="-mx-1 my-1 h-px bg-muted" />
-          <ContextMenuButton icon={Share2} label="Share" onClick={() => setMenu(null)} disabled />
-          <ContextMenuButton icon={Copy} label="Make a copy" onClick={() => setMenu(null)} disabled />
-          <ContextMenuButton icon={Download} label="Download" onClick={() => setMenu(null)} disabled />
-          <div className="-mx-1 my-1 h-px bg-muted" />
-          <ContextMenuButton
-            icon={Trash2}
-            label="Delete"
-            onClick={() => deleteItem(menu.item)}
-            disabled={busyItemId === menu.item.id || !manageable}
-            className="text-destructive focus:bg-destructive focus:text-destructive-foreground"
-          />
-          <ContextMenuButton icon={MoreHorizontal} label="Properties" onClick={() => setMenu(null)} disabled />
+          {hasCustomSections ? (
+            customSections?.map((section, sectionIndex) => (
+              <React.Fragment key={`${menu.item.id}-section-${sectionIndex}`}>
+                {sectionIndex > 0 ? <div className="-mx-1 my-1 h-px bg-muted" /> : null}
+                {section.title ? (
+                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                    {section.title}
+                  </div>
+                ) : null}
+                {section.actions.map((action) => (
+                  <ContextMenuButton
+                    key={`${menu.item.id}-${action.label}`}
+                    icon={action.icon}
+                    label={action.label}
+                    onClick={() => {
+                      setMenu(null);
+                      action.onClick();
+                    }}
+                    disabled={action.disabled}
+                    className={action.className}
+                  />
+                ))}
+              </React.Fragment>
+            ))
+          ) : (
+            <>
+              <ContextMenuButton icon={Eye} label="Open" onClick={() => openItem(menu.item)} disabled={busyItemId === menu.item.id} />
+              <div className="-mx-1 my-1 h-px bg-muted" />
+              <ContextMenuButton icon={Edit3} label="Rename" onClick={() => renameItem(menu.item)} disabled={busyItemId === menu.item.id || !manageable} />
+              {moveTargets.map((target) => (
+                <ContextMenuButton
+                  key={target}
+                  icon={FolderInput}
+                  label={`Move to ${target === 'drive' ? 'Drive' : target === 'assets' ? 'Assets' : 'Signed'}`}
+                  onClick={() => moveItem(menu.item, target)}
+                  disabled={busyItemId === menu.item.id || !manageable}
+                />
+              ))}
+              <div className="-mx-1 my-1 h-px bg-muted" />
+              <ContextMenuButton icon={Share2} label="Share" onClick={() => setMenu(null)} disabled />
+              <ContextMenuButton icon={Copy} label="Make a copy" onClick={() => setMenu(null)} disabled />
+              <ContextMenuButton icon={Download} label="Download" onClick={() => setMenu(null)} disabled />
+              <div className="-mx-1 my-1 h-px bg-muted" />
+              <ContextMenuButton
+                icon={Trash2}
+                label="Delete"
+                onClick={() => deleteItem(menu.item)}
+                disabled={busyItemId === menu.item.id || !manageable}
+                className="text-destructive focus:bg-destructive focus:text-destructive-foreground"
+              />
+              <ContextMenuButton icon={MoreHorizontal} label="Properties" onClick={() => setMenu(null)} disabled />
+            </>
+          )}
         </div>
           );
         })()
