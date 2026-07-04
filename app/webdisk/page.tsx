@@ -34,6 +34,14 @@ interface WebDiskFolder {
   count: number;
 }
 
+interface WebDiskFolderRecord {
+  id: string;
+  name: string;
+  path: string;
+  folder_type: string;
+  type: string;
+}
+
 const WEBDISK_TYPES = [
   { id: 'assets', label: 'Assets' },
   { id: 'signed', label: 'Signed' },
@@ -42,16 +50,24 @@ const WEBDISK_SKELETON_ROWS = 8;
 
 const MEMBER_AVATAR = PlaceHolderImages.find((image) => image.id === 'avatar1') || PlaceHolderImages[0];
 
-function getAccountRelativePath(file: WebDiskRecord) {
-  const cleanPath = (file.cdn_path || file.id || '').replace(/^\/+/, '');
+function getAccountRelativePathFromStoragePath(storagePath: string) {
+  const cleanPath = storagePath.replace(/^\/+/, '');
   const uploadsPrefix = 'uploads/';
   const withoutUploads = cleanPath.startsWith(uploadsPrefix) ? cleanPath.slice(uploadsPrefix.length) : cleanPath;
   const [, ...rest] = withoutUploads.split('/');
   return rest.join('/');
 }
 
+function getAccountRelativePath(file: WebDiskRecord) {
+  return getAccountRelativePathFromStoragePath(file.cdn_path || file.id || '');
+}
+
 function getTypedRelativePath(file: WebDiskRecord) {
   const relativePath = getAccountRelativePath(file);
+  return getTypedRelativePathFromStoragePath(relativePath);
+}
+
+function getTypedRelativePathFromStoragePath(relativePath: string) {
   const [rawType, ...rest] = relativePath.split('/');
   const maybeType = rawType?.toLowerCase() || '';
   if (WEBDISK_TYPES.some((type) => type.id === maybeType)) {
@@ -201,9 +217,11 @@ function WebdiskSkeleton() {
 
 function WebdiskContent() {
   const [files, setFiles] = React.useState<WebDiskRecord[]>([]);
+  const [folderRecords, setFolderRecords] = React.useState<WebDiskFolderRecord[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [operatingPath, setOperatingPath] = React.useState<string | null>(null);
+  const [sortMode, setSortMode] = React.useState('name-asc');
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedTypeParam = searchParams.get('type');
@@ -213,24 +231,40 @@ function WebdiskContent() {
   const fetchFiles = React.useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('/bridge/api.v1/webdisk/files');
-      if (!response.ok) {
+      const [fileResponse, assetsFolderResponse, signedFolderResponse] = await Promise.all([
+        fetch('/bridge/api.v1/webdisk/files'),
+        fetch('/bridge/api.v1/list?type=assets&limit=500'),
+        fetch('/bridge/api.v1/list?type=signed&limit=500'),
+      ]);
+
+      const failedResponse = [fileResponse, assetsFolderResponse, signedFolderResponse].find((response) => !response.ok);
+      if (failedResponse) {
         let responseData: unknown = null;
         try {
-          responseData = await response.json();
+          responseData = await failedResponse.json();
         } catch {
-          responseData = await response.text().catch(() => '');
+          responseData = await failedResponse.text().catch(() => '');
         }
         const error = new Error('Failed to fetch files') as Error & {
           status?: number;
           response?: unknown;
         };
-        error.status = response.status;
+        error.status = failedResponse.status;
         error.response = responseData;
         throw error;
       }
-      const data = await response.json();
-      setFiles(data);
+
+      const [fileData, assetsFolderData, signedFolderData] = await Promise.all([
+        fileResponse.json(),
+        assetsFolderResponse.json(),
+        signedFolderResponse.json(),
+      ]);
+
+      setFiles(fileData);
+      setFolderRecords([
+        ...((assetsFolderData?.files || []).filter((item: WebDiskFolderRecord) => item.type === 'folder')),
+        ...((signedFolderData?.files || []).filter((item: WebDiskFolderRecord) => item.type === 'folder')),
+      ]);
       setError(null);
     } catch (err) {
       const message = await handleClientError(err, 'WebDiskPage', {
@@ -270,6 +304,38 @@ function WebdiskContent() {
     const currentFiles: WebDiskRecord[] = [];
     const pathPrefix = selectedPath ? `${selectedPath}/` : '';
 
+    for (const folderRecord of folderRecords) {
+      const location = getTypedRelativePathFromStoragePath(getAccountRelativePathFromStoragePath(folderRecord.path));
+      if (location.type !== selectedType) continue;
+      const relativeFolderPath = location.path;
+
+      if (selectedPath && relativeFolderPath !== selectedPath && !relativeFolderPath.startsWith(pathPrefix)) continue;
+      const remaining = selectedPath ? relativeFolderPath.slice(pathPrefix.length) : relativeFolderPath;
+      const [nextSegment, ...rest] = remaining.split('/');
+
+      if (!nextSegment) continue;
+      if (rest.length === 0) {
+        const folderPath = childPath(selectedPath, nextSegment);
+        folders.set(folderPath, {
+          id: folderRecord.id,
+          name: folderRecord.name,
+          type: location.type,
+          path: folderPath,
+          count: folders.get(folderPath)?.count || 0,
+        });
+      } else {
+        const nextPath = childPath(selectedPath, nextSegment);
+        const folder = folders.get(nextPath);
+        folders.set(nextPath, {
+          id: folder?.id || `folder:${location.type}:${nextPath || nextSegment}`,
+          name: nextSegment,
+          type: location.type,
+          path: nextPath,
+          count: folder?.count || 0,
+        });
+      }
+    }
+
     for (const item of filesByType) {
       if (item.location.type !== selectedType) continue;
       const relativeFilePath = item.location.path;
@@ -285,7 +351,7 @@ function WebdiskContent() {
         const nextPath = childPath(selectedPath, nextSegment);
         const folder = folders.get(nextPath);
         folders.set(nextPath, {
-          id: `folder:${selectedType}:${nextPath || nextSegment}`,
+          id: folder?.id || `folder:${selectedType}:${nextPath || nextSegment}`,
           name: nextSegment,
           type: selectedType,
           path: nextPath,
@@ -315,7 +381,7 @@ function WebdiskContent() {
       folders: sortedFolders,
       files: currentFiles.sort((a, b) => a.filename.localeCompare(b.filename)),
     };
-  }, [filesByType, selectedPath, selectedType]);
+  }, [filesByType, folderRecords, selectedPath, selectedType]);
 
   const managerItems = React.useMemo<FileOrFolder[]>(() => {
     const folderItems = currentItems.folders.map((folder) => ({
@@ -341,8 +407,12 @@ function WebdiskContent() {
         : [],
     }));
 
-    return [...folderItems, ...fileItems];
-  }, [currentItems.files, currentItems.folders, selectedType]);
+    const combinedItems = [...folderItems, ...fileItems];
+    return combinedItems.sort((left, right) => {
+      const direction = sortMode === 'name-desc' ? -1 : 1;
+      return left.name.localeCompare(right.name) * direction;
+    });
+  }, [currentItems.files, currentItems.folders, selectedType, sortMode]);
 
   const recordsById = React.useMemo(() => new Map(
     currentItems.files.map((file) => [file.cdn_path || file.id, file])
@@ -503,13 +573,35 @@ function WebdiskContent() {
             subtitle="Browse CDN-backed web files and manage public and signed storage."
             breadcrumbs={breadcrumbs}
             emptyMessage="This WebDisk location is empty."
-            replaceSubtitleWithSelection
             uploadActionHref={webdiskUploadHref(selectedType, selectedPath)}
             uploadActionDescription="Upload a file to this WebDisk location."
+            sortOptions={[
+              { value: 'name-asc', label: 'Name (A to Z)' },
+              { value: 'name-desc', label: 'Name (Z to A)' },
+            ]}
+            selectedSort={sortMode}
             onOpenItem={handleOpenItem}
             onRenameItem={handleRenameItem}
             onMoveItem={handleMoveItem}
             onDeleteItem={handleDeleteItem}
+            onCreateFolder={async (name) => {
+              const response = await fetch('/bridge/api.v1/folders/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  mode: 'webdisk',
+                  folder_type: selectedType,
+                  internal_path: selectedPath,
+                  name,
+                }),
+              });
+              const data = await response.json().catch(() => null);
+              if (!response.ok || !data?.success) {
+                throw new Error(data?.error || 'Failed to create folder');
+              }
+              await fetchFiles();
+            }}
+            onSortChange={setSortMode}
             getMoveTargets={(item) => item.type === 'folder' ? [] : ['assets', 'signed']}
             canManageItem={(item) => item.type !== 'folder'}
           />

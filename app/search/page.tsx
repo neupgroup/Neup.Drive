@@ -42,14 +42,14 @@ export default async function SearchPage({
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const query = normalizeQuery(resolvedSearchParams?.q);
-  const files = query ? await getDriveFiles({ query }) : [];
+  const files = query ? await getDriveFiles({ query, includeFolders: false }) : [];
 
   return (
     <FileManager
       initialFiles={files}
       title="Search"
-      subtitle={query ? `Results for "${query}"` : 'Search your drive from the header input.'}
-      emptyMessage={query ? `No files found for "${query}".` : 'Enter a search term to find files.'}
+      subtitle={query ? `Drive file results for "${query}"` : 'Search for files in your drive from the header input.'}
+      emptyMessage={query ? `No drive files found for "${query}".` : 'Enter a search term to find files.'}
     />
   );
 }

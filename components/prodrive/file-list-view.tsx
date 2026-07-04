@@ -21,11 +21,13 @@ export function FileListView({
   data,
   selectedIds,
   onItemClick,
+  onItemDoubleClick,
   onItemContextMenu,
 }: {
   data: FileOrFolder[];
   selectedIds?: string[];
   onItemClick?: (item: FileOrFolder, index: number, event: React.MouseEvent) => void;
+  onItemDoubleClick?: (item: FileOrFolder, index: number, event: React.MouseEvent) => void;
   onItemContextMenu?: (event: React.MouseEvent, item: FileOrFolder) => void;
 }) {
   return (
@@ -41,6 +43,7 @@ export function FileListView({
           <Card
             key={item.id}
             onClick={(event) => onItemClick?.(item, index, event)}
+            onDoubleClick={(event) => onItemDoubleClick?.(item, index, event)}
             onContextMenu={(event) => onItemContextMenu?.(event, item)}
             aria-selected={isSelected}
             className={`select-none cursor-default rounded-none border-b-0 shadow-none transition-colors ${

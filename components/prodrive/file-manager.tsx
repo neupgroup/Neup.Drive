@@ -30,6 +30,11 @@ type ContextMenuState = {
   y: number;
 };
 
+type BackgroundMenuState = {
+  x: number;
+  y: number;
+};
+
 type RenameDialogState = {
   item: FileOrFolder;
   baseName: string;
@@ -41,6 +46,11 @@ type RenameDialogState = {
 type BreadcrumbItem = {
   label: string;
   href?: string;
+};
+
+type SortOption = {
+  value: string;
+  label: string;
 };
 
 function splitEditableName(name: string) {
@@ -63,14 +73,17 @@ export function FileManager({
   title = 'My Drive',
   subtitle,
   emptyMessage = 'No files yet.',
-  replaceSubtitleWithSelection = false,
   breadcrumbs = [],
+  sortOptions = [],
+  selectedSort,
   uploadActionHref,
   uploadActionDescription = 'Upload a file to this location.',
   onOpenItem,
   onRenameItem,
   onMoveItem,
   onDeleteItem,
+  onCreateFolder,
+  onSortChange,
   getMoveTargets,
   canManageItem,
 }: {
@@ -78,24 +91,30 @@ export function FileManager({
   title?: string;
   subtitle?: string;
   emptyMessage?: string;
-  replaceSubtitleWithSelection?: boolean;
   breadcrumbs?: BreadcrumbItem[];
+  sortOptions?: SortOption[];
+  selectedSort?: string;
   uploadActionHref?: string;
   uploadActionDescription?: string;
   onOpenItem?: (item: ManagedActionTarget) => void;
   onRenameItem?: (item: ManagedActionTarget, newName: string) => Promise<void> | void;
   onMoveItem?: (item: ManagedActionTarget, target: MoveTarget) => Promise<void> | void;
   onDeleteItem?: (item: ManagedActionTarget) => Promise<void> | void;
+  onCreateFolder?: (name: string) => Promise<void> | void;
+  onSortChange?: (value: string) => void;
   getMoveTargets?: (item: ManagedActionTarget) => MoveTarget[];
   canManageItem?: (item: ManagedActionTarget) => boolean;
 }) {
   const router = useRouter();
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [menu, setMenu] = React.useState<ContextMenuState | null>(null);
+  const [backgroundMenu, setBackgroundMenu] = React.useState<BackgroundMenuState | null>(null);
   const [busyItemId, setBusyItemId] = React.useState<string | null>(null);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [lastSelectedId, setLastSelectedId] = React.useState<string | null>(null);
   const [renameDialog, setRenameDialog] = React.useState<RenameDialogState>(null);
+  const [createFolderDialogOpen, setCreateFolderDialogOpen] = React.useState(false);
+  const [createFolderName, setCreateFolderName] = React.useState('');
   const files = React.useMemo(() => {
     if (!uploadActionHref) return initialFiles;
 
@@ -126,9 +145,12 @@ export function FileManager({
   }, [files]);
 
   React.useEffect(() => {
-    if (!menu) return;
+    if (!menu && !backgroundMenu) return;
 
-    const close = () => setMenu(null);
+    const close = () => {
+      setMenu(null);
+      setBackgroundMenu(null);
+    };
     window.addEventListener('click', close);
     window.addEventListener('keydown', close);
     window.addEventListener('scroll', close, true);
@@ -138,10 +160,10 @@ export function FileManager({
       window.removeEventListener('keydown', close);
       window.removeEventListener('scroll', close, true);
     };
-  }, [menu]);
+  }, [backgroundMenu, menu]);
 
   React.useEffect(() => {
-    if (selectedIds.length === 0 && !menu) return;
+    if (selectedIds.length === 0 && !menu && !backgroundMenu) return;
 
     const handlePointerDown = (event: MouseEvent) => {
       if (!containerRef.current) return;
@@ -150,13 +172,14 @@ export function FileManager({
       setSelectedIds([]);
       setLastSelectedId(null);
       setMenu(null);
+      setBackgroundMenu(null);
     };
 
     window.addEventListener('pointerdown', handlePointerDown);
     return () => {
       window.removeEventListener('pointerdown', handlePointerDown);
     };
-  }, [menu, selectedIds.length]);
+  }, [backgroundMenu, menu, selectedIds.length]);
 
   const openContextMenu = React.useCallback((event: React.MouseEvent, item: FileOrFolder) => {
     if (item.type === 'action') return;
@@ -171,11 +194,28 @@ export function FileManager({
 
     setSelectedIds((current) => (current.includes(item.id) ? current : [item.id]));
     setLastSelectedId(item.id);
+    setBackgroundMenu(null);
     setMenu({ item, x: Math.max(8, x), y: Math.max(8, y) });
+  }, []);
+
+  const openBackgroundContextMenu = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const menuWidth = 240;
+    const menuHeight = 260;
+    const x = Math.min(event.clientX, window.innerWidth - menuWidth - 8);
+    const y = Math.min(event.clientY, window.innerHeight - menuHeight - 8);
+
+    setSelectedIds([]);
+    setLastSelectedId(null);
+    setMenu(null);
+    setBackgroundMenu({ x: Math.max(8, x), y: Math.max(8, y) });
   }, []);
 
   const selectItem = React.useCallback((item: FileOrFolder, index: number, event: React.MouseEvent) => {
     setMenu(null);
+    setBackgroundMenu(null);
 
     if (item.type === 'action') {
       if (item.actionHref) {
@@ -223,6 +263,7 @@ export function FileManager({
   ) => {
     setBusyItemId(item.id);
     setMenu(null);
+    setBackgroundMenu(null);
 
     try {
       const response = await fetch('/bridge/api.v1/drive/files/operation', {
@@ -283,6 +324,7 @@ export function FileManager({
   ) => {
     setBusyItemId(item.id);
     setMenu(null);
+    setBackgroundMenu(null);
 
     try {
       await action();
@@ -358,6 +400,7 @@ export function FileManager({
 
   const openItem = React.useCallback((item: FileOrFolder) => {
     setMenu(null);
+    setBackgroundMenu(null);
 
     if (item.type === 'action' && item.actionHref) {
       router.push(item.actionHref);
@@ -372,6 +415,25 @@ export function FileManager({
     router.push(`/viewer/${encodeURIComponent(item.id)}`);
   }, [onOpenItem, router]);
 
+  const submitCreateFolder = React.useCallback(async () => {
+    if (!onCreateFolder) return;
+
+    const trimmedName = createFolderName.trim();
+    if (!trimmedName) return;
+
+    try {
+      await onCreateFolder(trimmedName);
+      setCreateFolderName('');
+      setCreateFolderDialogOpen(false);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Folder creation failed',
+        description: error instanceof Error ? error.message : 'Something went wrong.',
+      });
+    }
+  }, [createFolderName, onCreateFolder]);
+
   return (
     <div
       ref={containerRef}
@@ -381,6 +443,7 @@ export function FileManager({
           setSelectedIds([]);
           setLastSelectedId(null);
           setMenu(null);
+          setBackgroundMenu(null);
         }
       }}
       onContextMenu={(event) => {
@@ -390,20 +453,11 @@ export function FileManager({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold font-headline tracking-tight">{title}</h1>
-          {replaceSubtitleWithSelection ? (
+          {subtitle || selectionSummary ? (
             <p className={`mt-1 text-sm ${selectionSummary ? 'font-medium text-primary' : 'text-muted-foreground'}`}>
               {selectionSummary || subtitle}
             </p>
-          ) : (
-            <>
-              {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
-              {selectionSummary ? (
-                <p className="mt-1 text-sm font-medium text-primary">
-                  {selectionSummary}
-                </p>
-              ) : null}
-            </>
-          )}
+          ) : null}
           {breadcrumbs.length > 0 ? (
             <nav aria-label={`${title} breadcrumb`} className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
               {breadcrumbs.map((item, index) => (
@@ -425,20 +479,36 @@ export function FileManager({
           ) : null}
         </div>
       </div>
-      {files.length === 0 ? (
-        <Card>
-          <CardContent className="flex min-h-48 items-center justify-center p-6 text-sm text-muted-foreground">
-            {emptyMessage}
-          </CardContent>
-        </Card>
-      ) : (
-        <FileListView
-          data={files}
-          selectedIds={selectedIds}
-          onItemClick={selectItem}
-          onItemContextMenu={openContextMenu}
-        />
-      )}
+      <div
+        className="min-h-[45vh]"
+        onClick={(event) => {
+          if (event.target === event.currentTarget) {
+            setSelectedIds([]);
+            setLastSelectedId(null);
+            setMenu(null);
+            setBackgroundMenu(null);
+          }
+        }}
+        onContextMenu={(event) => {
+          openBackgroundContextMenu(event);
+        }}
+      >
+        {files.length === 0 ? (
+          <Card>
+            <CardContent className="flex min-h-48 items-center justify-center p-6 text-sm text-muted-foreground">
+              {emptyMessage}
+            </CardContent>
+          </Card>
+        ) : (
+          <FileListView
+            data={files}
+            selectedIds={selectedIds}
+            onItemClick={selectItem}
+            onItemDoubleClick={(item) => openItem(item)}
+            onItemContextMenu={openContextMenu}
+          />
+        )}
+      </div>
       {menu ? (
         (() => {
           const manageable = isManageable(menu.item);
@@ -485,6 +555,88 @@ export function FileManager({
           );
         })()
       ) : null}
+      {backgroundMenu ? (
+        <div
+          role="menu"
+          aria-label={`${title} page actions`}
+          className="fixed z-50 w-60 rounded-md border bg-popover p-1 text-popover-foreground shadow-lg"
+          style={{ left: backgroundMenu.x, top: backgroundMenu.y }}
+          onClick={(event) => event.stopPropagation()}
+          onContextMenu={(event) => event.preventDefault()}
+        >
+          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+            Page actions
+          </div>
+          {onCreateFolder ? (
+            <ContextMenuButton
+              icon={FolderInput}
+              label="Create new folder"
+              onClick={() => {
+                setBackgroundMenu(null);
+                setCreateFolderDialogOpen(true);
+              }}
+            />
+          ) : null}
+          {sortOptions.length > 0 ? (
+            <>
+              <div className="-mx-1 my-1 h-px bg-muted" />
+              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                Sort by
+              </div>
+              {sortOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="menuitem"
+                  className={`flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground ${
+                    selectedSort === option.value ? 'font-semibold text-foreground' : ''
+                  }`}
+                  onClick={() => {
+                    onSortChange?.(option.value);
+                    setBackgroundMenu(null);
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </>
+          ) : null}
+        </div>
+      ) : null}
+      <Dialog open={createFolderDialogOpen} onOpenChange={setCreateFolderDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Folder</DialogTitle>
+            <DialogDescription>
+              Add a new folder to the current location.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="create-folder-name">Folder name</Label>
+            <Input
+              id="create-folder-name"
+              value={createFolderName}
+              onChange={(event) => setCreateFolderName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  void submitCreateFolder();
+                }
+              }}
+              placeholder="New folder"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateFolderDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => void submitCreateFolder()}>
+              Create folder
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={renameDialog !== null} onOpenChange={(open) => !open && setRenameDialog(null)}>
         <DialogContent className="max-w-md rounded-3xl border-slate-200/80 bg-white/95 p-0 shadow-2xl shadow-slate-900/10 backdrop-blur">

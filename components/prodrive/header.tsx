@@ -9,7 +9,6 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Logo } from '@/components/icons';
 import { MobileNavLinks } from './nav-links';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { cn } from '@/core/lib/utils';
 
 
 function MobileSidebar() {
@@ -59,15 +58,9 @@ function MobileSidebar() {
 
 
 export function Header() {
-  const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = React.useState(searchParams.get('q') ?? '');
-  const headerNavLinks = [
-    { href: '/', label: 'Files' },
-    { href: '/shared', label: 'Shared' },
-    { href: '/recents', label: 'Recent' },
-  ];
 
   React.useEffect(() => {
     setQuery(searchParams.get('q') ?? '');
@@ -94,23 +87,6 @@ export function Header() {
           <Logo className="h-6 w-6 transition-all hover:scale-110" />
           <span className="font-bold">Neup.Drive</span>
         </Link>
-        <nav className="hidden md:flex items-center gap-6 ml-8">
-          {headerNavLinks.map((link) => {
-            const isActive = pathname === link.href;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  'rounded-xl px-3 py-2 text-sm font-medium transition-colors hover:bg-blue-500/8 hover:text-blue-700 active:bg-blue-500/8',
-                  isActive ? 'bg-blue-500/12 text-blue-700' : 'text-muted-foreground'
-                )}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
         <form onSubmit={handleSearchSubmit} className="relative flex-1 ml-auto max-w-md">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input

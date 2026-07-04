@@ -78,14 +78,24 @@ export function DrivePageManager({
   files: FileOrFolder[];
 }) {
   const router = useRouter();
+  const [sortMode, setSortMode] = React.useState('name-asc');
   const breadcrumbs = React.useMemo(() => buildDriveBreadcrumbs(currentPath), [currentPath]);
   const uploadActionHref = React.useMemo(() => buildDriveUploadHref(currentPath), [currentPath]);
+  const sortedFiles = React.useMemo(() => [...files].sort((left, right) => {
+    const direction = sortMode === 'name-desc' ? -1 : 1;
+    return left.name.localeCompare(right.name) * direction;
+  }), [files, sortMode]);
 
   return (
     <FileManager
-      initialFiles={files}
+      initialFiles={sortedFiles}
       subtitle="Browse your uploaded files and folders."
       breadcrumbs={breadcrumbs}
+      sortOptions={[
+        { value: 'name-asc', label: 'Name (A to Z)' },
+        { value: 'name-desc', label: 'Name (Z to A)' },
+      ]}
+      selectedSort={sortMode}
       uploadActionHref={uploadActionHref}
       uploadActionDescription="Upload a file to your drive."
       onOpenItem={(item) => {
@@ -93,6 +103,24 @@ export function DrivePageManager({
         const nextPath = item.id.startsWith('folder:') ? item.id.slice('folder:'.length) : item.name;
         router.push(`/?path=${encodeURIComponent(nextPath)}`);
       }}
+      onCreateFolder={async (name) => {
+        const response = await fetch('/bridge/api.v1/folders/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: 'drive',
+            folder_type: 'drive',
+            internal_path: currentPath,
+            name,
+          }),
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data?.success) {
+          throw new Error(data?.error || 'Failed to create folder');
+        }
+        router.refresh();
+      }}
+      onSortChange={setSortMode}
       getMoveTargets={(item) => item.type === 'folder' ? [] : ['drive', 'assets', 'signed']}
       canManageItem={(item) => item.type !== 'folder'}
     />

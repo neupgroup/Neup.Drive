@@ -115,11 +115,13 @@ export async function getDriveFiles({
   owner = DEFAULT_DRIVE_OWNER,
   query,
   internalPath,
+  includeFolders = true,
   take = 100,
 }: {
   owner?: string;
   query?: string;
   internalPath?: string;
+  includeFolders?: boolean;
   take?: number;
 } = {}): Promise<FileOrFolder[]> {
   const trimmedQuery = query?.trim();
@@ -144,6 +146,7 @@ export async function getDriveFiles({
 
   const activeRows = rows.filter((row) => isActiveFileDetails(row.details));
   const folders = new Map<string, number>();
+  const explicitFolderPaths = new Set<string>();
   const files: FileOrFolder[] = [];
   const pathPrefix = currentPath ? `${currentPath}/` : '';
 
@@ -158,9 +161,15 @@ export async function getDriveFiles({
     if (!nextSegment) continue;
 
     if (rest.length > 0) {
+      if (!includeFolders) continue;
       const folderPath = currentPath ? `${currentPath}/${nextSegment}` : nextSegment;
       folders.set(folderPath, (folders.get(folderPath) || 0) + 1);
       continue;
+    }
+
+    if (row.type === 'folder') {
+      if (!includeFolders) continue;
+      explicitFolderPaths.add(relativePath);
     }
 
     const details = getDetails(row.details);
@@ -179,7 +188,8 @@ export async function getDriveFiles({
     });
   }
 
-  const folderItems: FileOrFolder[] = Array.from(folders.entries())
+  const folderItems: FileOrFolder[] = includeFolders ? Array.from(folders.entries())
+    .filter(([folderPath]) => !explicitFolderPaths.has(folderPath))
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([folderPath, count]) => ({
       id: `folder:${folderPath}`,
@@ -189,7 +199,7 @@ export async function getDriveFiles({
       storageTier: 'cold',
       lastModified: `${count} item${count === 1 ? '' : 's'}`,
       members: [],
-    }));
+    })) : [];
 
   return [...folderItems, ...files];
 }
