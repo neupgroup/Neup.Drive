@@ -48,6 +48,9 @@
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/data.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/bridge-api.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/account/connection/sign&get/route.ts`.
+- [ ] Add `::neup.documentation::` source documentation for `prisma/migrations/20260607120000_create_filefolder/migration.sql`.
+- [ ] Add `::neup.documentation::` source documentation for `prisma/migrations/20260607170000_add_filefolder_stored_as/migration.sql`.
+- [ ] Add `::neup.documentation::` source documentation for `prisma/migrations/20260704163000_add_filefolder_activity/migration.sql`.
 - [ ] Add `::neup.documentation::` source documentation for `prisma/migrations/20260705093000_drop_user_and_account_role/migration.sql`.
 - [ ] Add `::neup.documentation::` source documentation for `components/ui/card.tsx`.
 - [ ] Fix `npx tsc --noEmit` error in `components/ui/calendar.tsx`: `IconLeft` is not a valid `CustomComponents` property.

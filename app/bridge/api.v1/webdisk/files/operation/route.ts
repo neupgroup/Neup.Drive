@@ -5,7 +5,7 @@ import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnTo
 import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
 import { logToDatabase } from '@/core/lib/error-server';
-import { buildFileFolderActivityUpdate, webdiskStoredAs } from '@/core/lib/filefolder';
+import { buildFileFolderActivityUpdate, isDirectoryDetails, webdiskStoredAs } from '@/core/lib/filefolder';
 import { buildBridgeTrashPath, getTrashDeletesIn, isMissingCdnFileError, isReservedWebdiskRootFolder } from '@/core/lib/bridge-api';
 import { ErrorType } from '@/core/lib/error-types';
 
@@ -242,7 +242,7 @@ async function syncFilefolderOperation(params: {
                     ? 'deleted'
                     : 'restored';
         const activityUpdate = buildFileFolderActivityUpdate({
-            currentActivity: filefolder.activity,
+            currentActivity: filefolder.last_activity,
             action: activityAction,
             details: {
                 path: params.finalPath,
@@ -257,7 +257,8 @@ async function syncFilefolderOperation(params: {
                 where: { id: filefolder.id },
                 data: {
                     path: params.finalPath,
-                    stored_as: 'trash',
+                    type: params.currentType === 'signed' ? 'signed' : 'assets',
+                    stored_as: params.currentType === 'signed' ? 'signed' : 'assets',
                     details: {
                         ...details,
                         mode: 'trash',
@@ -269,7 +270,7 @@ async function syncFilefolderOperation(params: {
                         deletes_in: getTrashDeletesIn(now),
                         trash_path: params.finalPath,
                     },
-                    activity: activityUpdate.activity,
+                    last_activity: activityUpdate.last_activity,
                     lastActivityOn: activityUpdate.lastActivityOn,
                     totalActivity: activityUpdate.totalActivity,
                 },
@@ -289,6 +290,7 @@ async function syncFilefolderOperation(params: {
                 where: { id: filefolder.id },
                 data: {
                     path: params.finalPath,
+                    type: webdiskStoredAs(params.nextType),
                     stored_as: webdiskStoredAs(params.nextType),
                     details: {
                         ...restoredDetails,
@@ -298,7 +300,7 @@ async function syncFilefolderOperation(params: {
                         previous_path: params.sourcePath,
                         status: 'VERIFIED',
                     },
-                    activity: activityUpdate.activity,
+                    last_activity: activityUpdate.last_activity,
                     lastActivityOn: activityUpdate.lastActivityOn,
                     totalActivity: activityUpdate.totalActivity,
                 },
@@ -311,6 +313,7 @@ async function syncFilefolderOperation(params: {
             data: {
                 name: params.nextName ?? filefolder.name,
                 path: params.finalPath,
+                type: webdiskStoredAs(params.nextType),
                 stored_as: webdiskStoredAs(params.nextType),
                 details: {
                     ...details,
@@ -319,7 +322,7 @@ async function syncFilefolderOperation(params: {
                     previous_path: params.sourcePath,
                     status: typeof details.status === 'string' ? details.status : 'VERIFIED',
                 },
-                activity: activityUpdate.activity,
+                last_activity: activityUpdate.last_activity,
                 lastActivityOn: activityUpdate.lastActivityOn,
                 totalActivity: activityUpdate.totalActivity,
             },
@@ -346,16 +349,6 @@ async function syncFolderDescendants(params: {
         },
         orderBy: { created_on: 'asc' },
     });
-    const files = await prisma.file.findMany({
-        where: {
-            userId: WEBDISK_ACCOUNT_ID,
-            OR: [
-                { path: params.sourcePath },
-                { path: { startsWith: `${params.sourcePath}/` } },
-            ],
-        },
-        orderBy: { createdAt: 'asc' },
-    });
     const now = new Date();
     const deletesIn = getTrashDeletesIn(now);
 
@@ -370,7 +363,7 @@ async function syncFolderDescendants(params: {
                     : replacePathPrefix(filefolder.path, params.sourcePath, params.finalPath)
                 : replacePathPrefix(filefolder.path, params.sourcePath, params.finalPath);
             const activityUpdate = buildFileFolderActivityUpdate({
-                currentActivity: filefolder.activity,
+                currentActivity: filefolder.last_activity,
                 action: params.action === 'delete' ? 'deleted' : 'restored',
                 details: {
                     path: nextPath,
@@ -384,7 +377,8 @@ async function syncFolderDescendants(params: {
                     where: { id: filefolder.id },
                     data: {
                         path: nextPath,
-                        stored_as: 'trash',
+                        type: params.currentType === 'signed' ? 'signed' : 'assets',
+                        stored_as: params.currentType === 'signed' ? 'signed' : 'assets',
                         details: {
                             ...details,
                             mode: 'trash',
@@ -396,7 +390,7 @@ async function syncFolderDescendants(params: {
                             deletes_in: deletesIn,
                             trash_path: nextPath,
                         },
-                        activity: activityUpdate.activity,
+                        last_activity: activityUpdate.last_activity,
                         lastActivityOn: activityUpdate.lastActivityOn,
                         totalActivity: activityUpdate.totalActivity,
                     },
@@ -414,6 +408,7 @@ async function syncFolderDescendants(params: {
                 where: { id: filefolder.id },
                 data: {
                     path: nextPath,
+                    type: webdiskStoredAs(params.nextType),
                     stored_as: webdiskStoredAs(params.nextType),
                     details: {
                         ...restoredDetails,
@@ -423,21 +418,9 @@ async function syncFolderDescendants(params: {
                         previous_path: filefolder.path,
                         status: 'VERIFIED',
                     },
-                    activity: activityUpdate.activity,
+                    last_activity: activityUpdate.last_activity,
                     lastActivityOn: activityUpdate.lastActivityOn,
                     totalActivity: activityUpdate.totalActivity,
-                },
-            });
-        }),
-        ...files.map((file) => {
-            const nextPath = params.action === 'restore'
-                ? replacePathPrefix(file.path, params.sourcePath, params.finalPath)
-                : replacePathPrefix(file.path, params.sourcePath, params.finalPath);
-            return prisma.file.update({
-                where: { id: file.id },
-                data: {
-                    path: nextPath,
-                    status: params.action === 'delete' ? 'TRASHED' : 'VERIFIED',
                 },
             });
         }),
@@ -503,7 +486,7 @@ export async function POST(request: NextRequest) {
         let newName: string | undefined;
         let nextType = currentType;
         let cdnAction: Extract<WebdiskOperationAction, 'rename' | 'move' | 'delete'> = body.action === 'restore' ? 'move' : body.action;
-        const isFolder = explicitFilefolder?.type === 'folder';
+        const isFolder = explicitFilefolder ? isDirectoryDetails(explicitFilefolder.details) : false;
 
         if (body.action === 'rename') {
             newName = assertSafePathSegment((body.new_name || '').trim(), 'new_name');
@@ -517,7 +500,7 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'The "signed" folder name is reserved at the top level of assets' }, { status: 400 });
             }
             const filename = path.posix.basename(sourcePath);
-            destinationPath = path.posix.join('uploads', WEBDISK_ACCOUNT_ID, destinationType, destinationFolder, filename);
+            destinationPath = path.posix.join(WEBDISK_ACCOUNT_ID, destinationType, destinationFolder, filename);
             nextType = destinationType;
         }
 

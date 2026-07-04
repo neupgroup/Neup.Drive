@@ -5,7 +5,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
 import { appendBridgeFileAccessLog } from '@/core/lib/file-access-log';
-import { buildFileFolderActivityUpdate, createFileFolderLog } from '@/core/lib/filefolder';
+import { buildFileFolderActivityUpdate, createFileFolderLog, isDirectoryDetails } from '@/core/lib/filefolder';
 import { buildBridgeTrashPath, getDetails, getTrashDeletesIn, isActiveFileDetails } from '@/core/lib/bridge-api';
 
 /*
@@ -78,7 +78,7 @@ async function syncFolderDescendants(params: {
                     : replacePathPrefix(row.path, params.currentPath, params.finalPath)
                 : replacePathPrefix(row.path, params.currentPath, params.finalPath);
             const activityUpdate = buildFileFolderActivityUpdate({
-                currentActivity: row.activity,
+                currentActivity: row.last_activity,
                 action: params.action === 'delete' ? 'deleted' : 'restored',
                 details: {
                     path: nextPath,
@@ -92,7 +92,8 @@ async function syncFolderDescendants(params: {
                     where: { id: row.id },
                     data: {
                         path: nextPath,
-                        stored_as: 'trash',
+                        type: params.currentFolderType === 'signed' ? 'signed' : params.currentFolderType === 'assets' ? 'assets' : 'drive',
+                        stored_as: params.currentFolderType === 'signed' ? 'signed' : params.currentFolderType === 'assets' ? 'assets' : 'drive',
                         details: {
                             ...rowDetails,
                             mode: 'trash',
@@ -104,7 +105,7 @@ async function syncFolderDescendants(params: {
                             deletes_in: deletesIn,
                             trash_path: nextPath,
                         },
-                        activity: activityUpdate.activity,
+                        last_activity: activityUpdate.last_activity,
                         lastActivityOn: activityUpdate.lastActivityOn,
                         totalActivity: activityUpdate.totalActivity,
                     },
@@ -122,7 +123,8 @@ async function syncFolderDescendants(params: {
                 where: { id: row.id },
                 data: {
                     path: nextPath,
-                    stored_as: 'drivefile',
+                    type: 'drive',
+                    stored_as: 'drive',
                     details: {
                         ...restoredDetails,
                         mode: params.nextFolderType,
@@ -131,41 +133,18 @@ async function syncFolderDescendants(params: {
                         previous_path: row.path,
                         status: 'VERIFIED',
                     },
-                    activity: activityUpdate.activity,
+                    last_activity: activityUpdate.last_activity,
                     lastActivityOn: activityUpdate.lastActivityOn,
                     totalActivity: activityUpdate.totalActivity,
                 },
             });
         }),
-        ...descendantRows
-            .filter((row) => row.type !== 'folder')
-            .map((row) => {
-                const rowDetails = getDetails(row.details);
-                const storagePath = typeof rowDetails.storage_path === 'string' ? rowDetails.storage_path : row.path;
-                return prisma.file.updateMany({
-                    where: { path: storagePath },
-                    data: {
-                        status: params.action === 'delete' ? 'TRASHED' : 'VERIFIED',
-                    },
-                });
-            }),
     ]);
-}
-
-function getStoragePathFromDetails(details: Prisma.JsonObject, fallbackPath: string) {
-    return typeof details.storage_path === 'string' ? details.storage_path : fallbackPath;
 }
 
 function buildLogicalDestinationPath(owner: string, filename: string, destinationInternalPath?: string) {
     const normalizedPath = destinationInternalPath ? normalizeInternalPath(destinationInternalPath) : '';
     return path.posix.join(owner, 'drive', normalizedPath, filename);
-}
-
-async function updateSingleDriveFileStatus(storagePath: string, data: { status: string; name?: string }) {
-    await prisma.file.updateMany({
-        where: { path: storagePath },
-        data,
-    });
 }
 
 const FOLDER_TYPES = new Set(['drive', 'assets', 'signed']);
@@ -263,7 +242,7 @@ export async function POST(request: NextRequest) {
             destinationPath = makeDestinationPath(filefolder.owner, nextFolderType, filefolder.name, operation.destination_internal_path);
         }
 
-        const isFolder = filefolder.type === 'folder';
+        const isFolder = isDirectoryDetails(filefolder.details);
 
         if (operation.action === 'delete') {
             nextFolderType = '.trash';
@@ -307,7 +286,7 @@ export async function POST(request: NextRequest) {
                     ? 'deleted'
                     : 'restored';
         const activityUpdate = buildFileFolderActivityUpdate({
-            currentActivity: filefolder.activity,
+            currentActivity: filefolder.last_activity,
             action: activityAction,
             details: {
                 path: finalPath,
@@ -335,7 +314,8 @@ export async function POST(request: NextRequest) {
                 where: { id: filefolder.id },
                 data: {
                     path: finalPath,
-                    stored_as: 'trash',
+                    type: 'drive',
+                    stored_as: 'drive',
                     details: {
                         ...details,
                         mode: 'trash',
@@ -347,12 +327,11 @@ export async function POST(request: NextRequest) {
                         deletes_in: deletesIn,
                         trash_path: finalPath,
                     },
-                    activity: activityUpdate.activity,
+                    last_activity: activityUpdate.last_activity,
                     lastActivityOn: activityUpdate.lastActivityOn,
                     totalActivity: activityUpdate.totalActivity,
                 },
             });
-            await updateSingleDriveFileStatus(getStoragePathFromDetails(details, currentPath), { status: 'TRASHED' });
         } else if (operation.action === 'restore') {
             const {
                 deleted_on: _deletedOn,
@@ -365,7 +344,8 @@ export async function POST(request: NextRequest) {
                 where: { id: filefolder.id },
                 data: {
                     path: finalPath,
-                    stored_as: 'drivefile',
+                    type: 'drive',
+                    stored_as: 'drive',
                     details: {
                         ...restoredDetails,
                         mode: nextFolderType,
@@ -374,33 +354,29 @@ export async function POST(request: NextRequest) {
                         previous_path: currentPath,
                         status: 'VERIFIED',
                     },
-                    activity: activityUpdate.activity,
+                    last_activity: activityUpdate.last_activity,
                     lastActivityOn: activityUpdate.lastActivityOn,
                     totalActivity: activityUpdate.totalActivity,
                 },
             });
-            await updateSingleDriveFileStatus(getStoragePathFromDetails(details, currentPath), { status: 'VERIFIED' });
         } else {
             updatedFilefolder = await prisma.fileFolder.update({
                 where: { id: filefolder.id },
                 data: {
                     name: nextName,
                     path: finalPath,
-                    stored_as: 'drivefile',
+                    type: 'drive',
+                    stored_as: 'drive',
                     details: {
                         ...details,
                         mode: nextFolderType,
                         previous_path: currentPath,
                         status: details.status ?? 'VERIFIED',
                     },
-                    activity: activityUpdate.activity,
+                    last_activity: activityUpdate.last_activity,
                     lastActivityOn: activityUpdate.lastActivityOn,
                     totalActivity: activityUpdate.totalActivity,
                 },
-            });
-            await updateSingleDriveFileStatus(getStoragePathFromDetails(details, currentPath), {
-                name: nextName,
-                status: 'VERIFIED',
             });
         }
 

@@ -33,6 +33,7 @@ maps them into the `FileOrFolder` UI shape used by the drive pages.
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/core/lib/db';
 import { isActiveFileDetails, normalizeInternalPath } from '@/core/lib/bridge-api';
+import { isDirectoryDetails } from '@/core/lib/filefolder';
 import { PlaceHolderImages } from '@/core/lib/placeholder-images';
 import { storageTierFromStoredAs } from '@/core/lib/storage-tiers';
 import type { FileOrFolder } from '@/core/lib/types';
@@ -91,8 +92,8 @@ function formatRecentActivity(date: Date) {
   return `${Math.max(1, days)}d ago`;
 }
 
-function fileTypeFromRecord(type: string, name: string): FileOrFolder['type'] {
-  if (type === 'folder') return 'folder';
+function fileTypeFromRecord(type: string, name: string, details: Prisma.JsonValue): FileOrFolder['type'] {
+  if (isDirectoryDetails(details)) return 'folder';
 
   const extension = name.split('.').pop()?.toLowerCase();
   if (extension === 'pdf') return 'pdf';
@@ -130,7 +131,7 @@ function getRelativePathForStoredAs(storagePath: string, owner: string, storedAs
   const ownerPrefix = `${owner}/`;
   const ownerRelativePath = cleanPath.startsWith(ownerPrefix) ? cleanPath.slice(ownerPrefix.length) : cleanPath;
 
-  if (storedAs === 'drivefile') {
+  if (storedAs === 'drive') {
     return getDriveRelativePath(storagePath, owner);
   }
 
@@ -142,11 +143,9 @@ function getRelativePathForStoredAs(storagePath: string, owner: string, storedAs
 
 function getLocationTypeFromRow(row: {
   stored_as: string;
-  details: Prisma.JsonValue;
 }): FileOrFolder['locationType'] {
-  if (row.stored_as === 'drivefile') return 'drive';
-  const details = getDetails(row.details);
-  return typeof details.folder_type === 'string' && details.folder_type === 'signed' ? 'signed' : 'assets';
+  if (row.stored_as === 'drive') return 'drive';
+  return row.stored_as === 'signed' ? 'signed' : 'assets';
 }
 
 function locationLabel(locationType: FileOrFolder['locationType']) {
@@ -202,7 +201,7 @@ export async function getRecentDriveFiles({
         in: Array.from(new Set([owner, webdiskOwner])),
       },
       stored_as: {
-        in: ['drivefile', 'webfile', 'webfile_signed'],
+        in: ['drive', 'assets', 'signed'],
       },
     },
     orderBy: [
@@ -225,7 +224,7 @@ export async function getRecentDriveFiles({
       return {
         id: row.id,
         name: row.name,
-        type: fileTypeFromRecord(row.type, row.name),
+        type: fileTypeFromRecord(row.type, row.name, row.details),
         size: formatBytes(row.size),
         storageTier: storageTierFromStoredAs(row.stored_as),
         lastModified: formatRecentActivity(activityAt),
@@ -234,7 +233,7 @@ export async function getRecentDriveFiles({
           : [],
         description: activityMessage,
         locationType,
-        navigationPath: row.type === 'folder' ? relativePath : undefined,
+        navigationPath: isDirectoryDetails(row.details) ? relativePath : undefined,
       };
     });
 }
@@ -258,7 +257,7 @@ export async function getDriveFiles({
   const rows = await prisma.fileFolder.findMany({
     where: {
       owner,
-      stored_as: 'drivefile',
+      stored_as: 'drive',
       ...(trimmedQuery
         ? {
             name: {
@@ -295,7 +294,7 @@ export async function getDriveFiles({
       continue;
     }
 
-    if (row.type === 'folder') {
+    if (isDirectoryDetails(row.details)) {
       if (!includeFolders) continue;
       explicitFolderPaths.add(relativePath);
     }
@@ -306,7 +305,7 @@ export async function getDriveFiles({
     files.push({
       id: row.id,
       name: row.name,
-      type: fileTypeFromRecord(row.type, row.name),
+      type: fileTypeFromRecord(row.type, row.name, row.details),
       size: formatBytes(row.size),
       storageTier: storageTierFromStoredAs(row.stored_as),
       lastModified: formatLastModified(row.updated_on),

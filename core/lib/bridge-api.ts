@@ -11,7 +11,7 @@ import {
 } from '@/core/lib/cdn-token';
 import { prisma } from '@/core/lib/db';
 import { appendBridgeFileAccessLog } from '@/core/lib/file-access-log';
-import { createFileFolderLog, fileFolderTypeFromMime, recordFileFolderUpload, webdiskStoredAs } from '@/core/lib/filefolder';
+import { createFileFolderLog, recordFileFolderUpload, webdiskStoredAs } from '@/core/lib/filefolder';
 import { generateNonce } from '@/core/lib/upload-client';
 import type { UploadInitResponse, UploadSignaturePayload } from '@/core/lib/upload-types';
 import { signCdnPayloadBase64 } from '@/core/lib/cdn-token';
@@ -434,18 +434,6 @@ export async function createBridgeUploadInit(params: {
     const expiresAt = Math.floor(Date.now() / 1000) + 15 * 60;
     const uploadSessionId = crypto.randomUUID();
 
-    await prisma.file.create({
-        data: {
-            name: filename,
-            size: BigInt(params.size),
-            mimeType: params.mime,
-            hash: params.fileHash,
-            path: destinationPath,
-            status: 'PENDING',
-            userId: owner,
-        },
-    });
-
     const payload: UploadSignaturePayload = {
         path: destinationPath,
         account_id: owner,
@@ -480,7 +468,7 @@ export async function createBridgeUploadInit(params: {
         owner,
         size: params.size,
         mode: folderType === 'drive' ? 'drive' : 'webdisk',
-        storedAs: folderType === 'drive' ? 'drivefile' : webdiskStoredAs(folderType),
+        storedAs: folderType === 'drive' ? 'drive' : webdiskStoredAs(folderType),
         details: {
             file_id: params.fileId,
             file_hash: params.fileHash,
@@ -657,7 +645,8 @@ export async function organizeBridgeFile(params: {
             where: { id: params.filefolder.id },
             data: {
                 path: finalPath,
-                stored_as: 'trash',
+                type: currentFolderType === 'signed' ? 'signed' : currentFolderType === 'assets' ? 'assets' : 'drive',
+                stored_as: currentFolderType === 'signed' ? 'signed' : currentFolderType === 'assets' ? 'assets' : 'drive',
                 details: {
                     ...details,
                     mode: 'trash',
@@ -671,30 +660,21 @@ export async function organizeBridgeFile(params: {
                 },
             },
         });
-        await prisma.file.updateMany({ where: { path: currentPath }, data: { path: finalPath, status: 'TRASHED' } });
     } else {
         updatedFilefolder = await prisma.fileFolder.update({
             where: { id: params.filefolder.id },
             data: {
                 name: nextName,
                 path: finalPath,
-                type: fileFolderTypeFromMime(typeof details.mimeType === 'string' ? details.mimeType : undefined),
-                stored_as: 'drivefile',
+                type: nextFolderType === 'signed' ? 'signed' : nextFolderType === 'assets' ? 'assets' : 'drive',
+                stored_as: nextFolderType === 'signed' ? 'signed' : nextFolderType === 'assets' ? 'assets' : 'drive',
                 details: {
                     ...details,
-                    mode: 'drive',
+                    mode: nextFolderType === 'drive' ? 'drive' : 'webdisk',
                     folder_type: nextFolderType,
                     previous_path: currentPath,
                     status: details.status ?? 'VERIFIED',
                 },
-            },
-        });
-        await prisma.file.updateMany({
-            where: { path: currentPath },
-            data: {
-                name: nextName,
-                path: finalPath,
-                status: 'VERIFIED',
             },
         });
     }

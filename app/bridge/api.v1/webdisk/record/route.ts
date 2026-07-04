@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
                 where: { id: existingFilefolder.id },
                 data: {
                     owner: uploaded_by,
+                    type: storedAs,
                     stored_as: storedAs,
                     details: {
                         ...(existingFilefolder.details && typeof existingFilefolder.details === 'object' && !Array.isArray(existingFilefolder.details)

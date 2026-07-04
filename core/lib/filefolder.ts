@@ -5,8 +5,8 @@
 
 ::public
 
-Shared helpers for filefolder storage types, upload metadata persistence, audit
-logs, and activity counters used by Drive and WebDisk flows.
+Shared helpers for filefolder storage surfaces, upload metadata persistence,
+audit logs, and last-activity counters used by Drive and WebDisk flows.
 
 ::public end
 
@@ -17,12 +17,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '@/core/lib/db';
 
 export type FileFolderMode = 'drive' | 'webdisk';
-export type WebdiskStoredType = 'assets' | 'signed';
-export type FileFolderStoredAs =
-    | 'webfile'
-    | 'webfile_signed'
-    | 'webfile_private'
-    | 'drivefile';
+export type FileFolderStoredAs = 'drive' | 'assets' | 'signed';
 export type FileFolderActivityAction =
     | 'uploaded'
     | 'folder_opened'
@@ -33,7 +28,7 @@ export type FileFolderActivityAction =
     | 'deleted'
     | 'restored';
 
-const WEBDISK_STORED_TYPES = new Set<WebdiskStoredType>(['assets', 'signed']);
+const FILE_FOLDER_STORED_AS = new Set<FileFolderStoredAs>(['drive', 'assets', 'signed']);
 const ACTIVITY_COUNTER_KEYS: Record<FileFolderActivityAction, string> = {
     uploaded: 'uploads',
     folder_opened: 'folderOpens',
@@ -50,31 +45,42 @@ export function parseFileFolderMode(mode: string | null): FileFolderMode {
     return 'drive';
 }
 
-export function fileFolderTypeFromMime(mimeType?: string | null): string {
-    if (!mimeType) return 'file:unknown';
-
-    const [category, subtype] = mimeType.split('/');
-    if (category === 'image' && subtype) return `file:${subtype}`;
-    if (subtype) return `file:${subtype}`;
-    return 'file:unknown';
+export function normalizeFileFolderStoredAs(value?: string | null): FileFolderStoredAs {
+    if (FILE_FOLDER_STORED_AS.has(value as FileFolderStoredAs)) {
+        return value as FileFolderStoredAs;
+    }
+    return 'drive';
 }
 
-export function normalizeWebdiskStoredType(value?: string | null): WebdiskStoredType {
-    return WEBDISK_STORED_TYPES.has(value as WebdiskStoredType) ? value as WebdiskStoredType : 'assets';
+export function webdiskStoredAs(folderType?: string | null): Extract<FileFolderStoredAs, 'assets' | 'signed'> {
+    return folderType === 'signed' ? 'signed' : 'assets';
 }
 
-export function webdiskStoredAs(folderType?: string | null): FileFolderStoredAs {
-    const type = normalizeWebdiskStoredType(folderType);
-    if (type === 'signed') return 'webfile_signed';
-    return 'webfile';
+export function fileFolderStoredAsForMode(
+    mode: FileFolderMode,
+    folderType?: string | null,
+): FileFolderStoredAs {
+    if (mode === 'drive') return 'drive';
+    return webdiskStoredAs(folderType);
 }
 
-function parseActivity(activity: Prisma.JsonValue | Prisma.InputJsonValue | undefined) {
-    if (!activity || typeof activity !== 'object' || Array.isArray(activity)) {
+export function isDirectoryMimeType(mimeType?: string | null) {
+    return mimeType === 'inode/directory';
+}
+
+export function isDirectoryDetails(details: Prisma.JsonValue | Prisma.InputJsonValue | undefined) {
+    if (!details || typeof details !== 'object' || Array.isArray(details)) return false;
+    return (details as Record<string, unknown>).mimeType === 'inode/directory';
+}
+
+function parseLastActivity(
+    lastActivity: Prisma.JsonValue | Prisma.InputJsonValue | undefined,
+) {
+    if (!lastActivity || typeof lastActivity !== 'object' || Array.isArray(lastActivity)) {
         return {};
     }
 
-    return activity as Record<string, unknown>;
+    return lastActivity as Record<string, unknown>;
 }
 
 function normalizeDetailsForActivity(details?: Record<string, unknown>) {
@@ -89,7 +95,7 @@ export function buildFileFolderActivityUpdate(params: {
     details?: Record<string, unknown>;
 }) {
     const at = params.at || new Date();
-    const currentActivity = parseActivity(params.currentActivity);
+    const currentActivity = parseLastActivity(params.currentActivity);
     const counts = currentActivity.counts && typeof currentActivity.counts === 'object' && !Array.isArray(currentActivity.counts)
         ? currentActivity.counts as Record<string, unknown>
         : {};
@@ -100,7 +106,7 @@ export function buildFileFolderActivityUpdate(params: {
     const normalizedDetails = normalizeDetailsForActivity(params.details);
 
     return {
-        activity: {
+        last_activity: {
             ...currentActivity,
             lastAction: params.action,
             lastActionOn: at.toISOString(),
@@ -126,14 +132,14 @@ export async function recordFileFolderActivity(params: {
         where: { id: params.filefolderId },
         select: {
             id: true,
-            activity: true,
+            last_activity: true,
         },
     });
 
     if (!filefolder) return null;
 
     const update = buildFileFolderActivityUpdate({
-        currentActivity: filefolder.activity,
+        currentActivity: filefolder.last_activity,
         action: params.action,
         at: params.at,
         details: params.details,
@@ -142,7 +148,7 @@ export async function recordFileFolderActivity(params: {
     return prisma.fileFolder.update({
         where: { id: params.filefolderId },
         data: {
-            activity: update.activity,
+            last_activity: update.last_activity,
             lastActivityOn: update.lastActivityOn,
             totalActivity: update.totalActivity,
         },
@@ -169,7 +175,7 @@ export async function upsertFolderActivity(params: {
 }) {
     const normalizedFolderPath = normalizeFolderPath(params.folderPath);
     const folderName = normalizedFolderPath.split('/').filter(Boolean).pop() || params.folderType;
-    const storagePath = path.posix.join('uploads', params.owner, params.folderType, normalizedFolderPath);
+    const storagePath = path.posix.join(params.owner, params.folderType, normalizedFolderPath);
     const existingFolder = await prisma.fileFolder.findFirst({
         where: { owner: params.owner, path: storagePath },
         orderBy: { created_on: 'desc' },
@@ -193,11 +199,11 @@ export async function upsertFolderActivity(params: {
             data: {
                 name: folderName,
                 path: storagePath,
-                type: 'folder',
+                type: fileFolderStoredAsForMode(params.mode, params.folderType),
                 owner: params.owner,
-                stored_as: params.mode === 'drive' ? 'drivefile' : webdiskStoredAs(params.folderType),
+                stored_as: fileFolderStoredAsForMode(params.mode, params.folderType),
                 size: BigInt(0),
-                activity: activity.activity,
+                last_activity: activity.last_activity,
                 lastActivityOn: activity.lastActivityOn,
                 totalActivity: activity.totalActivity,
                 details: {
@@ -211,7 +217,7 @@ export async function upsertFolderActivity(params: {
     }
 
     const update = buildFileFolderActivityUpdate({
-        currentActivity: existingFolder.activity,
+        currentActivity: existingFolder.last_activity,
         action,
         details: {
             mode: params.mode,
@@ -223,7 +229,7 @@ export async function upsertFolderActivity(params: {
     return prisma.fileFolder.update({
         where: { id: existingFolder.id },
         data: {
-            activity: update.activity,
+            last_activity: update.last_activity,
             lastActivityOn: update.lastActivityOn,
             totalActivity: update.totalActivity,
         },
@@ -269,21 +275,22 @@ export async function recordFileFolderUpload(params: {
             path: params.path,
         },
     });
+    const storedAs = params.storedAs ?? fileFolderStoredAsForMode(params.mode);
 
     return prisma.fileFolder.create({
         data: {
             name: params.name,
             path: params.path,
-            type: fileFolderTypeFromMime(params.mimeType),
+            type: storedAs,
             owner: params.owner,
-            stored_as: params.storedAs ?? (params.mode === 'drive' ? 'drivefile' : webdiskStoredAs()),
+            stored_as: storedAs,
             size,
             details: {
                 ...params.details,
                 mode: params.mode,
                 mimeType: params.mimeType ?? 'application/octet-stream',
             },
-            activity: uploadActivity.activity,
+            last_activity: uploadActivity.last_activity,
             lastActivityOn: uploadActivity.lastActivityOn,
             totalActivity: uploadActivity.totalActivity,
             logs: {

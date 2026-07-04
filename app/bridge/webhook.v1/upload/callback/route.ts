@@ -54,35 +54,11 @@ export async function POST(request: NextRequest) {
         // if (!verifySignature(signature, body)) return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
 
         if (status === 'verified') {
-            // Update file status in database
-            const updated = await prisma.file.updateMany({
-                where: {
-                    path: metadataPath,
-                    // We can also verify hash matches if needed, but path is strong enough for this demo
-                },
-                data: {
-                    status: 'VERIFIED',
-                    hash: file_hash // Ensure hash is consistent
-                }
-            });
-
-            if (updated.count > 0) {
-                console.log('✅ File verified and finalized in DB:', metadataPath);
-            } else {
-                console.warn('⚠️ File record not found for verification:', metadataPath);
-            }
-
             await updateFileFolderCallbackState(metadataPath, 'VERIFIED', file_hash, upload_session_id, body);
             
             return NextResponse.json({ success: true });
         } else {
             console.warn('❌ File verification failed:', metadata);
-            // Handle failure cleanup - mark as FAILED
-            await prisma.file.updateMany({
-                where: { path: metadataPath },
-                data: { status: 'FAILED' }
-            });
-
             await updateFileFolderCallbackState(metadataPath, 'FAILED', file_hash, upload_session_id, body);
             return NextResponse.json({ success: true }); // Acknowledge receipt even for failures
         }
@@ -129,7 +105,7 @@ async function updateFileFolderCallbackState(
             : {};
         const activityUpdate = status === 'VERIFIED'
             ? buildFileFolderActivityUpdate({
-                currentActivity: filefolder.activity,
+                currentActivity: filefolder.last_activity,
                 action: 'changed',
                 details: {
                     path: metadataPath,
@@ -150,7 +126,7 @@ async function updateFileFolderCallbackState(
                     callback_response: callbackResponse,
                 },
                 ...(activityUpdate ? {
-                    activity: activityUpdate.activity,
+                    last_activity: activityUpdate.last_activity,
                     lastActivityOn: activityUpdate.lastActivityOn,
                     totalActivity: activityUpdate.totalActivity,
                 } : {}),

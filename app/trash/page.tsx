@@ -23,6 +23,7 @@ import path from 'node:path';
 
 import { TrashPageManager } from '@/components/prodrive/trash-page-manager';
 import { prisma } from '@/core/lib/db';
+import { isDirectoryMimeType } from '@/core/lib/filefolder';
 import type { FileOrFolder } from '@/core/lib/types';
 
 const TRASH_OWNER = process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
@@ -60,7 +61,9 @@ function formatBytes(size: bigint | number | null | undefined) {
   return `${value >= 10 || unitIndex === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[unitIndex]}`;
 }
 
-function fileTypeFromRecord(type: string, name: string): FileOrFolder['type'] {
+function fileTypeFromRecord(type: string, name: string, mimeType?: string): FileOrFolder['type'] {
+  if (isDirectoryMimeType(mimeType)) return 'folder';
+
   const extension = name.split('.').pop()?.toLowerCase();
   if (extension === 'pdf') return 'pdf';
   if (extension === 'jpg' || extension === 'jpeg') return 'jpg';
@@ -68,15 +71,6 @@ function fileTypeFromRecord(type: string, name: string): FileOrFolder['type'] {
   if (extension === 'mp4') return 'mp4';
   if (extension === 'mp3' || extension === 'wav' || extension === 'm4a' || extension === 'aac' || extension === 'ogg') return 'audio';
   if (extension === 'doc' || extension === 'docx') return 'doc';
-
-  if (type.startsWith('file:')) {
-    const subtype = type.slice('file:'.length);
-    if (subtype === 'pdf') return 'pdf';
-    if (subtype === 'jpeg' || subtype === 'jpg') return 'jpg';
-    if (subtype === 'png') return 'png';
-    if (subtype === 'mp4') return 'mp4';
-    if (subtype === 'mpeg' || subtype === 'mp3' || subtype === 'wav' || subtype === 'ogg' || subtype === 'aac') return 'audio';
-  }
 
   return 'unknown';
 }
@@ -118,13 +112,17 @@ async function getTrashItems() {
   const rows = await prisma.fileFolder.findMany({
     where: {
       owner: TRASH_OWNER,
-      stored_as: 'trash',
     },
     orderBy: { updated_on: 'desc' },
     take: 100,
   });
 
-  return rows.map((row) => {
+  return rows
+    .filter((row) => {
+      const details = getDetails(row.details);
+      return details.status === 'TRASHED';
+    })
+    .map((row) => {
     const details = getDetails(row.details);
     const previousMode = typeof details.previous_mode === 'string' ? details.previous_mode : 'drive';
     const previousPath = typeof details.previous_path === 'string' ? details.previous_path : '';
@@ -133,7 +131,7 @@ async function getTrashItems() {
     return {
       id: row.id,
       name: row.name,
-      type: fileTypeFromRecord(row.type, row.name),
+      type: fileTypeFromRecord(row.type, row.name, typeof details.mimeType === 'string' ? details.mimeType : undefined),
       size: formatBytes(row.size),
       storageTier: 'cold' as const,
       lastModified: formatRecentActivity(activityAt),

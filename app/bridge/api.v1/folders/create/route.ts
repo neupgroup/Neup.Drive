@@ -114,9 +114,9 @@ export async function POST(request: NextRequest) {
                 data: {
                     name,
                     path: storagePath,
-                    type: 'folder',
+                    type: folderType,
                     owner,
-                    stored_as: mode === 'drive' ? 'drivefile' : webdiskStoredAs(folderType),
+                    stored_as: mode === 'drive' ? 'drive' : webdiskStoredAs(folderType),
                     size: BigInt(0),
                     details: {
                         ...(existingFolder.details && typeof existingFolder.details === 'object' && !Array.isArray(existingFolder.details)
@@ -133,9 +133,9 @@ export async function POST(request: NextRequest) {
                 data: {
                     name,
                     path: storagePath,
-                    type: 'folder',
+                    type: folderType,
                     owner,
-                    stored_as: mode === 'drive' ? 'drivefile' : webdiskStoredAs(folderType),
+                    stored_as: mode === 'drive' ? 'drive' : webdiskStoredAs(folderType),
                     size: BigInt(0),
                     details: {
                         mode,

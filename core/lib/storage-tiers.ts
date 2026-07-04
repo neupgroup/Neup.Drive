@@ -3,8 +3,8 @@ export type StorageTier = 'cold' | 'warm' | 'hot';
 export const STORAGE_LIMIT_BYTES = 10 * 1024 * 1024 * 1024;
 
 export function storageTierFromStoredAs(storedAs?: string | null): StorageTier {
-  if (storedAs === 'webfile') return 'hot';
-  if (storedAs === 'webfile_signed' || storedAs === 'webfile_private') return 'warm';
+  if (storedAs === 'assets') return 'hot';
+  if (storedAs === 'signed') return 'warm';
   return 'cold';
 }
 

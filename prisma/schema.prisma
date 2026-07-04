@@ -10,33 +10,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model File {
-  id          String   @id @default(uuid())
-  name        String
-  size        BigInt
-  mimeType    String
-  hash        String
-  path        String   // Storage path (e.g., "account-id/assets/image.png")
-  status      String   @default("PENDING") // PENDING, VERIFIED, FAILED
-  
-  userId      String
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([userId])
-  @@index([hash])
-}
-
 model FileFolder {
   id         String          @id @default(uuid())
   name       String
   path       String
   type       String
   owner      String
-  stored_as  String          @default("drivefile")
+  stored_as  String          @default("drive")
   size       BigInt          @default(0)
-  activity   Json            @default("{}")
+  last_activity Json         @default("{}")
   lastActivityOn DateTime?   @map("last_activity_on")
   totalActivity Int          @default(0) @map("total_activity")
   details    Json            @default("{}")

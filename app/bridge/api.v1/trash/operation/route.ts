@@ -35,7 +35,7 @@ import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnTo
 import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
 import { logToDatabase } from '@/core/lib/error-server';
-import { buildFileFolderActivityUpdate, webdiskStoredAs } from '@/core/lib/filefolder';
+import { buildFileFolderActivityUpdate, isDirectoryDetails, webdiskStoredAs } from '@/core/lib/filefolder';
 import { assertSafePathSegment, isMissingCdnFileError, isReservedWebdiskRootFolder, normalizeInternalPath } from '@/core/lib/bridge-api';
 import { ErrorType, GENERIC_ERROR_MESSAGE } from '@/core/lib/error-types';
 
@@ -82,17 +82,13 @@ function normalizeDestinationType(value?: string): TrashDestinationType {
 
 function buildStoragePath(owner: string, folderType: TrashDestinationType, filename: string, internalPath?: string) {
   const normalizedPath = normalizeInternalPath(internalPath);
-  return path.posix.join('uploads', owner, folderType, normalizedPath, filename);
+  return path.posix.join(owner, folderType, normalizedPath, filename);
 }
 
 function replacePathPrefix(value: string, sourcePrefix: string, destinationPrefix: string) {
   if (value === sourcePrefix) return destinationPrefix;
   if (!value.startsWith(`${sourcePrefix}/`)) return value;
   return `${destinationPrefix}${value.slice(sourcePrefix.length)}`;
-}
-
-function getStoragePathFromDetails(details: Prisma.JsonObject, fallbackPath: string) {
-  return typeof details.storage_path === 'string' ? details.storage_path : fallbackPath;
 }
 
 async function handleDriveTrashOperation(params: {
@@ -103,7 +99,7 @@ async function handleDriveTrashOperation(params: {
   destinationType?: TrashDestinationType;
   destinationPath?: string;
 }) {
-  const rows = params.filefolder.type === 'folder'
+  const rows = isDirectoryDetails(params.filefolder.details)
     ? await prisma.fileFolder.findMany({
         where: {
           owner: params.filefolder.owner,
@@ -117,22 +113,15 @@ async function handleDriveTrashOperation(params: {
     : [params.filefolder];
 
   if (params.action === 'delete_permanently') {
-    const storagePaths = rows
-      .filter((row) => row.type !== 'folder')
-      .map((row) => getStoragePathFromDetails(getDetails(row.details), row.path));
-
-    await prisma.$transaction([
-      prisma.file.deleteMany({ where: { path: { in: storagePaths } } }),
-      prisma.fileFolder.deleteMany({
-        where: {
-          owner: params.filefolder.owner,
-          OR: [
-            { path: params.currentPath },
-            { path: { startsWith: `${params.currentPath}/` } },
-          ],
-        },
-      }),
-    ]);
+    await prisma.fileFolder.deleteMany({
+      where: {
+        owner: params.filefolder.owner,
+        OR: [
+          { path: params.currentPath },
+          { path: { startsWith: `${params.currentPath}/` } },
+        ],
+      },
+    });
 
     return {
       success: true as const,
@@ -148,7 +137,7 @@ async function handleDriveTrashOperation(params: {
   await prisma.$transaction([
     ...rows.map((row) => {
       const rowDetails = getDetails(row.details);
-      const rowFinalPath = params.filefolder.type === 'folder'
+      const rowFinalPath = isDirectoryDetails(params.filefolder.details)
         ? typeof rowDetails.previous_path === 'string' && rowDetails.previous_path && params.action === 'restore'
           ? rowDetails.previous_path
           : replacePathPrefix(row.path, params.currentPath, finalPath)
@@ -160,7 +149,7 @@ async function handleDriveTrashOperation(params: {
         ...restoredDetails
       } = rowDetails as Record<string, unknown>;
       const activityUpdate = buildFileFolderActivityUpdate({
-        currentActivity: row.activity,
+        currentActivity: row.last_activity,
         action: activityAction,
         at: now,
         details: {
@@ -174,7 +163,8 @@ async function handleDriveTrashOperation(params: {
         where: { id: row.id },
         data: {
           path: rowFinalPath,
-          stored_as: 'drivefile',
+          type: params.destinationType || 'drive',
+          stored_as: params.destinationType || 'drive',
           details: {
             ...restoredDetails,
             mode: 'drive',
@@ -183,22 +173,12 @@ async function handleDriveTrashOperation(params: {
             previous_path: row.path,
             status: 'VERIFIED',
           },
-          activity: activityUpdate.activity,
+          last_activity: activityUpdate.last_activity,
           lastActivityOn: activityUpdate.lastActivityOn,
           totalActivity: activityUpdate.totalActivity,
         },
       });
     }),
-    ...rows
-      .filter((row) => row.type !== 'folder')
-      .map((row) => {
-        const rowDetails = getDetails(row.details);
-        const storagePath = getStoragePathFromDetails(rowDetails, row.path);
-        return prisma.file.updateMany({
-          where: { path: storagePath },
-          data: { status: 'VERIFIED' },
-        });
-      }),
   ]);
 
   return {
@@ -280,7 +260,7 @@ export async function POST(request: NextRequest) {
       where: { id: body.filefolder_id },
     });
 
-    if (!filefolder || filefolder.stored_as !== 'trash') {
+    if (!filefolder || getDetails(filefolder.details).status !== 'TRASHED') {
       return NextResponse.json({ error: 'Trash item not found' }, { status: 404 });
     }
 
@@ -359,9 +339,6 @@ export async function POST(request: NextRequest) {
         };
       }
 
-      await prisma.file.deleteMany({
-        where: { path: currentPath },
-      });
       await prisma.fileFolder.delete({
         where: { id: filefolder.id },
       });
@@ -396,7 +373,7 @@ export async function POST(request: NextRequest) {
       ...restoredDetails
     } = details as Record<string, unknown>;
     const activityUpdate = buildFileFolderActivityUpdate({
-      currentActivity: filefolder.activity,
+      currentActivity: filefolder.last_activity,
       action: 'restored',
       details: {
         path: finalPath,
@@ -405,12 +382,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const nextStoredAs = destinationType === 'drive' ? 'drivefile' : webdiskStoredAs(destinationType);
+    const nextStoredAs = destinationType === 'drive' ? 'drive' : webdiskStoredAs(destinationType);
 
     const updated = await prisma.fileFolder.update({
       where: { id: filefolder.id },
       data: {
         path: finalPath,
+        type: nextStoredAs,
         stored_as: nextStoredAs,
         details: {
           ...restoredDetails,
@@ -420,17 +398,9 @@ export async function POST(request: NextRequest) {
           previous_path: currentPath,
           status: 'VERIFIED',
         },
-        activity: activityUpdate.activity,
+        last_activity: activityUpdate.last_activity,
         lastActivityOn: activityUpdate.lastActivityOn,
         totalActivity: activityUpdate.totalActivity,
-      },
-    });
-
-    await prisma.file.updateMany({
-      where: { path: currentPath },
-      data: {
-        path: finalPath,
-        status: 'VERIFIED',
       },
     });
 

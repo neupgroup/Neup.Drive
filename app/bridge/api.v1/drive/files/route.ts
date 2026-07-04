@@ -25,6 +25,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
 import { createBridgeFileUrl, getRequestDeviceIp, isActiveFileDetails } from '@/core/lib/bridge-api';
+import { isDirectoryMimeType } from '@/core/lib/filefolder';
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
         const files = await prisma.fileFolder.findMany({
             where: {
                 owner: userId,
-                stored_as: 'drivefile',
+                stored_as: 'drive',
             },
             orderBy: {
                 created_on: 'desc'
@@ -62,6 +63,11 @@ export async function GET(request: NextRequest) {
                 : 'application/octet-stream',
             path: file.path,
             stored_as: file.stored_as,
+            type: isDirectoryMimeType(typeof file.details === 'object' && file.details && !Array.isArray(file.details) && typeof file.details.mimeType === 'string'
+                ? file.details.mimeType
+                : null)
+                ? 'folder'
+                : file.type,
             status: typeof file.details === 'object' && file.details && !Array.isArray(file.details) && typeof file.details.status === 'string'
                 ? file.details.status
                 : 'PENDING',

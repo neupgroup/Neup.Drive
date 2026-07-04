@@ -13,7 +13,7 @@ import {
 } from '@/core/lib/bridge-api';
 import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
-import { webdiskStoredAs } from '@/core/lib/filefolder';
+import { isDirectoryMimeType, webdiskStoredAs } from '@/core/lib/filefolder';
 
 export async function GET(request: NextRequest) {
     try {
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Server configuration error: Missing private key' }, { status: 500 });
         }
 
-        const storedAs = folderType === 'drive' ? 'drivefile' : webdiskStoredAs(folderType);
+        const storedAs = folderType === 'drive' ? 'drive' : webdiskStoredAs(folderType);
         const tokenOptions = {
             deviceIp: getRequestDeviceIp(request),
             userAgent: request.headers.get('user-agent') || '',
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
                     id: file.id,
                     name: file.name,
                     path: file.path,
-                    type: file.type,
+                    type: isDirectoryMimeType(typeof details.mimeType === 'string' ? details.mimeType : null) ? 'folder' : file.type,
                     stored_as: file.stored_as,
                     folder_type: getFolderType(file),
                     size: Number(file.size),

@@ -44,7 +44,7 @@ async function getStorageUsage() {
   };
 
   for (const row of rows) {
-    if (row.stored_as === 'trash' || !isActiveFileDetails(row.details)) continue;
+    if (!isActiveFileDetails(row.details)) continue;
     totals[storageTierFromStoredAs(row.stored_as)] += Number(row.size || 0);
   }
 
