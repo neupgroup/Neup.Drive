@@ -16,6 +16,7 @@ import type { FileOrFolder } from '@/core/lib/types';
 
 interface WebDiskRecord {
   id: string;
+  filefolder_id?: string | null;
   filename: string;
   path: string;
   cdn_path?: string;
@@ -396,7 +397,7 @@ function WebdiskContent() {
     }));
 
     const fileItems = currentItems.files.map((file) => ({
-      id: file.cdn_path || file.id,
+      id: file.filefolder_id || file.id,
       name: file.filename,
       type: fileTypeFromMime(file.mimeType, file.filename),
       size: formatBytes(file.size),
@@ -415,7 +416,7 @@ function WebdiskContent() {
   }, [currentItems.files, currentItems.folders, selectedType, sortMode]);
 
   const recordsById = React.useMemo(() => new Map(
-    currentItems.files.map((file) => [file.cdn_path || file.id, file])
+    currentItems.files.map((file) => [file.filefolder_id || file.id, file])
   ), [currentItems.files]);
 
   const foldersById = React.useMemo(() => new Map(
@@ -513,9 +514,9 @@ function WebdiskContent() {
 
     const file = recordsById.get(item.id);
     if (file) {
-      window.open(file.path, '_blank', 'noopener,noreferrer');
+      router.push(`/viewer/${encodeURIComponent(file.filefolder_id || file.id)}`);
     }
-  }, [foldersById, navigateTo, recordsById]);
+  }, [foldersById, navigateTo, recordsById, router]);
 
   const handleRenameItem = React.useCallback(async (item: FileOrFolder, newName: string) => {
     const file = recordsById.get(item.id);

@@ -365,7 +365,19 @@ func FileListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rootPath, err := safePublicPath(claims.Path)
+	accountRoot := strings.TrimPrefix(strings.TrimSpace(claims.AccountFolder), "/")
+	if accountRoot == "" {
+		TokenNotFound(w, "Token path does not match account folder", nil)
+		return
+	}
+
+	cleanPath := strings.TrimPrefix(strings.TrimSpace(claims.Path), "/")
+	if cleanPath != accountRoot && !strings.HasPrefix(cleanPath, accountRoot+"/") {
+		TokenNotFound(w, "Token path does not match account folder", nil)
+		return
+	}
+
+	rootPath, err := safePublicPath(accountRoot)
 	if err != nil {
 		ClientErrorCode(w, http.StatusForbidden, "invalid_path", "Invalid list path", err)
 		return
@@ -388,12 +400,6 @@ func FileListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	publicRoot, err := filepath.Abs(config.Cfg.PublicRoot)
-	if err != nil {
-		InternalServerError(w, "Failed to resolve public root", err)
-		return
-	}
-
 	files := make([]map[string]interface{}, 0)
 	walkErr := filepath.WalkDir(rootPath, func(fullPath string, entry os.DirEntry, err error) error {
 		if err != nil {
@@ -411,7 +417,7 @@ func FileListHandler(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 
-		relPath, err := filepath.Rel(publicRoot, fullPath)
+		relPath, err := filepath.Rel(rootPath, fullPath)
 		if err != nil {
 			return err
 		}

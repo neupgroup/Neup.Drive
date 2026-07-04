@@ -275,7 +275,7 @@ export function getFolderType(filefolder: { path: string; details: Prisma.JsonVa
     if (typeof details.mode === 'string') return details.mode;
 
     const parts = filefolder.path.replace(/^\/+/, '').split('/');
-    return parts.length >= 3 ? parts[2] : 'drive';
+    return parts.length >= 2 ? parts[1] : 'drive';
 }
 
 export function createBridgeViewToken(
@@ -323,7 +323,7 @@ export function createBridgeFileUrl(
     const encodedPath = exposedPath.split('/').filter(Boolean).map(encodeURIComponent).join('/');
 
     if (folderType === 'assets') {
-        return `${BRIDGE_CDN_BASE_URL}/${encodeURIComponent(filefolder.owner)}/${encodedPath}`;
+        return `${BRIDGE_CDN_BASE_URL}/serve/${encodeURIComponent(filefolder.owner)}/${encodedPath}`;
     }
 
     const maxSeconds = folderType === '.trash' ? 60 : 24 * 60 * 60;
@@ -341,20 +341,20 @@ export function createBridgeFileUrl(
     const tokenQuery = `token=${encodeURIComponent(token)}${disposition}`;
 
     if (folderType === 'signed') {
-        return `${BRIDGE_CDN_BASE_URL}/${encodeURIComponent(filefolder.owner)}/signed/${encodedPath}?${tokenQuery}`;
+        return `${BRIDGE_CDN_BASE_URL}/serve/${encodeURIComponent(filefolder.owner)}/signed/${encodedPath}?${tokenQuery}`;
     }
 
     if (folderType === 'drive') {
-        const encodedStoragePath = filefolder.path.split('/').filter(Boolean).map(encodeURIComponent).join('/');
-        return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/drive/${encodedStoragePath}?${tokenQuery}`;
+        const encodedDrivePath = stripFolderType(relativePath, 'drive').split('/').filter(Boolean).map(encodeURIComponent).join('/');
+        return `${BRIDGE_CDN_BASE_URL}/serve/${encodeURIComponent(filefolder.owner)}/drive/${encodedDrivePath}?${tokenQuery}`;
     }
 
     if (folderType === '.trash') {
         const encodedTrashPath = stripFolderType(toAccountRelativePath(filefolder.path, filefolder.owner), '.trash').split('/').filter(Boolean).map(encodeURIComponent).join('/');
-        return `${BRIDGE_CDN_BASE_URL}/${encodeURIComponent(filefolder.owner)}/.trash/${encodedTrashPath}?${tokenQuery}`;
+        return `${BRIDGE_CDN_BASE_URL}/serve/${encodeURIComponent(filefolder.owner)}/.trash/${encodedTrashPath}?${tokenQuery}`;
     }
 
-    return `${BRIDGE_CDN_BASE_URL}/files/${encodeURIComponent(filefolder.owner)}/${encodeURIComponent(folderType)}/${encodedPath}?${tokenQuery}`;
+    return `${BRIDGE_CDN_BASE_URL}/serve/${encodeURIComponent(filefolder.owner)}/${encodeURIComponent(folderType)}/${encodedPath}?${tokenQuery}`;
 }
 
 export async function createBridgeUploadInit(params: {

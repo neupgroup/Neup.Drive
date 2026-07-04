@@ -40,7 +40,13 @@ export async function GET(request: NextRequest) {
             take: limit,
         });
 
-        const visibleFiles = files.filter((file) => isActiveFileDetails(file.details));
+        const expectedPrefix = `${owner}/${folderType}`;
+        const visibleFiles = files.filter((file) => {
+            if (!isActiveFileDetails(file.details)) return false;
+
+            const cleanPath = file.path.replace(/^\/+/, '');
+            return cleanPath === expectedPrefix || cleanPath.startsWith(`${expectedPrefix}/`);
+        });
 
         return NextResponse.json({
             success: true,

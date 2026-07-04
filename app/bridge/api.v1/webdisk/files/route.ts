@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import path from 'node:path';
 import { getRequestDeviceIp } from '@/core/lib/bridge-api';
 import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken, parseDurationSeconds } from '@/core/lib/cdn-token';
+import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
@@ -38,6 +39,11 @@ function getWebdiskType(relativePath: string) {
     return type?.toLowerCase() === 'signed' ? 'signed' : 'assets';
 }
 
+function toAccountStoragePath(relativePath: string) {
+    const cleanPath = relativePath.replace(/^\/+/, '');
+    return path.posix.join(WEBDISK_ACCOUNT_ID, cleanPath);
+}
+
 function stripWebdiskType(relativePath: string, folderType: string) {
     const [type, ...rest] = relativePath.split('/');
     if (type?.toLowerCase() === folderType.toLowerCase()) {
@@ -46,18 +52,15 @@ function stripWebdiskType(relativePath: string, folderType: string) {
     return relativePath;
 }
 
-function fileUrl(filePath: string, request: NextRequest) {
-    const cleanPath = filePath.replace(/^\/+/, '');
-    const accountPrefix = `${WEBDISK_ACCOUNT_ID}/`;
-    const relativePath = cleanPath.startsWith(accountPrefix)
-        ? cleanPath.slice(accountPrefix.length)
-        : cleanPath;
+function fileUrl(relativePath: string, request: NextRequest) {
+    const cleanPath = relativePath.replace(/^\/+/, '');
     const folderType = getWebdiskType(relativePath);
     const exposedPath = stripWebdiskType(relativePath, folderType);
     const encodedPath = exposedPath.split('/').filter(Boolean).map(encodeURIComponent).join('/');
+    const storagePath = toAccountStoragePath(cleanPath);
 
     if (folderType === 'assets') {
-        return `${CDN_BASE_URL}/${encodeURIComponent(WEBDISK_ACCOUNT_ID)}/${encodedPath}`;
+        return `${CDN_BASE_URL}/serve/${encodeURIComponent(WEBDISK_ACCOUNT_ID)}/${encodedPath}`;
     }
     const expiresIn = request.nextUrl.searchParams.get('expires_in') || request.nextUrl.searchParams.get('expires');
     const expiresInSeconds = parseDurationSeconds(expiresIn, {
@@ -71,13 +74,13 @@ function fileUrl(filePath: string, request: NextRequest) {
         account_id: WEBDISK_ACCOUNT_ID,
         account_folder: WEBDISK_ACCOUNT_ID,
         folder_type: folderType,
-        path: cleanPath,
+        path: storagePath,
         method: 'GET',
         device_ip: getRequestDeviceIp(request),
         user_agent: request.headers.get('user-agent') || '',
     }, expiresInSeconds), PRIVATE_KEY);
 
-    return `${CDN_BASE_URL}/${encodeURIComponent(WEBDISK_ACCOUNT_ID)}/signed/${encodedPath}?token=${encodeURIComponent(encodeSignedCdnToken(signedToken))}`;
+    return `${CDN_BASE_URL}/serve/${encodeURIComponent(WEBDISK_ACCOUNT_ID)}/signed/${encodedPath}?token=${encodeURIComponent(encodeSignedCdnToken(signedToken))}`;
 }
 
 async function listCdnFiles() {
@@ -123,17 +126,34 @@ export async function GET(request: NextRequest) {
         const visibleFiles = files.filter((file) => {
             const cleanPath = file.path.replace(/^\/+/, '');
             return (
-                !cleanPath.includes(`/${WEBDISK_ACCOUNT_ID}/.trash/`) &&
-                !cleanPath.includes('/.trash/') &&
-                !cleanPath.includes(`/${WEBDISK_ACCOUNT_ID}/.logs/`) &&
-                !cleanPath.includes('/.logs/')
+                cleanPath !== '.trash' &&
+                !cleanPath.startsWith('.trash/') &&
+                cleanPath !== '.logs' &&
+                !cleanPath.startsWith('.logs/')
             );
         });
+        const storagePaths = visibleFiles.map((file) => toAccountStoragePath(file.path));
+        const matchingFilefolders = storagePaths.length === 0
+            ? []
+            : await prisma.fileFolder.findMany({
+                where: {
+                    owner: WEBDISK_ACCOUNT_ID,
+                    path: { in: storagePaths },
+                },
+                select: {
+                    id: true,
+                    path: true,
+                },
+            });
+        const filefolderIdByPath = new Map(
+            matchingFilefolders.map((filefolder) => [filefolder.path, filefolder.id]),
+        );
         const mappedFiles = visibleFiles.map((file) => ({
-            id: file.path,
+            id: filefolderIdByPath.get(toAccountStoragePath(file.path)) || toAccountStoragePath(file.path),
             filename: file.name,
             path: fileUrl(file.path, request),
-            cdn_path: file.path,
+            cdn_path: toAccountStoragePath(file.path),
+            filefolder_id: filefolderIdByPath.get(toAccountStoragePath(file.path)) || null,
             mimeType: file.mime_type || 'application/octet-stream',
             uploaded_by: WEBDISK_ACCOUNT_ID,
             uploaded_on: file.modified_time || new Date(0).toISOString(),
