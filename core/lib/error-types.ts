@@ -6,6 +6,7 @@ export enum ErrorType {
     DATABASE_READ_ONLY = 'DATABASE_READ_ONLY',
     CDN_UNREACHABLE = 'CDN_UNREACHABLE',
     CERTIFICATE_EXPIRED = 'CERTIFICATE_EXPIRED',
+    FILE_NOT_FOUND = 'FILE_NOT_FOUND',
     UNKNOWN = 'UNKNOWN'
 }
 
@@ -20,9 +21,17 @@ export function identifyError(error: any): ErrorType {
         code === ErrorType.DATABASE_NOT_SETUP ||
         code === ErrorType.DATABASE_READ_ONLY ||
         code === ErrorType.CDN_UNREACHABLE ||
-        code === ErrorType.CERTIFICATE_EXPIRED
+        code === ErrorType.CERTIFICATE_EXPIRED ||
+        code === ErrorType.FILE_NOT_FOUND
     ) {
         return code;
+    }
+
+    if (
+        message.includes('file_not_found') ||
+        message.includes('File not found')
+    ) {
+        return ErrorType.FILE_NOT_FOUND;
     }
 
     // Prisma Codes

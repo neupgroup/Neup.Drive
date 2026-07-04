@@ -4,8 +4,10 @@ import { appendBridgeFileAccessLog } from '@/core/lib/file-access-log';
 import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/core/lib/cdn-token';
 import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
+import { logToDatabase } from '@/core/lib/error-server';
 import { webdiskStoredAs } from '@/core/lib/filefolder';
 import { buildBridgeTrashPath, getTrashDeletesIn, isMissingCdnFileError } from '@/core/lib/bridge-api';
+import { ErrorType } from '@/core/lib/error-types';
 
 /*
 ::neup.documentation::webdisk-files-operation-route
@@ -111,6 +113,24 @@ async function callCdnOperation(action: Extract<WebdiskOperationAction, 'rename'
     }
 
     return data as { success: true; action: 'rename' | 'move' | 'delete'; path?: string; destination_path?: string; deleted_path?: string };
+}
+
+async function registerMissingFileMoveError(params: {
+    attemptedBy: string;
+    oldLocation: string;
+    attemptedAction: string;
+    destinationPath?: string;
+}) {
+    const error = new Error('file_not_found');
+    (error as Error & { code?: string }).code = ErrorType.FILE_NOT_FOUND;
+
+    await logToDatabase(error, JSON.stringify({
+        errorType: 'file_not_found',
+        old_location: params.oldLocation,
+        attempted_action: params.attemptedAction,
+        attempted_by: params.attemptedBy,
+        destination_path: params.destinationPath,
+    }), '/bridge/api.v1/webdisk/files/operation');
 }
 
 function isMissingFileFolderTableError(error: unknown) {
@@ -288,6 +308,21 @@ export async function POST(request: NextRequest) {
         try {
             cdn = await callCdnOperation(cdnAction, encodeSignedCdnToken(signedToken));
         } catch (error) {
+            if (body.action === 'move' && isMissingCdnFileError(error)) {
+                await registerMissingFileMoveError({
+                    attemptedBy: WEBDISK_ACCOUNT_ID,
+                    oldLocation: sourcePath,
+                    attemptedAction: body.action,
+                    destinationPath,
+                });
+                return NextResponse.json({
+                    error: 'File not found',
+                    code: 'file_not_found',
+                    old_location: sourcePath,
+                    attempted_action: body.action,
+                    attempted_by: WEBDISK_ACCOUNT_ID,
+                }, { status: 404 });
+            }
             if (body.action !== 'delete' || !isMissingCdnFileError(error)) throw error;
             missingSource = true;
             cdn = {

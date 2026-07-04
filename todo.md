@@ -41,6 +41,8 @@
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/drive/files/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/upload/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/storage-tiers.ts`.
+- [ ] Add `::neup.documentation::` source documentation for `core/lib/error-server.ts`.
+- [ ] Add `::neup.documentation::` source documentation for `core/lib/error-types.ts`.
 - [ ] Update `neupcdn/README.md` to reflect the current CDN routes and removed `private` storage type.
 - [ ] Fix `npx tsc --noEmit` error in `components/ui/calendar.tsx`: `IconLeft` is not a valid `CustomComponents` property.
 - [ ] Fix implicit `any` `className` bindings in `components/ui/calendar.tsx`.

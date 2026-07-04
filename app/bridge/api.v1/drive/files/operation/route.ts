@@ -5,9 +5,11 @@ import type { Prisma } from '@prisma/client';
 import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/core/lib/cdn-token';
 import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
+import { logToDatabase } from '@/core/lib/error-server';
 import { appendBridgeFileAccessLog } from '@/core/lib/file-access-log';
 import { createFileFolderLog } from '@/core/lib/filefolder';
 import { buildBridgeTrashPath, getTrashDeletesIn, isActiveFileDetails, isMissingCdnFileError } from '@/core/lib/bridge-api';
+import { ErrorType } from '@/core/lib/error-types';
 
 /*
 ::neup.documentation::drive-files-operation-route
@@ -131,6 +133,26 @@ async function callCdnOperation(action: FileOperationAction, token: string) {
     return data as { success: true; action: FileOperationAction; path?: string; destination_path?: string; deleted_path?: string };
 }
 
+async function registerMissingFileMoveError(params: {
+    attemptedBy: string;
+    oldLocation: string;
+    attemptedAction: string;
+    destinationPath?: string;
+    filefolderId: string;
+}) {
+    const error = new Error('file_not_found');
+    (error as Error & { code?: string }).code = ErrorType.FILE_NOT_FOUND;
+
+    await logToDatabase(error, JSON.stringify({
+        errorType: 'file_not_found',
+        old_location: params.oldLocation,
+        attempted_action: params.attemptedAction,
+        attempted_by: params.attemptedBy,
+        destination_path: params.destinationPath,
+        filefolder_id: params.filefolderId,
+    }), 'bridge/api.v1/drive/files/operation');
+}
+
 export async function POST(request: NextRequest) {
     let body: FileOperationRequest | undefined;
 
@@ -224,6 +246,22 @@ export async function POST(request: NextRequest) {
         try {
             cdnResult = await callCdnOperation(cdnAction, encodeSignedCdnToken(signedToken));
         } catch (error) {
+            if (operation.action === 'move' && isMissingCdnFileError(error)) {
+                await registerMissingFileMoveError({
+                    attemptedBy: filefolder.owner,
+                    oldLocation: currentPath,
+                    attemptedAction: operation.action,
+                    destinationPath,
+                    filefolderId: filefolder.id,
+                });
+                return NextResponse.json({
+                    error: 'File not found',
+                    code: 'file_not_found',
+                    old_location: currentPath,
+                    attempted_action: operation.action,
+                    attempted_by: filefolder.owner,
+                }, { status: 404 });
+            }
             if (operation.action !== 'delete' || !isMissingCdnFileError(error)) throw error;
             missingSource = true;
             cdnResult = {

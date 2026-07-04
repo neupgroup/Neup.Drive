@@ -13,6 +13,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { TrashRestoreButton } from '@/components/prodrive/trash-restore-button';
 import { prisma } from '@/core/lib/db';
 import type { FileOrFolder } from '@/core/lib/types';
 import { cn } from '@/core/lib/utils';
@@ -212,11 +213,14 @@ export default async function TrashPage() {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span>{item.size}</span>
-                <span aria-hidden="true">.</span>
-                <span className="break-all">{item.previousPath}</span>
-              </CardDescription>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span>{item.size}</span>
+                  <span aria-hidden="true">.</span>
+                  <span className="break-all">{item.previousPath}</span>
+                </CardDescription>
+                <TrashRestoreButton filefolderId={item.id} />
+              </div>
             </CardContent>
           </Card>
         ))}
