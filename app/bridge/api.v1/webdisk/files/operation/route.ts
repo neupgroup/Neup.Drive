@@ -94,6 +94,35 @@ function normalizeCdnPath(value?: string) {
     return normalized;
 }
 
+function isWebdiskStoragePath(value: string) {
+    const cleanPath = value.replace(/^\/+/, '');
+    return (
+        cleanPath.startsWith(`${WEBDISK_ACCOUNT_ID}/assets/`) ||
+        cleanPath === `${WEBDISK_ACCOUNT_ID}/assets` ||
+        cleanPath.startsWith(`${WEBDISK_ACCOUNT_ID}/signed/`) ||
+        cleanPath === `${WEBDISK_ACCOUNT_ID}/signed`
+    );
+}
+
+function normalizeLegacyWebdiskPath(value: string) {
+    const cleanPath = value.replace(/^\/+/, '');
+    const legacyPrefix = `uploads/${WEBDISK_ACCOUNT_ID}/`;
+    if (!cleanPath.startsWith(legacyPrefix)) return cleanPath;
+
+    const legacyRelative = cleanPath.slice(legacyPrefix.length);
+    if (legacyRelative.startsWith('assets/') || legacyRelative === 'assets') {
+        return `${WEBDISK_ACCOUNT_ID}/${legacyRelative}`;
+    }
+    if (legacyRelative.startsWith('signed/') || legacyRelative === 'signed') {
+        return `${WEBDISK_ACCOUNT_ID}/${legacyRelative}`;
+    }
+    if (legacyRelative.startsWith('.trash/') || legacyRelative === '.trash') {
+        return `${WEBDISK_ACCOUNT_ID}/${legacyRelative}`;
+    }
+
+    return cleanPath;
+}
+
 function replacePathPrefix(value: string, sourcePrefix: string, destinationPrefix: string) {
     if (value === sourcePrefix) return destinationPrefix;
     if (!value.startsWith(`${sourcePrefix}/`)) return value;
@@ -101,9 +130,15 @@ function replacePathPrefix(value: string, sourcePrefix: string, destinationPrefi
 }
 
 function folderTypeFromStoragePath(storagePath: string) {
-    const cleanPath = storagePath.replace(/^\/+/, '');
+    const cleanPath = normalizeLegacyWebdiskPath(storagePath);
     const parts = cleanPath.split('/');
     return normalizeType(parts[1]);
+}
+
+function resolveWebdiskSourcePath(storagePath: string) {
+    const normalized = normalizeLegacyWebdiskPath(storagePath);
+    if (isWebdiskStoragePath(normalized)) return normalized;
+    return null;
 }
 
 async function callCdnOperation(action: Extract<WebdiskOperationAction, 'rename' | 'move' | 'delete'>, token: string) {
@@ -146,6 +181,28 @@ async function registerMissingFileMoveError(params: {
         attempted_by: params.attemptedBy,
         destination_path: params.destinationPath,
     }), '/bridge/api.v1/webdisk/files/operation');
+}
+
+async function registerFolderNotFoundError(params: {
+    filefolderId?: string;
+    cdnPath?: string;
+    action?: string;
+    reason: string;
+    body?: unknown;
+}) {
+    const error = new Error('Folder not found');
+    (error as Error & { code?: string }).code = ErrorType.FOLDER_NOT_FOUND;
+
+    await logToDatabase(error, JSON.stringify({
+        errorType: ErrorType.FOLDER_NOT_FOUND,
+        filefolder_id: params.filefolderId,
+        cdn_path: params.cdnPath,
+        action: params.action,
+        reason: params.reason,
+        body: params.body,
+    }), '/bridge/api.v1/webdisk/files/operation', {
+        suppressConsole: true,
+    });
 }
 
 function isMissingFileFolderTableError(error: unknown) {
@@ -403,8 +460,41 @@ export async function POST(request: NextRequest) {
         const explicitFilefolder = body.filefolder_id
             ? await prisma.fileFolder.findUnique({ where: { id: body.filefolder_id } })
             : null;
+        if (body.filefolder_id && !explicitFilefolder) {
+            await registerFolderNotFoundError({
+                filefolderId: body.filefolder_id,
+                cdnPath: body.cdn_path,
+                action: body.action,
+                reason: 'missing_filefolder_record',
+                body,
+            });
+            if (body.action === 'delete') {
+                return NextResponse.json({
+                    success: true,
+                    action: body.action,
+                    missing_source: true,
+                    code: ErrorType.FOLDER_NOT_FOUND,
+                    cdn: {
+                        success: true,
+                        action: 'delete',
+                    },
+                });
+            }
+            return NextResponse.json({ error: 'Folder not found', code: ErrorType.FOLDER_NOT_FOUND }, { status: 404 });
+        }
+        const explicitSourcePath = explicitFilefolder ? resolveWebdiskSourcePath(explicitFilefolder.path) : null;
+        if (explicitFilefolder && !explicitSourcePath && body.action !== 'delete') {
+            await registerFolderNotFoundError({
+                filefolderId: explicitFilefolder.id,
+                cdnPath: explicitFilefolder.path,
+                action: body.action,
+                reason: 'path_is_not_webdisk_storage',
+                body,
+            });
+            return NextResponse.json({ error: 'Folder not found', code: ErrorType.FOLDER_NOT_FOUND }, { status: 404 });
+        }
         const sourcePath = explicitFilefolder
-            ? normalizeCdnPath(explicitFilefolder.path)
+            ? explicitSourcePath || explicitFilefolder.path
             : normalizeCdnPath(body.cdn_path);
         let currentType = explicitFilefolder
             ? folderTypeFromStoragePath(explicitFilefolder.path)
@@ -467,38 +557,17 @@ export async function POST(request: NextRequest) {
             destinationPath = previousPath;
         }
 
-        const signedToken = createSignedCdnToken(createExpiringOperationPayload({
-            action: cdnAction,
-            account_id: WEBDISK_ACCOUNT_ID,
-            account_folder: WEBDISK_ACCOUNT_ID,
-            folder_type: currentType,
-            path: sourcePath,
-            destination_path: destinationPath,
-            new_name: newName,
-            method: 'POST',
-        }, body.action === 'delete' ? 60 : undefined), PRIVATE_KEY);
-
         let cdn: Awaited<ReturnType<typeof callCdnOperation>>;
         let missingSource = false;
-        try {
-            cdn = await callCdnOperation(cdnAction, encodeSignedCdnToken(signedToken));
-        } catch (error) {
-            if (body.action === 'move' && isMissingCdnFileError(error)) {
-                await registerMissingFileMoveError({
-                    attemptedBy: WEBDISK_ACCOUNT_ID,
-                    oldLocation: sourcePath,
-                    attemptedAction: body.action,
-                    destinationPath,
-                });
-                return NextResponse.json({
-                    error: 'File not found',
-                    code: 'file_not_found',
-                    old_location: sourcePath,
-                    attempted_action: body.action,
-                    attempted_by: WEBDISK_ACCOUNT_ID,
-                }, { status: 404 });
-            }
-            if (body.action !== 'delete' || !isMissingCdnFileError(error)) throw error;
+
+        if (explicitFilefolder && !explicitSourcePath && body.action === 'delete') {
+            await registerFolderNotFoundError({
+                filefolderId: explicitFilefolder.id,
+                cdnPath: explicitFilefolder.path,
+                action: body.action,
+                reason: 'path_is_not_webdisk_storage',
+                body,
+            });
             missingSource = true;
             cdn = {
                 success: true,
@@ -507,6 +576,46 @@ export async function POST(request: NextRequest) {
                 destination_path: destinationPath,
                 deleted_path: sourcePath,
             };
+        } else {
+            const signedToken = createSignedCdnToken(createExpiringOperationPayload({
+                action: cdnAction,
+                account_id: WEBDISK_ACCOUNT_ID,
+                account_folder: WEBDISK_ACCOUNT_ID,
+                folder_type: currentType,
+                path: sourcePath,
+                destination_path: destinationPath,
+                new_name: newName,
+                method: 'POST',
+            }, body.action === 'delete' ? 60 : undefined), PRIVATE_KEY);
+
+            try {
+                cdn = await callCdnOperation(cdnAction, encodeSignedCdnToken(signedToken));
+            } catch (error) {
+                if (body.action === 'move' && isMissingCdnFileError(error)) {
+                    await registerMissingFileMoveError({
+                        attemptedBy: WEBDISK_ACCOUNT_ID,
+                        oldLocation: sourcePath,
+                        attemptedAction: body.action,
+                        destinationPath,
+                    });
+                    return NextResponse.json({
+                        error: 'File not found',
+                        code: 'file_not_found',
+                        old_location: sourcePath,
+                        attempted_action: body.action,
+                        attempted_by: WEBDISK_ACCOUNT_ID,
+                    }, { status: 404 });
+                }
+                if (body.action !== 'delete' || !isMissingCdnFileError(error)) throw error;
+                missingSource = true;
+                cdn = {
+                    success: true,
+                    action: cdnAction,
+                    path: sourcePath,
+                    destination_path: destinationPath,
+                    deleted_path: sourcePath,
+                };
+            }
         }
         const finalPath = cdn.destination_path || cdn.path || destinationPath || sourcePath;
         if (isFolder && (body.action === 'delete' || body.action === 'restore')) {
