@@ -44,14 +44,14 @@ func isPublicAccessType(accessType string) bool {
 }
 
 func parseFileRoute(pathValue string) (accountID, accessType, relPath string, ok bool) {
-	if strings.HasPrefix(pathValue, "/files/") {
-		return parseLegacyFileRoute(strings.TrimPrefix(pathValue, "/files/"))
+	if strings.HasPrefix(pathValue, "/serve/") {
+		return parseServeFileRoute(strings.TrimPrefix(pathValue, "/serve/"))
 	}
 
 	return parseRootFileRoute(strings.TrimPrefix(pathValue, "/"))
 }
 
-func parseLegacyFileRoute(cleaned string) (accountID, accessType, relPath string, ok bool) {
+func parseServeFileRoute(cleaned string) (accountID, accessType, relPath string, ok bool) {
 	return parseAccountFileRoute(cleaned, true)
 }
 

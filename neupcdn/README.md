@@ -83,11 +83,11 @@ Each endpoint requires a matching signed file-operation token.
 
 ### 4. File Access
 **Endpoints**:
-- Public assets: `GET /files/{accountId}/{relativePath}`
-- Signed files: `GET /files/{accountId}/signed/{duration}/{relativePath}` with `duration` like `9m` or `24h`
-- Private files: `GET /files/{accountId}/private/{relativePath}`
+- Public assets: `GET /serve/{accountId}/{relativePath}`
+- Signed files: `GET /serve/{accountId}/signed/{duration}/{relativePath}` with `duration` like `9m` or `24h`
+- Other token-backed storage roots: `GET /serve/{accountId}/{drive|.trash|.logs|assets}/{relativePath}`
 
-Assets do not require tokens. Signed and private files require a short-lived signed token; private tokens are also bound to the request IP and user agent.
+Assets do not require tokens. Signed, drive, trash, and log access require a short-lived signed token.
 
 ### 5. Not Found Response
 Any unknown route returns:

@@ -54,7 +54,6 @@
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/data.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/account/connection/sign&get/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `components/ui/card.tsx`.
-- [ ] Update `neupcdn/README.md` to reflect the current CDN routes and removed `private` storage type.
 - [ ] Fix `npx tsc --noEmit` error in `components/ui/calendar.tsx`: `IconLeft` is not a valid `CustomComponents` property.
 - [ ] Fix implicit `any` `className` bindings in `components/ui/calendar.tsx`.
 - [ ] Fix missing module import in `scripts/test-hashing.ts` for `../src/lib/sha256`.

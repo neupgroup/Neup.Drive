@@ -56,7 +56,7 @@ func SetupRoutes() http.Handler {
 	mux.HandleFunc("/upload", UploadHandler)
 	mux.HandleFunc("/list", FileListHandler)
 	mux.HandleFunc("/operate/", FileOperationDispatchHandler)
-	mux.HandleFunc("/files/", FileServeHandler)
+	mux.HandleFunc("/serve/", FileServeHandler)
 	mux.HandleFunc("/", ServeHandler)
 
 	// Return the mux wrapped with CORS middleware
