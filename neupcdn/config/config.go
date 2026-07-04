@@ -22,7 +22,7 @@ func Load() {
 		Port:            getEnv("PORT", "3001"),
 		PublicRoot:      getEnv("PUBLIC_ROOT", "../cdn_data"),
 		UploadPublicKey: getEnv("UPLOAD_SECRET_PUBLIC_KEY", ""),
-		CallbackURL:     "https://neupgroup.com/drive/callback/v1/upload",
+		CallbackURL:     "https://neupgroup.com/drive/bridge/callback.v1/upload",
 		MaxUploadSize:   getEnvInt64("UPLOAD_MAX_SIZE", 10000*1024*1024),    // 10GB default
 		MaxChunkSize:    getEnvInt64("UPLOAD_MAX_CHUNK_SIZE", 50*1024*1024), // 50MB default
 	}
