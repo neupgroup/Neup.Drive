@@ -52,9 +52,7 @@ const MEMBER_AVATAR = PlaceHolderImages.find((image) => image.id === 'avatar1') 
 
 function getAccountRelativePathFromStoragePath(storagePath: string) {
   const cleanPath = storagePath.replace(/^\/+/, '');
-  const uploadsPrefix = 'uploads/';
-  const withoutUploads = cleanPath.startsWith(uploadsPrefix) ? cleanPath.slice(uploadsPrefix.length) : cleanPath;
-  const [, ...rest] = withoutUploads.split('/');
+  const [, ...rest] = cleanPath.split('/');
   return rest.join('/');
 }
 

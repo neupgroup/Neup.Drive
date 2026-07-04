@@ -116,8 +116,8 @@ function fileTypeFromRecord(type: string, name: string): FileOrFolder['type'] {
 
 function getDriveRelativePath(storagePath: string, owner: string) {
   const cleanPath = storagePath.replace(/^\/+/, '');
-  const uploadsPrefix = `uploads/${owner}/`;
-  const ownerRelativePath = cleanPath.startsWith(uploadsPrefix) ? cleanPath.slice(uploadsPrefix.length) : cleanPath;
+  const ownerPrefix = `${owner}/`;
+  const ownerRelativePath = cleanPath.startsWith(ownerPrefix) ? cleanPath.slice(ownerPrefix.length) : cleanPath;
   const drivePrefix = 'drive/';
 
   if (ownerRelativePath === 'drive') return '';
@@ -127,8 +127,8 @@ function getDriveRelativePath(storagePath: string, owner: string) {
 
 function getRelativePathForStoredAs(storagePath: string, owner: string, storedAs: string) {
   const cleanPath = storagePath.replace(/^\/+/, '');
-  const uploadsPrefix = `uploads/${owner}/`;
-  const ownerRelativePath = cleanPath.startsWith(uploadsPrefix) ? cleanPath.slice(uploadsPrefix.length) : cleanPath;
+  const ownerPrefix = `${owner}/`;
+  const ownerRelativePath = cleanPath.startsWith(ownerPrefix) ? cleanPath.slice(ownerPrefix.length) : cleanPath;
 
   if (storedAs === 'drivefile') {
     return getDriveRelativePath(storagePath, owner);

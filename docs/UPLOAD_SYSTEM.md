@@ -80,7 +80,7 @@ import { signAndUploadFile } from '@/lib/upload-client';
 async function uploadFile(file: File) {
   const result = await signAndUploadFile(
     file,
-    `uploads/user-123/${file.name}`,
+    `user-123/${file.name}`,
     'user-123',
     'key-abc',
     'your-secret-key',
@@ -124,7 +124,7 @@ if (!validation.valid) {
 
 ```typescript
 {
-  path: "uploads/user-123/document.pdf",
+  path: "user-123/document.pdf",
   account_id: "user-123",
   method: "PUT",
   max_size: 104857600, // 100MB in bytes

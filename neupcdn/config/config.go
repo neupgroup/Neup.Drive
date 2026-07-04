@@ -20,7 +20,7 @@ var Cfg Config
 func Load() {
 	Cfg = Config{
 		Port:            getEnv("PORT", "3001"),
-		PublicRoot:      "../cdn_data",
+		PublicRoot:      getEnv("PUBLIC_ROOT", "../cdn_data"),
 		UploadPublicKey: getEnv("UPLOAD_SECRET_PUBLIC_KEY", ""),
 		CallbackURL:     "https://neupgroup.com/drive/callback/v1/upload",
 		MaxUploadSize:   getEnvInt64("UPLOAD_MAX_SIZE", 10000*1024*1024),    // 10GB default

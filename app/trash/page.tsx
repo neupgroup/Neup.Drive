@@ -83,8 +83,8 @@ function fileTypeFromRecord(type: string, name: string): FileOrFolder['type'] {
 
 function relativePathFromStoragePath(storagePath: string, owner: string, mode: string) {
   const cleanPath = storagePath.replace(/^\/+/, '');
-  const uploadsPrefix = `uploads/${owner}/`;
-  const ownerRelativePath = cleanPath.startsWith(uploadsPrefix) ? cleanPath.slice(uploadsPrefix.length) : cleanPath;
+  const ownerPrefix = `${owner}/`;
+  const ownerRelativePath = cleanPath.startsWith(ownerPrefix) ? cleanPath.slice(ownerPrefix.length) : cleanPath;
 
   if (mode === 'drive') {
     if (ownerRelativePath === 'drive') return '';

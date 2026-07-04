@@ -125,16 +125,12 @@ func resolveStorageRelativePath(accountID, accessType, relPath string) (string, 
 		return "", false
 	}
 
-	accountPrefix := "uploads/" + accountID + "/"
-	if cleaned == "uploads/"+accountID {
+	accountPrefix := accountID + "/"
+	if cleaned == accountID {
 		return cleaned, true
 	}
 	if strings.HasPrefix(cleaned, accountPrefix) {
 		return cleaned, true
-	}
-
-	if strings.HasPrefix(cleaned, "uploads/") {
-		return "", false
 	}
 
 	typePrefix := accessType + "/"
@@ -142,13 +138,13 @@ func resolveStorageRelativePath(accountID, accessType, relPath string) (string, 
 		cleaned = path.Join(accessType, cleaned)
 	}
 
-	return path.Join("uploads", accountID, cleaned), true
+	return path.Join(accountID, cleaned), true
 }
 
 func isReservedAssetsRootSignedPath(storagePath string) bool {
 	cleaned := strings.TrimPrefix(filepath.ToSlash(strings.TrimSpace(storagePath)), "/")
 	parts := strings.Split(cleaned, "/")
-	return len(parts) >= 4 && parts[0] == "uploads" && parts[2] == "assets" && parts[3] == "signed"
+	return len(parts) >= 3 && parts[1] == "assets" && parts[2] == "signed"
 }
 
 func requestDeviceIP(r *http.Request) string {
@@ -475,7 +471,7 @@ func verifyFileOperationRequest(w http.ResponseWriter, r *http.Request) (*securi
 		return nil, false
 	}
 
-	accountRoot := "uploads/" + claims.AccountFolder
+	accountRoot := claims.AccountFolder
 	cleanPath := strings.TrimPrefix(claims.Path, "/")
 	if cleanPath != accountRoot && !strings.HasPrefix(cleanPath, accountRoot+"/") {
 		TokenNotFound(w, "Token path does not match account folder", nil)
@@ -534,7 +530,7 @@ func moveFile(w http.ResponseWriter, r *http.Request, claims *security.FileOpera
 		return
 	}
 
-	if !strings.HasPrefix(strings.TrimPrefix(claims.DestinationPath, "/"), "uploads/"+claims.AccountFolder+"/") {
+	if !strings.HasPrefix(strings.TrimPrefix(claims.DestinationPath, "/"), claims.AccountFolder+"/") {
 		ClientErrorCode(w, http.StatusForbidden, "destination_account_mismatch", "Destination path does not match account folder", nil)
 		return
 	}
@@ -612,7 +608,7 @@ func deleteFile(w http.ResponseWriter, r *http.Request, claims *security.FileOpe
 		return
 	}
 
-	if !strings.HasPrefix(strings.TrimPrefix(claims.DestinationPath, "/"), "uploads/"+claims.AccountFolder+"/.trash/") {
+	if !strings.HasPrefix(strings.TrimPrefix(claims.DestinationPath, "/"), claims.AccountFolder+"/.trash/") {
 		ClientErrorCode(w, http.StatusForbidden, "invalid_trash_destination", "Delete destination must be inside the account trash folder", nil)
 		return
 	}

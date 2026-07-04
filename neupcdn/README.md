@@ -23,7 +23,7 @@ Create a `.env` file in the `neupcdn` directory:
 
 ```env
 PORT=3000
-PUBLIC_ROOT=./uploads
+PUBLIC_ROOT=../cdn_data
 UPLOAD_SECRET_KEY=your-shared-secret-key
 CALLBACK_URL=http://localhost:3000/drive/api/upload/callback
 MAX_UPLOAD_SIZE=104857600  # 100MB in bytes
@@ -64,7 +64,7 @@ The server will start on port 3000 (or configured PORT).
 ```json
 {
   "success": true,
-  "path": "uploads/user-123/file.jpg",
+  "path": "user-123/file.jpg",
   "status": "completed"
 }
 ```

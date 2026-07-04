@@ -21,7 +21,7 @@ The file record to preview.
 
 ::details
 
-Each successful preview request appends an audit entry to `uploads/<account>/.logs/2026jun25` so API-originated view access is preserved even before the viewer page renders.
+Each successful preview request appends an audit entry to `<account>/.logs/2026jun25` so API-originated view access is preserved even before the viewer page renders.
 
 ::end
 */

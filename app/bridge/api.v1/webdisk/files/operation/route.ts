@@ -18,7 +18,7 @@ Handles rename, move, delete, and restore requests for CDN-listed WebDisk files.
 
 ::details
 
-Delete operations now move files into `.trash/<original-location>`, log every API action into `uploads/<account>/.logs/2026jun25`, treat CDN `404_not_found` delete responses as soft-delete success, and allow an undo through the `restore` action.
+Delete operations now move files into `.trash/<original-location>`, log every API action into `<account>/.logs/2026jun25`, treat CDN `404_not_found` delete responses as soft-delete success, and allow an undo through the `restore` action.
 
 ::end
 */
@@ -83,7 +83,7 @@ function normalizeFolderPath(value?: string) {
 
 function normalizeCdnPath(value?: string) {
     const cleaned = (value || '').trim().replace(/^\/+/, '');
-    const accountRoot = `uploads/${WEBDISK_ACCOUNT_ID}`;
+    const accountRoot = WEBDISK_ACCOUNT_ID;
     const normalized = path.posix.normalize(cleaned);
     if (!normalized || normalized === accountRoot || !normalized.startsWith(`${accountRoot}/`)) {
         throw new Error('Invalid cdn_path');

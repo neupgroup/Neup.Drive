@@ -71,5 +71,5 @@ CDN_URL=http://localhost:3001/upload
 PORT=3001
 UPLOAD_SECRET_KEY=super-secret-key
 CALLBACK_URL=http://localhost:3000/bridge/webhook.v1/upload/callback
-PUBLIC_ROOT=./uploads
+PUBLIC_ROOT=../cdn_data
 ```

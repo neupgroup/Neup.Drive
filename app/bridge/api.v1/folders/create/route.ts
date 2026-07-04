@@ -70,7 +70,7 @@ function normalizeFolderType(value: string | undefined, mode: FolderMode): Folde
 }
 
 function buildStoragePath(owner: string, folderType: FolderType, internalPath: string, name: string) {
-    const segments = ['uploads', owner, folderType];
+    const segments = [owner, folderType];
     if (internalPath) segments.push(internalPath);
     segments.push(name);
     return path.posix.join(...segments);

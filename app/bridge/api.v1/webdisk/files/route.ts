@@ -48,12 +48,10 @@ function stripWebdiskType(relativePath: string, folderType: string) {
 
 function fileUrl(filePath: string, request: NextRequest) {
     const cleanPath = filePath.replace(/^\/+/, '');
-    const accountPrefix = `uploads/${WEBDISK_ACCOUNT_ID}/`;
+    const accountPrefix = `${WEBDISK_ACCOUNT_ID}/`;
     const relativePath = cleanPath.startsWith(accountPrefix)
         ? cleanPath.slice(accountPrefix.length)
-        : cleanPath.startsWith('uploads/')
-            ? cleanPath.slice('uploads/'.length)
-            : cleanPath;
+        : cleanPath;
     const folderType = getWebdiskType(relativePath);
     const exposedPath = stripWebdiskType(relativePath, folderType);
     const encodedPath = exposedPath.split('/').filter(Boolean).map(encodeURIComponent).join('/');
@@ -83,7 +81,7 @@ function fileUrl(filePath: string, request: NextRequest) {
 }
 
 async function listCdnFiles() {
-    const listPath = path.posix.join('uploads', WEBDISK_ACCOUNT_ID);
+    const listPath = path.posix.join(WEBDISK_ACCOUNT_ID);
     const signedToken = createSignedCdnToken(createExpiringOperationPayload({
         action: 'list',
         account_id: WEBDISK_ACCOUNT_ID,

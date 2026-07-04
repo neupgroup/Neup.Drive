@@ -130,7 +130,7 @@ export function buildBridgeTrashPath(params: {
     const safeOwner = assertSafePathSegment(params.owner, 'owner');
     const safeFolderType = assertSafePathSegment(params.folderType, 'folder_type');
     const cleanCurrentPath = params.currentPath.replace(/^\/+/, '');
-    const accountPrefix = `uploads/${safeOwner}/`;
+    const accountPrefix = `${safeOwner}/`;
     const accountRelativePath = cleanCurrentPath.startsWith(accountPrefix)
         ? cleanCurrentPath.slice(accountPrefix.length)
         : cleanCurrentPath;
@@ -139,7 +139,7 @@ export function buildBridgeTrashPath(params: {
         ? accountRelativePath.slice(folderPrefix.length)
         : path.posix.basename(accountRelativePath);
     const normalizedRelativePath = normalizeInternalPath(relativePath);
-    return path.posix.join('uploads', safeOwner, '.trash', normalizedRelativePath);
+    return path.posix.join(safeOwner, '.trash', normalizedRelativePath);
 }
 
 function createBridgeOperationError(response: Response, data: any) {
@@ -222,7 +222,7 @@ export function buildBridgeStoragePath(params: {
     const prefix = params.timestamp ? `${params.timestamp}-${safeFilename}` : safeFilename;
     const internalPath = normalizeInternalPath(params.internalPath);
     assertNoReservedWebdiskRootFolder(safeFolderType, internalPath);
-    return path.posix.join('uploads', safeOwner, safeFolderType, internalPath, prefix);
+    return path.posix.join(safeOwner, safeFolderType, internalPath, prefix);
 }
 
 export function addUniqueFilenameSuffix(filename: string, suffix = Date.now().toString()) {
@@ -264,9 +264,8 @@ export async function getDuplicateWebdiskFilename(params: {
 
 export function toAccountRelativePath(filePath: string, owner: string) {
     const cleanPath = filePath.replace(/^\/+/, '');
-    const prefix = `uploads/${owner}/`;
+    const prefix = `${owner}/`;
     if (cleanPath.startsWith(prefix)) return cleanPath.slice(prefix.length);
-    if (cleanPath.startsWith('uploads/')) return cleanPath.slice('uploads/'.length);
     return cleanPath;
 }
 

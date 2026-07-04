@@ -30,7 +30,7 @@ The requested operation: `rename`, `move`, `delete`, or `restore`.
 
 ::details
 
-Delete requests soft-succeed when the CDN reports `404_not_found`, still move metadata into the account trash path, append an audit line into `uploads/<account>/.logs/2026jun25`, and can be undone through the `restore` action.
+Delete requests soft-succeed when the CDN reports `404_not_found`, still move metadata into the account trash path, append an audit line into `<account>/.logs/2026jun25`, and can be undone through the `restore` action.
 
 ::end
 */

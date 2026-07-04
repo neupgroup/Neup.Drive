@@ -9,7 +9,7 @@ import type { UploadSignaturePayload } from '@/core/lib/upload-types';
 ::neup.documentation::bridge-file-access-log
 ::title Bridge File Access Log Helpers
 
-Appends structured file access and mutation records to the account-scoped bridge log file stored at `uploads/<account>/.logs/2026jun25`.
+Appends structured file access and mutation records to the account-scoped bridge log file stored at `<account>/.logs/2026jun25`.
 
 ::private
 
@@ -42,7 +42,7 @@ function buildBridgeAccessLogUrl(owner: string) {
 }
 
 export function buildBridgeAccessLogPath(owner: string) {
-    return path.posix.join('uploads', owner, LOG_FOLDER, LOG_FILENAME);
+    return path.posix.join(owner, LOG_FOLDER, LOG_FILENAME);
 }
 
 async function readBridgeAccessLog(owner: string) {

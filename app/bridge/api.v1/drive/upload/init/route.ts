@@ -117,8 +117,8 @@ export async function POST(request: NextRequest) {
         }
 
         const destination_path = isWebdiskUpload
-            ? path.posix.join('uploads', userId, webdiskType, webdiskPath, sanitizedName)
-            : `uploads/${userId}/${timestamp}-${sanitizedName}`;
+            ? path.posix.join(userId, webdiskType, webdiskPath, sanitizedName)
+            : `${userId}/${timestamp}-${sanitizedName}`;
         const expires_at = Math.floor(Date.now() / 1000) + (15 * 60); // 15 minutes expiration
 
         // Create Pending File Record

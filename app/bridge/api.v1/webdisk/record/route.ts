@@ -7,7 +7,7 @@ const WEBDISK_TYPES = ['assets', 'signed'];
 
 function getWebdiskTypeFromPath(filePath: string) {
     const parts = filePath.replace(/^\/+/, '').split('/');
-    const type = parts.length >= 3 ? parts[2]?.toLowerCase() : undefined;
+    const type = parts.length >= 2 ? parts[1]?.toLowerCase() : undefined;
     return type && WEBDISK_TYPES.includes(type) ? type : 'assets';
 }
 
