@@ -185,11 +185,11 @@ func handleFileOperation(w http.ResponseWriter, r *http.Request, expectedAction 
 
 	switch claims.Action {
 	case "rename":
-		renameFile(w, claims)
+		renameFile(w, r, claims)
 	case "move":
-		moveFile(w, claims)
+		moveFile(w, r, claims)
 	case "delete":
-		deleteFile(w, claims)
+		deleteFile(w, r, claims)
 	default:
 		TokenNotFound(w, "Unsupported file operation", nil)
 	}
@@ -232,6 +232,12 @@ func FileViewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.ServeFile(w, r, fullPath)
+	LogActivity("file_view", r, map[string]interface{}{
+		"account_id": claims.AccountID,
+		"path":       claims.Path,
+		"folder":     claims.FolderType,
+		"status":     "served",
+	})
 }
 
 func FileServeHandler(w http.ResponseWriter, r *http.Request) {
@@ -312,6 +318,12 @@ func FileServeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.ServeFile(w, r, fullPath)
+	LogActivity("file_view", r, map[string]interface{}{
+		"account_id": accountID,
+		"path":       resolvedRelPath,
+		"folder":     accessType,
+		"status":     "served",
+	})
 }
 
 func FileListHandler(w http.ResponseWriter, r *http.Request) {
@@ -446,7 +458,7 @@ func verifyFileOperationRequest(w http.ResponseWriter, r *http.Request) (*securi
 	return claims, true
 }
 
-func renameFile(w http.ResponseWriter, claims *security.FileOperationPayload) {
+func renameFile(w http.ResponseWriter, r *http.Request, claims *security.FileOperationPayload) {
 	if claims.NewName == "" {
 		ClientErrorCode(w, http.StatusBadRequest, "missing_new_name", "new_name is required for rename", nil)
 		return
@@ -480,9 +492,16 @@ func renameFile(w http.ResponseWriter, claims *security.FileOperationPayload) {
 		"path":             destRel,
 		"destination_path": destRel,
 	})
+	LogActivity("file_rename", r, map[string]interface{}{
+		"account_id":         claims.AccountID,
+		"source_path":        claims.Path,
+		"destination_path":   destRel,
+		"folder":             claims.FolderType,
+		"requested_new_name": claims.NewName,
+	})
 }
 
-func moveFile(w http.ResponseWriter, claims *security.FileOperationPayload) {
+func moveFile(w http.ResponseWriter, r *http.Request, claims *security.FileOperationPayload) {
 	if claims.DestinationPath == "" {
 		ClientErrorCode(w, http.StatusBadRequest, "missing_destination_path", "destination_path is required for move", nil)
 		return
@@ -517,9 +536,15 @@ func moveFile(w http.ResponseWriter, claims *security.FileOperationPayload) {
 		"path":             destRel,
 		"destination_path": destRel,
 	})
+	LogActivity("file_move", r, map[string]interface{}{
+		"account_id":       claims.AccountID,
+		"source_path":      claims.Path,
+		"destination_path": destRel,
+		"folder":           claims.FolderType,
+	})
 }
 
-func deleteFile(w http.ResponseWriter, claims *security.FileOperationPayload) {
+func deleteFile(w http.ResponseWriter, r *http.Request, claims *security.FileOperationPayload) {
 	source, err := safePublicPath(claims.Path)
 	if err != nil {
 		ClientErrorCode(w, http.StatusForbidden, "invalid_path", "Invalid source path", err)
@@ -547,6 +572,12 @@ func deleteFile(w http.ResponseWriter, claims *security.FileOperationPayload) {
 			"action":       "delete",
 			"deleted_path": claims.Path,
 		})
+		LogActivity("file_delete", r, map[string]interface{}{
+			"account_id":   claims.AccountID,
+			"deleted_path": claims.Path,
+			"folder":       claims.FolderType,
+			"mode":         "permanent",
+		})
 		return
 	}
 
@@ -573,6 +604,13 @@ func deleteFile(w http.ResponseWriter, claims *security.FileOperationPayload) {
 		"path":             destRel,
 		"destination_path": destRel,
 		"deleted_path":     claims.Path,
+	})
+	LogActivity("file_delete", r, map[string]interface{}{
+		"account_id":       claims.AccountID,
+		"deleted_path":     claims.Path,
+		"destination_path": destRel,
+		"folder":           claims.FolderType,
+		"mode":             "trash",
 	})
 }
 

@@ -2,6 +2,16 @@ package http
 
 import "net/http"
 
+type statusRecorder struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (recorder *statusRecorder) WriteHeader(statusCode int) {
+	recorder.statusCode = statusCode
+	recorder.ResponseWriter.WriteHeader(statusCode)
+}
+
 // enableCORS wraps a handler to add CORS headers
 func enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -21,6 +31,25 @@ func enableCORS(next http.Handler) http.Handler {
 	})
 }
 
+func auditRequests(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		recorder := &statusRecorder{
+			ResponseWriter: w,
+			statusCode:     http.StatusOK,
+		}
+
+		next.ServeHTTP(recorder, r)
+
+		if r.Method == http.MethodOptions {
+			return
+		}
+
+		LogActivity("url_visit", r, map[string]interface{}{
+			"status_code": recorder.statusCode,
+		})
+	})
+}
+
 func SetupRoutes() http.Handler {
 	mux := http.NewServeMux()
 
@@ -31,5 +60,5 @@ func SetupRoutes() http.Handler {
 	mux.HandleFunc("/", ServeHandler)
 
 	// Return the mux wrapped with CORS middleware
-	return enableCORS(mux)
+	return enableCORS(auditRequests(mux))
 }

@@ -15,6 +15,16 @@
 - [ ] Add `::neup.documentation::` source documentation for `app/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/shared/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/recents/page.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `neupcdn/main.go`.
+- [ ] Add `::neup.documentation::` source documentation for `neupcdn/cmd/server/main.go`.
+- [ ] Add `::neup.documentation::` source documentation for `neupcdn/config/config.go`.
+- [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/files.go`.
+- [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/routes.go`.
+- [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/response.go`.
+- [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/logger.go`.
+- [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/upload.go`.
+- [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/http/serve.go`.
+- [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/security/signer.go`.
 - [ ] Add `::neup.documentation::` source documentation for `components/ui/toast.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `components/ui/toaster.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `core/hooks/use-toast.ts`.

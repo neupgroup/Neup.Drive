@@ -162,6 +162,14 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 			"path":    claims.Path,
 			"status":  "completed",
 		})
+		LogActivity("file_upload", r, map[string]interface{}{
+			"account_id":   claims.AccountID,
+			"path":         claims.Path,
+			"content_type": claims.ContentType,
+			"file_hash":    fileHash,
+			"size":         total,
+			"status":       "completed",
+		})
 		return
 	}
 

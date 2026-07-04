@@ -19,6 +19,8 @@ func main() {
 	// Load config
 	config.Load()
 
+	internalHttp.InitLoggers()
+
 	mux := internalHttp.SetupRoutes()
 	log.Printf("Neup.CDN is running at http://localhost:%s", config.Cfg.Port)
 	log.Fatal(http.ListenAndServe(":"+config.Cfg.Port, mux))
