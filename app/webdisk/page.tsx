@@ -97,6 +97,10 @@ function buildStoragePath(owner: string, folderType: string, relativePath: strin
   return [owner, folderType, relativePath].filter(Boolean).join('/');
 }
 
+function isSystemSignedFolder(folder: WebDiskFolder) {
+  return folder.type === 'signed' && !folder.path;
+}
+
 function webdiskUploadHref(type: string | null, folderPath: string) {
   const params = new URLSearchParams();
   params.set('type', type || 'assets');
@@ -386,8 +390,8 @@ function WebdiskContent() {
     }
 
     const sortedFolders = Array.from(folders.values()).sort((a, b) => {
-      if (a.type === 'signed' && !a.path) return -1;
-      if (b.type === 'signed' && !b.path) return 1;
+      if (isSystemSignedFolder(a)) return -1;
+      if (isSystemSignedFolder(b)) return 1;
       return a.name.localeCompare(b.name);
     });
 
@@ -423,11 +427,14 @@ function WebdiskContent() {
         : [],
     }));
 
-    const combinedItems = [...folderItems, ...fileItems];
-    return combinedItems.sort((left, right) => {
+    const systemSignedItem = folderItems.find((item) => item.locationType === 'signed' && !item.navigationPath);
+    const regularFolderItems = folderItems.filter((item) => !(item.locationType === 'signed' && !item.navigationPath));
+    const combinedItems = [...regularFolderItems, ...fileItems];
+    const sortedItems = combinedItems.sort((left, right) => {
       const direction = sortMode === 'name-desc' ? -1 : 1;
       return left.name.localeCompare(right.name) * direction;
     });
+    return systemSignedItem ? [systemSignedItem, ...sortedItems] : sortedItems;
   }, [currentItems.files, currentItems.folders, selectedType, sortMode]);
 
   const recordsById = React.useMemo(() => new Map(
