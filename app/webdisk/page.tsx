@@ -412,17 +412,17 @@ function WebdiskContent() {
     }
   }, [fetchFiles, selectedPath, selectedType]);
 
-  const heading = WEBDISK_TYPES.find((type) => type.id === selectedType)?.label || selectedType;
+  const displayPath = selectedPath ? `/${selectedPath}` : '/';
 
   return (
     <div className="space-y-8 p-1 sm:p-2">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-black font-headline tracking-tight mb-1 text-slate-900 dark:text-white">
-            {heading}
+            WebDisk
           </h1>
           <p className="text-muted-foreground text-sm font-medium">
-            {`/${selectedType}${selectedPath ? `/${selectedPath}` : ''}`}
+            {displayPath}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -446,20 +446,6 @@ function WebdiskContent() {
             </Link>
           </Button>
         </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {WEBDISK_TYPES.map((type) => (
-          <Button
-            key={type.id}
-            type="button"
-            variant={selectedType === type.id ? 'default' : 'outline'}
-            className="rounded-full"
-            onClick={() => navigateTo(type.id, '')}
-          >
-            {type.label}
-          </Button>
-        ))}
       </div>
 
       {loading ? (
