@@ -6,6 +6,7 @@ import {
   Folder,
   Music,
   Play,
+  Upload,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -34,6 +35,7 @@ export function FileListView({
         const isSelected = selectedIds?.includes(item.id) ?? false;
         const isPreviousSelected = index > 0 ? selectedIds?.includes(data[index - 1]?.id) ?? false : false;
         const isNextSelected = index < data.length - 1 ? selectedIds?.includes(data[index + 1]?.id) ?? false : false;
+        const isAction = item.type === 'action';
 
         return (
           <Card
@@ -59,22 +61,28 @@ export function FileListView({
               <FileTypeTile type={item.type} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
-                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span
-                          className={`h-2 w-2 rounded-full ${storageTierDotClass(item.storageTier)}`}
-                          aria-label={storageTierLabel(item.storageTier)}
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent>{storageTierLabel(item.storageTier)} Storage</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <span className="truncate">Uploaded by {uploader}</span>
-                  <span aria-hidden="true">.</span>
-                  <span>{item.lastModified}</span>
-                </div>
+                {isAction || item.description ? (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {item.description || item.lastModified}
+                  </div>
+                ) : (
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            className={`h-2 w-2 rounded-full ${storageTierDotClass(item.storageTier)}`}
+                            aria-label={storageTierLabel(item.storageTier)}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>{storageTierLabel(item.storageTier)} Storage</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <span className="truncate">Uploaded by {uploader}</span>
+                    <span aria-hidden="true">.</span>
+                    <span>{item.lastModified}</span>
+                  </div>
+                )}
               </div>
             </div>
           </Card>
@@ -86,6 +94,14 @@ export function FileListView({
 
 function FileTypeTile({ type }: { type: FileOrFolder['type'] }) {
   const iconClass = 'h-5 w-5 text-white drop-shadow-sm';
+
+  if (type === 'action') {
+    return (
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 shadow-sm">
+        <Upload className={iconClass} />
+      </span>
+    );
+  }
 
   if (type === 'folder') {
     return (

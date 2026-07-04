@@ -6,7 +6,12 @@ export default async function AccountsPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Accounts</h1>
+      <div className="mb-4 space-y-1">
+        <h1 className="text-2xl font-semibold">Accounts</h1>
+        <p className="text-sm text-muted-foreground">
+          Recent account records stored in the drive application database.
+        </p>
+      </div>
       <div className="space-y-2">
         {accounts.map((a) => (
           <div key={a.id} className="p-3 border rounded">

@@ -18,6 +18,12 @@
 - [ ] Add `::neup.documentation::` source documentation for `app/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/shared/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/recents/page.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `app/analytics/page.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `app/manage/page.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `app/manage/profiles/page.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `app/manage/storage/page.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `app/manage/analytics/page.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `app/manage/accounts/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/main.go`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/cmd/server/main.go`.
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/config/config.go`.
@@ -46,6 +52,8 @@
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/list/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/drive/files/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/upload/page.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `app/upload-test/page.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `app/viewer/[id]/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `tailwind.config.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/storage-tiers.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/error-server.ts`.

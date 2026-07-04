@@ -35,12 +35,15 @@ function getCdnBaseUrl() {
 
 function getWebdiskType(relativePath: string) {
     const [type] = relativePath.split('/');
-    return type === 'signed' ? type : 'assets';
+    return type?.toLowerCase() === 'signed' ? 'signed' : 'assets';
 }
 
 function stripWebdiskType(relativePath: string, folderType: string) {
-    const prefix = `${folderType}/`;
-    return relativePath.startsWith(prefix) ? relativePath.slice(prefix.length) : relativePath;
+    const [type, ...rest] = relativePath.split('/');
+    if (type?.toLowerCase() === folderType.toLowerCase()) {
+        return rest.join('/');
+    }
+    return relativePath;
 }
 
 function fileUrl(filePath: string, request: NextRequest) {

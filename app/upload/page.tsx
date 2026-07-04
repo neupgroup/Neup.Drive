@@ -22,6 +22,7 @@ function UploadContent() {
     const saveTo = searchParams.get('saveto');
     const webdiskType = normalizeWebdiskType(searchParams.get('type'));
     const webdiskPath = normalizeUploadPath(searchParams.get('path'));
+    const drivePath = normalizeUploadPath(searchParams.get('path'));
     const uploadMode = saveTo === 'webdisk' ? 'webdisk' as const : 'drive' as const;
     const uploadInitEndpoint = React.useMemo(() => {
         const params = new URLSearchParams();
@@ -30,10 +31,12 @@ function UploadContent() {
         if (saveTo === 'webdisk') {
             params.set('saveto', 'webdisk');
             if (webdiskPath) params.set('path', webdiskPath);
+        } else if (drivePath) {
+            params.set('path', drivePath);
         }
 
         return `/bridge/api.v1/upload/init?${params.toString()}`;
-    }, [saveTo, uploadMode, webdiskPath, webdiskType]);
+    }, [drivePath, saveTo, uploadMode, webdiskPath, webdiskType]);
 
     return (
         <div className="space-y-6">
@@ -44,7 +47,9 @@ function UploadContent() {
                 <p className="text-muted-foreground">
                     {saveTo === 'webdisk'
                         ? `Uploading to WebDisk /${webdiskType}${webdiskPath ? `/${webdiskPath}` : ''}`
-                        : 'Upload files directly to NeupCDN'}
+                        : drivePath
+                            ? `Uploading to Drive /${drivePath}`
+                            : 'Upload files directly to NeupCDN'}
                 </p>
             </div>
             <FileUpload

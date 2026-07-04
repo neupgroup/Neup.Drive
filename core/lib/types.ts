@@ -10,10 +10,12 @@ export type User = {
 export type FileOrFolder = {
   id: string;
   name: string;
-  type: 'folder' | 'doc' | 'pdf' | 'jpg' | 'png' | 'mp4' | 'audio' | 'unknown';
+  type: 'action' | 'folder' | 'doc' | 'pdf' | 'jpg' | 'png' | 'mp4' | 'audio' | 'unknown';
   size: string | null;
   storageTier: StorageTier;
   lastModified: string;
   members: User[];
   thumbnail?: ImagePlaceholder;
+  actionHref?: string;
+  description?: string;
 };

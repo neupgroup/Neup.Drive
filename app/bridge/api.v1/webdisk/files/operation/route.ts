@@ -63,7 +63,7 @@ function assertSafePathSegment(value: string, label: string) {
 }
 
 function normalizeType(value?: string) {
-    const type = value?.trim() || 'assets';
+    const type = (value?.trim() || 'assets').toLowerCase();
     if (!WEBDISK_TYPES.includes(type)) {
         throw new Error('Invalid type');
     }

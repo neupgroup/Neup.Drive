@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { Copy, Download, Edit3, Eye, FolderInput, Grid3x3, List, MoreHorizontal, Share2, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronRight, Copy, Download, Edit3, Eye, FolderInput, MoreHorizontal, Share2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { FileOrFolder } from '@/core/lib/types';
 import { Button } from '@/components/ui/button';
@@ -18,17 +19,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ToastAction } from '@/components/ui/toast';
 import { toast } from '@/core/hooks/use-toast';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { FileListView } from './file-list-view';
-import { FileGridView } from './file-grid-view';
 
-type ViewMode = 'list' | 'grid';
 type MoveTarget = 'drive' | 'assets' | 'signed';
+type ManagedActionTarget = FileOrFolder;
 
 type ContextMenuState = {
   item: FileOrFolder;
@@ -43,6 +37,11 @@ type RenameDialogState = {
   extensionEditable: boolean;
   confirmExtensionChange: boolean;
 } | null;
+
+type BreadcrumbItem = {
+  label: string;
+  href?: string;
+};
 
 function splitEditableName(name: string) {
   const lastDotIndex = name.lastIndexOf('.');
@@ -64,20 +63,62 @@ export function FileManager({
   title = 'My Drive',
   subtitle,
   emptyMessage = 'No files yet.',
+  replaceSubtitleWithSelection = false,
+  breadcrumbs = [],
+  uploadActionHref,
+  uploadActionDescription = 'Upload a file to this location.',
+  onOpenItem,
+  onRenameItem,
+  onMoveItem,
+  onDeleteItem,
+  getMoveTargets,
+  canManageItem,
 }: {
   initialFiles?: FileOrFolder[];
   title?: string;
   subtitle?: string;
   emptyMessage?: string;
+  replaceSubtitleWithSelection?: boolean;
+  breadcrumbs?: BreadcrumbItem[];
+  uploadActionHref?: string;
+  uploadActionDescription?: string;
+  onOpenItem?: (item: ManagedActionTarget) => void;
+  onRenameItem?: (item: ManagedActionTarget, newName: string) => Promise<void> | void;
+  onMoveItem?: (item: ManagedActionTarget, target: MoveTarget) => Promise<void> | void;
+  onDeleteItem?: (item: ManagedActionTarget) => Promise<void> | void;
+  getMoveTargets?: (item: ManagedActionTarget) => MoveTarget[];
+  canManageItem?: (item: ManagedActionTarget) => boolean;
 }) {
   const router = useRouter();
-  const [viewMode, setViewMode] = React.useState<ViewMode>('list');
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [menu, setMenu] = React.useState<ContextMenuState | null>(null);
   const [busyItemId, setBusyItemId] = React.useState<string | null>(null);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [lastSelectedId, setLastSelectedId] = React.useState<string | null>(null);
   const [renameDialog, setRenameDialog] = React.useState<RenameDialogState>(null);
-  const files = initialFiles;
+  const files = React.useMemo(() => {
+    if (!uploadActionHref) return initialFiles;
+
+    return [
+      {
+        id: '__upload_action__',
+        name: 'Upload',
+        type: 'action' as const,
+        size: null,
+        storageTier: 'cold' as const,
+        lastModified: uploadActionDescription,
+        members: [],
+        actionHref: uploadActionHref,
+      },
+      ...initialFiles,
+    ];
+  }, [initialFiles, uploadActionDescription, uploadActionHref]);
+  const selectionSummary = selectedIds.length > 0
+    ? `${selectedIds.length} item${selectedIds.length === 1 ? '' : 's'} selected`
+    : null;
+  const isManageable = React.useCallback((item: ManagedActionTarget) => (
+    canManageItem ? canManageItem(item) : true
+  ), [canManageItem]);
 
   React.useEffect(() => {
     setSelectedIds((current) => current.filter((id) => files.some((item) => item.id === id)));
@@ -99,7 +140,27 @@ export function FileManager({
     };
   }, [menu]);
 
+  React.useEffect(() => {
+    if (selectedIds.length === 0 && !menu) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!containerRef.current) return;
+      if (containerRef.current.contains(event.target as Node)) return;
+
+      setSelectedIds([]);
+      setLastSelectedId(null);
+      setMenu(null);
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [menu, selectedIds.length]);
+
   const openContextMenu = React.useCallback((event: React.MouseEvent, item: FileOrFolder) => {
+    if (item.type === 'action') return;
+
     event.preventDefault();
     event.stopPropagation();
 
@@ -115,6 +176,18 @@ export function FileManager({
 
   const selectItem = React.useCallback((item: FileOrFolder, index: number, event: React.MouseEvent) => {
     setMenu(null);
+
+    if (item.type === 'action') {
+      if (item.actionHref) {
+        router.push(item.actionHref);
+        return;
+      }
+
+      if (onOpenItem) {
+        onOpenItem(item);
+      }
+      return;
+    }
 
     if (event.shiftKey) {
       setSelectedIds((current) => {
@@ -142,7 +215,7 @@ export function FileManager({
 
     setSelectedIds([item.id]);
     setLastSelectedId(item.id);
-  }, [files, lastSelectedId]);
+  }, [files, lastSelectedId, onOpenItem, router]);
 
   const runOperation = React.useCallback(async (
     item: FileOrFolder,
@@ -204,6 +277,20 @@ export function FileManager({
     }
   }, [router]);
 
+  const runCustomOperation = React.useCallback(async (
+    item: FileOrFolder,
+    action: () => Promise<void> | void
+  ) => {
+    setBusyItemId(item.id);
+    setMenu(null);
+
+    try {
+      await action();
+    } finally {
+      setBusyItemId(null);
+    }
+  }, []);
+
   const renameItem = React.useCallback((item: FileOrFolder) => {
     const parts = splitEditableName(item.name);
     setMenu(null);
@@ -237,29 +324,62 @@ export function FileManager({
       return;
     }
 
-    void runOperation(renameDialog.item, { action: 'rename', new_name: newName });
+    if (onRenameItem) {
+      void runCustomOperation(renameDialog.item, async () => {
+        await onRenameItem(renameDialog.item, newName);
+      });
+    } else {
+      void runOperation(renameDialog.item, { action: 'rename', new_name: newName });
+    }
     setRenameDialog(null);
-  }, [renameDialog, runOperation]);
+  }, [onRenameItem, renameDialog, runCustomOperation, runOperation]);
 
   const moveItem = React.useCallback((item: FileOrFolder, target: MoveTarget) => {
+    if (onMoveItem) {
+      void runCustomOperation(item, async () => {
+        await onMoveItem(item, target);
+      });
+      return;
+    }
+
     void runOperation(item, { action: 'move', to_folder_type: target });
-  }, [runOperation]);
+  }, [onMoveItem, runCustomOperation, runOperation]);
 
   const deleteItem = React.useCallback((item: FileOrFolder) => {
+    if (onDeleteItem) {
+      void runCustomOperation(item, async () => {
+        await onDeleteItem(item);
+      });
+      return;
+    }
+
     void runOperation(item, { action: 'delete' });
-  }, [runOperation]);
+  }, [onDeleteItem, runCustomOperation, runOperation]);
 
   const openItem = React.useCallback((item: FileOrFolder) => {
     setMenu(null);
+
+    if (item.type === 'action' && item.actionHref) {
+      router.push(item.actionHref);
+      return;
+    }
+
+    if (onOpenItem) {
+      onOpenItem(item);
+      return;
+    }
+
     router.push(`/viewer/${encodeURIComponent(item.id)}`);
-  }, [router]);
+  }, [onOpenItem, router]);
 
   return (
     <div
+      ref={containerRef}
       className="space-y-4"
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           setSelectedIds([]);
+          setLastSelectedId(null);
           setMenu(null);
         }
       }}
@@ -270,44 +390,39 @@ export function FileManager({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold font-headline tracking-tight">{title}</h1>
-          {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
-          {selectedIds.length > 0 ? (
-            <p className="mt-1 text-sm font-medium text-primary">
-              {selectedIds.length} item{selectedIds.length === 1 ? '' : 's'} selected
+          {replaceSubtitleWithSelection ? (
+            <p className={`mt-1 text-sm ${selectionSummary ? 'font-medium text-primary' : 'text-muted-foreground'}`}>
+              {selectionSummary || subtitle}
             </p>
+          ) : (
+            <>
+              {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
+              {selectionSummary ? (
+                <p className="mt-1 text-sm font-medium text-primary">
+                  {selectionSummary}
+                </p>
+              ) : null}
+            </>
+          )}
+          {breadcrumbs.length > 0 ? (
+            <nav aria-label={`${title} breadcrumb`} className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+              {breadcrumbs.map((item, index) => (
+                <React.Fragment key={`${item.label}-${index}`}>
+                  {index > 0 ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" /> : null}
+                  {item.href ? (
+                    <Link
+                      href={item.href}
+                      className="transition-colors hover:font-semibold hover:text-foreground"
+                    >
+                      {item.label}
+                    </Link>
+                  ) : (
+                    <span className="font-semibold text-foreground">{item.label}</span>
+                  )}
+                </React.Fragment>
+              ))}
+            </nav>
           ) : null}
-        </div>
-        <div className="flex items-center gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                  size="icon"
-                  onClick={() => setViewMode('list')}
-                  aria-label="List View"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>List View</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                  size="icon"
-                  onClick={() => setViewMode('grid')}
-                  aria-label="Grid View"
-                >
-                  <Grid3x3 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Grid View</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         </div>
       </div>
       {files.length === 0 ? (
@@ -316,15 +431,8 @@ export function FileManager({
             {emptyMessage}
           </CardContent>
         </Card>
-      ) : viewMode === 'list' ? (
-        <FileListView
-          data={files}
-          selectedIds={selectedIds}
-          onItemClick={selectItem}
-          onItemContextMenu={openContextMenu}
-        />
       ) : (
-        <FileGridView
+        <FileListView
           data={files}
           selectedIds={selectedIds}
           onItemClick={selectItem}
@@ -332,6 +440,11 @@ export function FileManager({
         />
       )}
       {menu ? (
+        (() => {
+          const manageable = isManageable(menu.item);
+          const moveTargets = getMoveTargets ? getMoveTargets(menu.item) : ['drive', 'assets', 'signed'];
+
+          return (
         <div
           role="menu"
           aria-label={`${menu.item.name} actions`}
@@ -345,10 +458,16 @@ export function FileManager({
           </div>
           <ContextMenuButton icon={Eye} label="Open" onClick={() => openItem(menu.item)} disabled={busyItemId === menu.item.id} />
           <div className="-mx-1 my-1 h-px bg-muted" />
-          <ContextMenuButton icon={Edit3} label="Rename" onClick={() => renameItem(menu.item)} disabled={busyItemId === menu.item.id} />
-          <ContextMenuButton icon={FolderInput} label="Move to Drive" onClick={() => moveItem(menu.item, 'drive')} disabled={busyItemId === menu.item.id} />
-          <ContextMenuButton icon={FolderInput} label="Move to Assets" onClick={() => moveItem(menu.item, 'assets')} disabled={busyItemId === menu.item.id} />
-          <ContextMenuButton icon={FolderInput} label="Move to Signed" onClick={() => moveItem(menu.item, 'signed')} disabled={busyItemId === menu.item.id} />
+          <ContextMenuButton icon={Edit3} label="Rename" onClick={() => renameItem(menu.item)} disabled={busyItemId === menu.item.id || !manageable} />
+          {moveTargets.map((target) => (
+            <ContextMenuButton
+              key={target}
+              icon={FolderInput}
+              label={`Move to ${target === 'drive' ? 'Drive' : target === 'assets' ? 'Assets' : 'Signed'}`}
+              onClick={() => moveItem(menu.item, target)}
+              disabled={busyItemId === menu.item.id || !manageable}
+            />
+          ))}
           <div className="-mx-1 my-1 h-px bg-muted" />
           <ContextMenuButton icon={Share2} label="Share" onClick={() => setMenu(null)} disabled />
           <ContextMenuButton icon={Copy} label="Make a copy" onClick={() => setMenu(null)} disabled />
@@ -358,11 +477,13 @@ export function FileManager({
             icon={Trash2}
             label="Delete"
             onClick={() => deleteItem(menu.item)}
-            disabled={busyItemId === menu.item.id}
+            disabled={busyItemId === menu.item.id || !manageable}
             className="text-destructive focus:bg-destructive focus:text-destructive-foreground"
           />
           <ContextMenuButton icon={MoreHorizontal} label="Properties" onClick={() => setMenu(null)} disabled />
         </div>
+          );
+        })()
       ) : null}
 
       <Dialog open={renameDialog !== null} onOpenChange={(open) => !open && setRenameDialog(null)}>

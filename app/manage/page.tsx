@@ -2,10 +2,9 @@ import Link from 'next/link';
 import {
   AlertCircle,
   ArrowRight,
+  BarChart3,
   Database,
   HardDrive,
-  Settings,
-  Upload,
   Users,
 } from 'lucide-react';
 
@@ -14,28 +13,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 const managementLinks = [
   {
-    href: '/manage/accounts',
+    href: '/manage/profiles',
     icon: Users,
-    title: 'Accounts',
-    description: 'Review connected accounts, Neup IDs, and bridge connection details.',
+    title: 'Profiles',
+    description: 'Review internal profiles, roles, and account ownership details.',
+  },
+  {
+    href: '/manage/storage',
+    icon: HardDrive,
+    title: 'Storage',
+    description: 'Inspect storage tiers, capacity usage, and Drive storage distribution.',
+  },
+  {
+    href: '/manage/analytics',
+    icon: BarChart3,
+    title: 'Analytics',
+    description: 'Monitor operational metrics, upload activity, and internal reporting trends.',
   },
   {
     href: '/errors',
     icon: AlertCircle,
     title: 'System Errors',
     description: 'Inspect recent application errors and debugging context.',
-  },
-  {
-    href: '/upload',
-    icon: Upload,
-    title: 'Upload Center',
-    description: 'Open the upload workflow and monitor browser-side upload progress.',
-  },
-  {
-    href: '/webdisk',
-    icon: HardDrive,
-    title: 'WebDisk',
-    description: 'Check CDN-backed file records and storage integrations.',
   },
 ];
 
@@ -48,25 +47,13 @@ const systemStats = [
 export default function ManagePage() {
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-1 text-sm text-muted-foreground">
-            <Settings className="h-4 w-4" />
-            Administration
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold font-headline tracking-tight">Manage</h1>
-            <p className="mt-2 max-w-2xl text-muted-foreground">
-              Monitor core Drive operations, account connections, upload flows, and system health.
-            </p>
-          </div>
+      <div className="space-y-2">
+        <div>
+          <h1 className="text-3xl font-bold font-headline tracking-tight">Manage</h1>
+          <p className="mt-2 max-w-2xl text-muted-foreground">
+            Monitor core Drive operations, account connections, upload flows, and system health.
+          </p>
         </div>
-        <Button asChild>
-          <Link href="/manage/accounts">
-            View Accounts
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -93,7 +80,12 @@ export default function ManagePage() {
               </div>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" size="sm" asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="hover:bg-blue-500/8 hover:text-blue-700 active:bg-blue-500/8"
+              >
                 <Link href={item.href}>
                   Open
                   <ArrowRight className="ml-2 h-4 w-4" />
