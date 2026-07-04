@@ -1,5 +1,31 @@
 #!/bin/bash
 
+#
+# ::neup.documentation::produce-cdn-command
+# ::function produce-cdn
+#
+# Converts the repository into the standalone CDN application while preserving
+# the intended root `.env` outcome.
+#
+# ::public
+#
+# When `neupcdn/.env` exists, it is promoted to the repository root and
+# replaces the root `.env`.
+#
+# When `neupcdn/.env` does not exist, the existing root `.env` is kept.
+#
+# ::public end
+#
+# ::private
+#
+# The script stages all `neupcdn` files in a temporary directory, preserves the
+# root `.env` during the cleanup sweep, and then restores the staged files while
+# handling `.env` explicitly to avoid accidental deletion.
+#
+# ::private end
+#
+# ::end
+#
 # produce-cdn
 # This script converts the repository into the standalone CDN application.
 # 1. Removes the Drive application (Next.js) content.
@@ -29,22 +55,41 @@ shopt -s dotglob
 mv neupcdn/* "$TEMP_DIR/"
 shopt -u dotglob
 
-# Remove everything in the current directory except this script and VCS metadata
+TEMP_ENV_PATH="$TEMP_DIR/.env"
+HAS_CDN_ENV=0
+if [ -f "$TEMP_ENV_PATH" ]; then
+    HAS_CDN_ENV=1
+fi
+
+# Remove everything in the current directory except this script, VCS metadata,
+# and the root .env. The root .env stays in place unless the staged CDN output
+# provides its own .env to replace it.
 # We use find to avoid errors with argument list too long and handle hidden files correctly
 echo "Removing Drive application files..."
 find . -maxdepth 1 \
     ! -name 'produce-cdn' \
     ! -name '.git' \
     ! -name '.github' \
+    ! -name '.env' \
     ! -name '.' \
     ! -name '..' \
     -exec rm -rf {} +
 
 # Move CDN files back to root
 echo "Moving CDN files to root..."
-shopt -s dotglob
-mv "$TEMP_DIR"/* .
-shopt -u dotglob
+if [ "$HAS_CDN_ENV" -eq 1 ]; then
+    mv -f "$TEMP_ENV_PATH" ./.env
+fi
+
+shopt -s dotglob nullglob
+for staged_path in "$TEMP_DIR"/*; do
+    if [ "$(basename "$staged_path")" = ".env" ]; then
+        continue
+    fi
+
+    mv "$staged_path" .
+done
+shopt -u dotglob nullglob
 
 # Cleanup temp dir
 rmdir "$TEMP_DIR"
