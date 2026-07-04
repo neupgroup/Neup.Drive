@@ -90,8 +90,6 @@ export async function POST(request: NextRequest) {
     if (account.display_name) profile.displayName = account.display_name;
     if (account.display_image) profile.displayImage = account.display_image;
 
-    const role = account.role_id ? { id: account.role_id, name: account.role_id } : undefined;
-
     // Create a signed token for the account
     const jwtSecret = process.env.NEUP_APP_SECRET || process.env.UPLOAD_SECRET_PRIVATE_KEY || 'fallback_secret';
     const token = signJwt({ sub: account.id, appId }, jwtSecret);
@@ -105,7 +103,6 @@ export async function POST(request: NextRequest) {
     };
 
     if (Object.keys(profile).length) response.profile = profile;
-    if (role) response.role = role;
 
     return NextResponse.json(response);
   } catch (error) {

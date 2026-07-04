@@ -46,7 +46,9 @@
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/error-server.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/error-types.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/data.ts`.
+- [ ] Add `::neup.documentation::` source documentation for `core/lib/bridge-api.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/account/connection/sign&get/route.ts`.
+- [ ] Add `::neup.documentation::` source documentation for `prisma/migrations/20260705093000_drop_user_and_account_role/migration.sql`.
 - [ ] Add `::neup.documentation::` source documentation for `components/ui/card.tsx`.
 - [ ] Fix `npx tsc --noEmit` error in `components/ui/calendar.tsx`: `IconLeft` is not a valid `CustomComponents` property.
 - [ ] Fix implicit `any` `className` bindings in `components/ui/calendar.tsx`.

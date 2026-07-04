@@ -10,15 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  files     File[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model File {
   id          String   @id @default(uuid())
   name        String
@@ -28,9 +19,7 @@ model File {
   path        String   // Storage path (e.g., "account-id/assets/image.png")
   status      String   @default("PENDING") // PENDING, VERIFIED, FAILED
   
-  // Relations
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -113,7 +102,6 @@ model Account {
   neupid        String?
   created_on    DateTime @default(now())
   accessed_on   DateTime?
-  role_id       String?
 }
 
 model SigninSession {

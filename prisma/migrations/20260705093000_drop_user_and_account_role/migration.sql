@@ -1,0 +1,7 @@
+ALTER TABLE "File"
+DROP CONSTRAINT IF EXISTS "File_userId_fkey";
+
+DROP TABLE IF EXISTS "User";
+
+ALTER TABLE "Account"
+DROP COLUMN IF EXISTS "role_id";

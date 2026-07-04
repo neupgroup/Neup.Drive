@@ -434,12 +434,6 @@ export async function createBridgeUploadInit(params: {
     const expiresAt = Math.floor(Date.now() / 1000) + 15 * 60;
     const uploadSessionId = crypto.randomUUID();
 
-    await prisma.user.upsert({
-        where: { id: owner },
-        create: { id: owner, email: `${owner}@bridge.local`, name: owner },
-        update: {},
-    });
-
     await prisma.file.create({
         data: {
             name: filename,
