@@ -11,6 +11,23 @@ import { handleClientError } from '@/core/lib/error-client';
 import { toast } from '@/core/hooks/use-toast';
 import { format } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { storageTierBadgeClass, storageTierFromWebdiskType, storageTierLabel, type StorageTier } from '@/core/lib/storage-tiers';
 import {
   DropdownMenu,
@@ -38,6 +55,16 @@ interface WebDiskFolder {
   path: string;
   count: number;
 }
+
+type FileOperationDialogState =
+  | {
+      action: 'rename' | 'move';
+      file: WebDiskRecord;
+      newName: string;
+      destinationType: string;
+      destinationPath: string;
+    }
+  | null;
 
 const WEBDISK_TYPES = [
   { id: 'assets', label: 'Assets' },
@@ -218,6 +245,7 @@ function WebdiskContent() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [operatingPath, setOperatingPath] = React.useState<string | null>(null);
+  const [dialogState, setDialogState] = React.useState<FileOperationDialogState>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedTypeParam = searchParams.get('type');
@@ -329,37 +357,11 @@ function WebdiskContent() {
     };
   }, [filesByType, selectedPath, selectedType]);
 
-  const runOperation = React.useCallback(async (file: WebDiskRecord, action: 'rename' | 'move' | 'delete' | 'restore') => {
-    if (!selectedType) return;
-
-    let body: Record<string, string> = {
-      action,
-      cdn_path: file.cdn_path || file.id,
-      type: selectedType,
-    };
-
-    if (action === 'rename') {
-      const newName = window.prompt('Rename file', file.filename);
-      if (!newName || newName.trim() === file.filename) return;
-      body.new_name = newName.trim();
-    }
-
-    if (action === 'move') {
-      const destinationType = window.prompt('Organize into type: assets or signed', selectedType);
-      if (!destinationType) return;
-
-      const normalizedType = destinationType.trim();
-      if (!WEBDISK_TYPES.some((type) => type.id === normalizedType)) {
-        setError('Invalid type. Use assets or signed.');
-        return;
-      }
-
-      const destinationPath = window.prompt('Folder path inside that type', selectedPath);
-      if (destinationPath === null) return;
-      body.to_type = normalizedType;
-      body.to_path = destinationPath.trim().replace(/^\/+/, '');
-    }
-
+  const performOperation = React.useCallback(async (
+    file: WebDiskRecord,
+    action: 'rename' | 'move' | 'delete' | 'restore',
+    body: Record<string, string>,
+  ) => {
     try {
       setOperatingPath(file.cdn_path || file.id);
       const response = await fetch('/bridge/api.v1/webdisk/files/operation', {
@@ -382,12 +384,14 @@ function WebdiskContent() {
         const trashPath = typeof data?.cdn?.destination_path === 'string'
           ? data.cdn.destination_path as string
           : '';
-        toast({
+        const trashToast = toast({
           title: 'File moved to Trash.',
+          hideClose: true,
           action: trashPath ? (
             <ToastAction
               altText={`Undo deleting ${file.filename}`}
               onClick={() => {
+                trashToast.dismiss();
                 void runOperation({
                   ...file,
                   cdn_path: trashPath,
@@ -398,8 +402,15 @@ function WebdiskContent() {
             </ToastAction>
           ) : undefined,
         });
+        window.setTimeout(() => {
+          trashToast.dismiss();
+        }, 10000);
       } else if (action === 'restore') {
         toast({ title: 'File restored.' });
+      } else if (action === 'rename') {
+        toast({ title: 'File renamed.' });
+      } else if (action === 'move') {
+        toast({ title: 'File moved.' });
       }
     } catch (err) {
       const message = await handleClientError(err, 'WebDiskOperation', {
@@ -410,7 +421,73 @@ function WebdiskContent() {
     } finally {
       setOperatingPath(null);
     }
-  }, [fetchFiles, selectedPath, selectedType]);
+  }, [fetchFiles]);
+
+  const openOperationDialog = React.useCallback((file: WebDiskRecord, action: 'rename' | 'move') => {
+    const location = getTypedRelativePath(file);
+    setDialogState({
+      action,
+      file,
+      newName: file.filename,
+      destinationType: location.type || selectedType,
+      destinationPath: dirname(location.path),
+    });
+  }, [selectedType]);
+
+  const runOperation = React.useCallback(async (file: WebDiskRecord, action: 'rename' | 'move' | 'delete' | 'restore') => {
+    if (!selectedType) return;
+
+    if (action === 'rename' || action === 'move') {
+      openOperationDialog(file, action);
+      return;
+    }
+
+    const body: Record<string, string> = {
+      action,
+      cdn_path: file.cdn_path || file.id,
+      type: selectedType,
+    };
+
+    await performOperation(file, action, body);
+  }, [openOperationDialog, performOperation, selectedType]);
+
+  const submitDialogOperation = React.useCallback(async () => {
+    if (!dialogState || !selectedType) return;
+
+    const { action, file } = dialogState;
+    const body: Record<string, string> = {
+      action,
+      cdn_path: file.cdn_path || file.id,
+      type: selectedType,
+    };
+
+    if (action === 'rename') {
+      const trimmedName = dialogState.newName.trim();
+      if (!trimmedName) {
+        setError('File name is required.');
+        return;
+      }
+      if (trimmedName === file.filename) {
+        setDialogState(null);
+        return;
+      }
+      body.new_name = trimmedName;
+    }
+
+    if (action === 'move') {
+      const normalizedType = dialogState.destinationType.trim();
+      if (!WEBDISK_TYPES.some((type) => type.id === normalizedType)) {
+        setError('Invalid type. Use assets or signed.');
+        return;
+      }
+
+      body.to_type = normalizedType;
+      body.to_path = dialogState.destinationPath.trim().replace(/^\/+/, '');
+    }
+
+    setDialogState(null);
+    await performOperation(file, action, body);
+  }, [dialogState, performOperation, selectedType]);
 
   const displayPath = selectedPath ? `/${selectedPath}` : '/';
 
@@ -495,6 +572,107 @@ function WebdiskContent() {
           ))}
         </div>
       )}
+
+      <Dialog open={dialogState !== null} onOpenChange={(open) => !open && setDialogState(null)}>
+        <DialogContent className="max-w-md rounded-3xl border-slate-200/80 bg-white/95 p-0 shadow-2xl shadow-slate-900/10 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
+          {dialogState ? (
+            <>
+              <DialogHeader className="border-b border-slate-200/70 px-6 py-5 dark:border-slate-800">
+                <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-300">
+                  {dialogState.action === 'rename' ? <Pencil className="h-5 w-5" /> : <FolderInput className="h-5 w-5" />}
+                </div>
+                <DialogTitle className="text-xl font-bold text-slate-900 dark:text-white">
+                  {dialogState.action === 'rename' ? 'Rename file' : 'Move file'}
+                </DialogTitle>
+                <DialogDescription className="text-sm leading-6">
+                  {dialogState.action === 'rename'
+                    ? `Update the display name for ${dialogState.file.filename}.`
+                    : `Choose a destination for ${dialogState.file.filename}.`}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-5 px-6 py-5">
+                <div className="rounded-2xl border border-slate-200/70 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                    Current file
+                  </p>
+                  <p className="mt-2 truncate text-sm font-semibold text-slate-900 dark:text-white" title={dialogState.file.filename}>
+                    {dialogState.file.filename}
+                  </p>
+                  <p className="mt-1 truncate text-xs text-muted-foreground" title={dialogState.file.cdn_path || dialogState.file.id}>
+                    {dialogState.file.cdn_path || dialogState.file.id}
+                  </p>
+                </div>
+
+                {dialogState.action === 'rename' ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="rename-file-name">New file name</Label>
+                    <Input
+                      id="rename-file-name"
+                      value={dialogState.newName}
+                      onChange={(event) => setDialogState((current) => current && current.action === 'rename'
+                        ? { ...current, newName: event.target.value }
+                        : current)}
+                      placeholder="Enter a new file name"
+                      className="h-12 rounded-2xl border-slate-200 px-4"
+                      autoFocus
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="move-file-type">Destination type</Label>
+                      <Select
+                        value={dialogState.destinationType}
+                        onValueChange={(value) => setDialogState((current) => current && current.action === 'move'
+                          ? { ...current, destinationType: value }
+                          : current)}
+                      >
+                        <SelectTrigger id="move-file-type" className="h-12 rounded-2xl border-slate-200 px-4">
+                          <SelectValue placeholder="Choose a destination type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {WEBDISK_TYPES.map((type) => (
+                            <SelectItem key={type.id} value={type.id}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="move-file-path">Folder path</Label>
+                      <Input
+                        id="move-file-path"
+                        value={dialogState.destinationPath}
+                        onChange={(event) => setDialogState((current) => current && current.action === 'move'
+                          ? { ...current, destinationPath: event.target.value.replace(/^\/+/, '') }
+                          : current)}
+                        placeholder="Optional folder path inside the selected type"
+                        className="h-12 rounded-2xl border-slate-200 px-4"
+                        autoFocus
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Leave blank to move this file to the root of the selected type.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <DialogFooter className="border-t border-slate-200/70 px-6 py-5 dark:border-slate-800">
+                <Button variant="outline" onClick={() => setDialogState(null)} className="rounded-full">
+                  Cancel
+                </Button>
+                <Button onClick={() => void submitDialogOperation()} className="rounded-full shadow-lg shadow-indigo-500/20">
+                  {dialogState.action === 'rename' ? 'Save Name' : 'Move File'}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

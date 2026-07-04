@@ -1,6 +1,3 @@
-import Link from 'next/link';
-import { PlusCircle } from 'lucide-react';
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +15,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Logo } from '@/components/icons';
 import { NavLinks } from '@/components/prodrive/nav-links';
 import { prisma } from '@/core/lib/db';
 import { isActiveFileDetails } from '@/core/lib/bridge-api';
@@ -81,12 +77,6 @@ export async function Sidebar() {
   return (
     <aside className="sticky top-16 h-[calc(100vh-4rem)] z-0 hidden w-64 flex-col border-r bg-white sm:flex">
       <nav className="flex flex-col gap-4 p-4 sm:py-5">
-        <Button className="font-semibold" size="lg" asChild>
-          <Link href="/upload">
-            <PlusCircle className="mr-2 h-5 w-5" />
-            New
-          </Link>
-        </Button>
         <NavLinks />
       </nav>
       <div className="mt-auto flex flex-col gap-4 p-4">

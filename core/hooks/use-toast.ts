@@ -16,6 +16,7 @@ type ToasterToast = ToastProps & {
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
+  hideClose?: boolean
 }
 
 const actionTypes = {
@@ -140,10 +141,10 @@ function dispatch(action: Action) {
   })
 }
 
-type Toast = Omit<ToasterToast, "id">
+type Toast = Partial<ToasterToast> & Pick<ToasterToast, "title" | "description">
 
 function toast({ ...props }: Toast) {
-  const id = genId()
+  const id = props.id ?? genId()
 
   const update = (props: ToasterToast) =>
     dispatch({
@@ -152,17 +153,31 @@ function toast({ ...props }: Toast) {
     })
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
 
-  dispatch({
-    type: "ADD_TOAST",
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open) => {
-        if (!open) dismiss()
+  if (props.id) {
+    dispatch({
+      type: "UPDATE_TOAST",
+      toast: {
+        ...props,
+        id,
+        open: true,
+        onOpenChange: (open) => {
+          if (!open) dismiss()
+        },
       },
-    },
-  })
+    })
+  } else {
+    dispatch({
+      type: "ADD_TOAST",
+      toast: {
+        ...props,
+        id,
+        open: true,
+        onOpenChange: (open) => {
+          if (!open) dismiss()
+        },
+      },
+    })
+  }
 
   return {
     id: id,

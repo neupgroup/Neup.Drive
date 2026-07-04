@@ -7,18 +7,29 @@ import { storageTierBadgeClass, storageTierLabel } from '@/core/lib/storage-tier
 
 export function FileGridView({
   data,
+  selectedIds,
+  onItemClick,
   onItemContextMenu,
 }: {
   data: FileOrFolder[];
+  selectedIds?: string[];
+  onItemClick?: (item: FileOrFolder, index: number, event: React.MouseEvent) => void;
   onItemContextMenu?: (event: React.MouseEvent, item: FileOrFolder) => void;
 }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-      {data.map((item) => (
+      {data.map((item, index) => {
+        const isSelected = selectedIds?.includes(item.id) ?? false;
+
+        return (
         <Card
           key={item.id}
+          onClick={(event) => onItemClick?.(item, index, event)}
           onContextMenu={(event) => onItemContextMenu?.(event, item)}
-          className="cursor-default overflow-hidden border-border/70 transition-colors hover:border-primary/20 hover:bg-primary/[0.02]"
+          aria-selected={isSelected}
+          className={`select-none cursor-default overflow-hidden border-border/70 transition-colors hover:border-primary/20 hover:bg-primary/[0.02] ${
+            isSelected ? 'border-primary bg-primary/[0.08] ring-2 ring-primary/20' : ''
+          }`}
         >
           <CardContent className="p-0">
             <div className="relative aspect-video">
@@ -47,7 +58,8 @@ export function FileGridView({
             </div>
           </CardFooter>
         </Card>
-      ))}
+        );
+      })}
     </div>
   );
 }

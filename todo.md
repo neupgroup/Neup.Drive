@@ -9,9 +9,11 @@
 - [ ] Add `::neup.documentation::` source documentation for `components/prodrive/nav-links.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `components/prodrive/sidebar.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `components/prodrive/header.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `components/prodrive/upload-status-toast.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/webdisk/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/trash/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/layout.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `app/globals.css`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/drive/files/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/page.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `app/shared/page.tsx`.
@@ -29,6 +31,10 @@
 - [ ] Add `::neup.documentation::` source documentation for `neupcdn/internal/storage/filesystem.go`.
 - [ ] Add `::neup.documentation::` source documentation for `components/ui/toast.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `components/ui/toaster.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `components/ui/dialog.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `components/ui/input.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `components/ui/select.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `components/ui/label.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `core/hooks/use-toast.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/filefolder.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/types.ts`.
@@ -40,6 +46,7 @@
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/list/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/drive/files/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/upload/page.tsx`.
+- [ ] Add `::neup.documentation::` source documentation for `tailwind.config.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/storage-tiers.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/error-server.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/error-types.ts`.

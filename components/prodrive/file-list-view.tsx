@@ -18,23 +18,42 @@ import { storageTierDotClass, storageTierLabel } from '@/core/lib/storage-tiers'
 
 export function FileListView({
   data,
+  selectedIds,
+  onItemClick,
   onItemContextMenu,
 }: {
   data: FileOrFolder[];
+  selectedIds?: string[];
+  onItemClick?: (item: FileOrFolder, index: number, event: React.MouseEvent) => void;
   onItemContextMenu?: (event: React.MouseEvent, item: FileOrFolder) => void;
 }) {
   return (
     <div className="space-y-0">
       {data.map((item, index) => {
         const uploader = item.members[0]?.name || 'Unknown';
+        const isSelected = selectedIds?.includes(item.id) ?? false;
+        const isPreviousSelected = index > 0 ? selectedIds?.includes(data[index - 1]?.id) ?? false : false;
+        const isNextSelected = index < data.length - 1 ? selectedIds?.includes(data[index + 1]?.id) ?? false : false;
 
         return (
           <Card
             key={item.id}
+            onClick={(event) => onItemClick?.(item, index, event)}
             onContextMenu={(event) => onItemContextMenu?.(event, item)}
-            className={`cursor-default rounded-none border-b-0 shadow-none transition-colors hover:border-primary/20 hover:bg-primary/[0.03] ${
+            aria-selected={isSelected}
+            className={`select-none cursor-default rounded-none border-b-0 shadow-none transition-colors ${
+              isSelected ? 'hover:bg-primary/[0.12]' : 'hover:border-primary/20 hover:bg-primary/[0.03]'
+            } ${
               index === 0 ? 'rounded-t-3xl' : ''
-            } ${index === data.length - 1 ? 'rounded-b-3xl border-b' : ''}`}
+            } ${index === data.length - 1 ? 'rounded-b-3xl border-b' : ''} ${
+              isSelected
+                ? `border-l border-r border-primary bg-primary/[0.08] ${
+                    !isPreviousSelected ? `border-t ${index === 0 ? 'rounded-t-3xl' : ''}` : ''
+                  } ${
+                    !isNextSelected ? `border-b ${index === data.length - 1 ? 'rounded-b-3xl' : ''}` : ''
+                  }`
+                : ''
+            }`}
           >
             <div className="flex min-h-20 items-center gap-4 px-4 py-3">
               <FileTypeTile type={item.type} />
