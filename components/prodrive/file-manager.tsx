@@ -26,6 +26,7 @@ type ManagedActionTarget = FileOrFolder;
 
 type ContextMenuState = {
   item: FileOrFolder;
+  selectionIds: string[];
   x: number;
   y: number;
 };
@@ -103,6 +104,7 @@ export function FileManager({
   onSecondaryNavigation,
   disableContextMenu = false,
   getItemContextMenuSections,
+  getSelectionContextMenuSections,
 }: {
   initialFiles?: FileOrFolder[];
   title?: string;
@@ -125,6 +127,7 @@ export function FileManager({
   onSecondaryNavigation?: (item: ManagedActionTarget) => Promise<void> | void;
   disableContextMenu?: boolean;
   getItemContextMenuSections?: (item: ManagedActionTarget) => ContextMenuSection[];
+  getSelectionContextMenuSections?: (items: ManagedActionTarget[]) => ContextMenuSection[];
 }) {
   const router = useRouter();
   const containerRef = React.useRef<HTMLDivElement | null>(null);
@@ -214,11 +217,12 @@ export function FileManager({
     const x = Math.min(event.clientX, window.innerWidth - menuWidth - 8);
     const y = Math.min(event.clientY, window.innerHeight - menuHeight - 8);
 
-    setSelectedIds((current) => (current.includes(item.id) ? current : [item.id]));
+    const nextSelectedIds = selectedIds.includes(item.id) ? selectedIds : [item.id];
+    setSelectedIds(nextSelectedIds);
     setLastSelectedId(item.id);
     setBackgroundMenu(null);
-    setMenu({ item, x: Math.max(8, x), y: Math.max(8, y) });
-  }, [disableContextMenu]);
+    setMenu({ item, selectionIds: nextSelectedIds, x: Math.max(8, x), y: Math.max(8, y) });
+  }, [disableContextMenu, selectedIds]);
 
   const openBackgroundContextMenu = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -539,22 +543,53 @@ export function FileManager({
         (() => {
           const manageable = isManageable(menu.item);
           const moveTargets: MoveTarget[] = getMoveTargets ? getMoveTargets(menu.item) : ['drive', 'assets', 'signed'];
+          const selectedItems = menu.selectionIds
+            .map((id) => files.find((item) => item.id === id))
+            .filter((item): item is FileOrFolder => item !== undefined && item.type !== 'action');
+          const selectionSections = selectedItems.length > 1
+            ? getSelectionContextMenuSections?.(selectedItems)
+            : undefined;
+          const hasSelectionSections = Boolean(selectionSections && selectionSections.length > 0);
           const customSections = getItemContextMenuSections?.(menu.item);
           const hasCustomSections = Boolean(customSections && customSections.length > 0);
 
           return (
         <div
           role="menu"
-          aria-label={`${menu.item.name} actions`}
+          aria-label={selectedItems.length > 1 ? `${selectedItems.length} selected items actions` : `${menu.item.name} actions`}
           className="fixed z-50 w-56 rounded-md border bg-popover p-1 text-popover-foreground shadow-lg"
           style={{ left: menu.x, top: menu.y }}
           onClick={(event) => event.stopPropagation()}
           onContextMenu={(event) => event.preventDefault()}
         >
           <div className="truncate px-2 py-1.5 text-xs font-medium text-muted-foreground">
-            {menu.item.name}
+            {selectedItems.length > 1 ? `${selectedItems.length} items selected` : menu.item.name}
           </div>
-          {hasCustomSections ? (
+          {hasSelectionSections ? (
+            selectionSections?.map((section, sectionIndex) => (
+              <React.Fragment key={`selection-section-${sectionIndex}`}>
+                {sectionIndex > 0 ? <div className="-mx-1 my-1 h-px bg-muted" /> : null}
+                {section.title ? (
+                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                    {section.title}
+                  </div>
+                ) : null}
+                {section.actions.map((action) => (
+                  <ContextMenuButton
+                    key={`selection-${action.label}`}
+                    icon={action.icon}
+                    label={action.label}
+                    onClick={() => {
+                      setMenu(null);
+                      action.onClick();
+                    }}
+                    disabled={action.disabled}
+                    className={action.className}
+                  />
+                ))}
+              </React.Fragment>
+            ))
+          ) : hasCustomSections ? (
             customSections?.map((section, sectionIndex) => (
               <React.Fragment key={`${menu.item.id}-section-${sectionIndex}`}>
                 {sectionIndex > 0 ? <div className="-mx-1 my-1 h-px bg-muted" /> : null}

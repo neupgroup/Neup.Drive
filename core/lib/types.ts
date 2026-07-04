@@ -23,6 +23,7 @@ export type User = {
 export type FileOrFolder = {
   id: string;
   name: string;
+  isPending?: boolean;
   type: 'action' | 'folder' | 'doc' | 'pdf' | 'jpg' | 'png' | 'mp4' | 'audio' | 'unknown';
   size: string | null;
   storageTier: StorageTier;

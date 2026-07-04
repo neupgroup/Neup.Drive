@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import type { FileOrFolder } from '@/core/lib/types';
+import { LoaderCircle } from 'lucide-react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { FileIcon } from '@/components/file-icon';
 import { Badge } from '@/components/ui/badge';
@@ -49,7 +50,12 @@ export function FileGridView({
             </div>
           </CardContent>
           <CardFooter className="flex-col items-start p-3">
-            <p className="w-full truncate text-sm font-medium">{item.name}</p>
+            <div className="flex w-full items-center gap-2">
+              {item.isPending ? (
+                <LoaderCircle className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+              ) : null}
+              <p className="w-full truncate text-sm font-medium">{item.name}</p>
+            </div>
             <div className="mt-1 flex w-full items-center justify-between gap-2">
               <p className="truncate text-xs text-muted-foreground">{item.size || '—'}</p>
               <Badge variant="outline" className={storageTierBadgeClass(item.storageTier)}>

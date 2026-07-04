@@ -18,6 +18,13 @@ The trashed `filefolder` record to mutate.
 The requested trash operation: `restore`, `restore_to`, or
 `delete_permanently`.
 
+::details
+
+Permanent deletes now ignore stale `previous_mode` metadata, treat a missing
+CDN trash object as a logged `FILE_NOT_FOUND` condition, still remove the
+related database rows, and return the generic team-notified message when
+restore targets are missing on the CDN.
+
 ::end
 */
 import path from 'node:path';
@@ -27,8 +34,10 @@ import { Prisma } from '@prisma/client';
 import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/core/lib/cdn-token';
 import { prisma } from '@/core/lib/db';
 import { handleServerError } from '@/core/lib/error-server';
+import { logToDatabase } from '@/core/lib/error-server';
 import { buildFileFolderActivityUpdate, webdiskStoredAs } from '@/core/lib/filefolder';
 import { assertSafePathSegment, isMissingCdnFileError, isReservedWebdiskRootFolder, normalizeInternalPath } from '@/core/lib/bridge-api';
+import { ErrorType, GENERIC_ERROR_MESSAGE } from '@/core/lib/error-types';
 
 type TrashOperationAction = 'restore' | 'restore_to' | 'delete_permanently';
 type TrashDestinationType = 'drive' | 'assets' | 'signed';
@@ -103,6 +112,29 @@ async function callCdnOperation(action: 'move' | 'delete', token: string) {
   return data as { success: true; action: 'move' | 'delete'; path?: string; destination_path?: string; deleted_path?: string };
 }
 
+async function registerMissingTrashFileError(params: {
+  attemptedBy: string;
+  sourcePath: string;
+  destinationPath?: string;
+  attemptedAction: TrashOperationAction;
+  filefolderId: string;
+  suppressConsole?: boolean;
+}) {
+  const error = new Error('file_not_found');
+  (error as Error & { code?: string }).code = ErrorType.FILE_NOT_FOUND;
+
+  await logToDatabase(error, JSON.stringify({
+    errorType: 'file_not_found',
+    source_path: params.sourcePath,
+    destination_path: params.destinationPath,
+    attempted_action: params.attemptedAction,
+    attempted_by: params.attemptedBy,
+    filefolder_id: params.filefolderId,
+  }), 'bridge/api.v1/trash/operation', {
+    suppressConsole: params.suppressConsole,
+  });
+}
+
 export async function POST(request: NextRequest) {
   let body: TrashOperationRequest | undefined;
 
@@ -134,7 +166,7 @@ export async function POST(request: NextRequest) {
     const currentPath = filefolder.path;
     const fileName = filefolder.name;
 
-    let destinationType: TrashDestinationType;
+    let destinationType: TrashDestinationType | undefined;
     let destinationPath: string | undefined;
     let action: 'move' | 'delete' = 'move';
 
@@ -152,7 +184,6 @@ export async function POST(request: NextRequest) {
       }
       destinationPath = buildStoragePath(filefolder.owner, destinationType, fileName, destinationInternalPath);
     } else {
-      destinationType = normalizeDestinationType(previousMode || 'drive');
       action = 'delete';
     }
 
@@ -172,6 +203,12 @@ export async function POST(request: NextRequest) {
         cdnResult = await callCdnOperation(action, encodeSignedCdnToken(signedToken));
       } catch (error) {
         if (!isMissingCdnFileError(error)) throw error;
+        await registerMissingTrashFileError({
+          attemptedBy: filefolder.owner,
+          sourcePath: currentPath,
+          attemptedAction: body.action,
+          filefolderId: filefolder.id,
+        });
         cdnResult = {
           success: true as const,
           action,
@@ -190,7 +227,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, action: body.action, cdn: cdnResult }, { status: 200 });
     }
 
-    cdnResult = await callCdnOperation(action, encodeSignedCdnToken(signedToken));
+    try {
+      cdnResult = await callCdnOperation(action, encodeSignedCdnToken(signedToken));
+    } catch (error) {
+      if (!isMissingCdnFileError(error)) throw error;
+      await registerMissingTrashFileError({
+        attemptedBy: filefolder.owner,
+        sourcePath: currentPath,
+        destinationPath,
+        attemptedAction: body.action,
+        filefolderId: filefolder.id,
+        suppressConsole: true,
+      });
+
+      return NextResponse.json({
+        error: GENERIC_ERROR_MESSAGE,
+        type: ErrorType.FILE_NOT_FOUND,
+      }, { status: 500 });
+    }
+
     const finalPath = cdnResult.destination_path || destinationPath || currentPath;
     const {
       deleted_on: _deletedOn,

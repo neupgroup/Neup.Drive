@@ -41,7 +41,14 @@ ${data.stack ? `stack: ${data.stack}` : ''}
 /**
  * Log error to database if possible, otherwise fallback to file
  */
-export async function logToDatabase(error: any, context: string, onPage: string) {
+export async function logToDatabase(
+    error: any,
+    context: string,
+    onPage: string,
+    options?: {
+        suppressConsole?: boolean;
+    }
+) {
     const errorType = identifyError(error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     const timestamp = new Date().toISOString();
@@ -67,7 +74,9 @@ export async function logToDatabase(error: any, context: string, onPage: string)
         response,
     };
 
-    console.error(`[${onPage}] ${errorType}: ${errorMessage}`, logData);
+    if (!options?.suppressConsole) {
+        console.error(`[${onPage}] ${errorType}: ${errorMessage}`, logData);
+    }
 
     try {
         // Attempt to log to DB
@@ -78,7 +87,9 @@ export async function logToDatabase(error: any, context: string, onPage: string)
             }
         });
     } catch (dbError) {
-        console.error('Failed to log error to database, falling back to file:', dbError);
+        if (!options?.suppressConsole) {
+            console.error('Failed to log error to database, falling back to file:', dbError);
+        }
 
         // Final fallback: Log to file
         logToFile({

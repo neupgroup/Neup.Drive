@@ -4,6 +4,7 @@ import {
   FileQuestion,
   FileText,
   Folder,
+  LoaderCircle,
   Music,
   Play,
   Upload,
@@ -67,7 +68,12 @@ export function FileListView({
             <div className="flex min-h-20 items-center gap-4 px-4 py-3">
               <FileTypeTile type={item.type} />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
+                <div className="flex min-w-0 items-center gap-2">
+                  {item.isPending ? (
+                    <LoaderCircle className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                  ) : null}
+                  <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
+                </div>
                 {isAction || item.description ? (
                   <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
                     <span>{item.description || item.lastModified}</span>
