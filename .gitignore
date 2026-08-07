@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+/certificates
 
 # next.js
 /.next/
@@ -45,4 +46,9 @@ firebase-debug.log
 firestore-debug.log
 /src/lib/prisma-client
 
-certificates
+# neup.standard
+/core
+/neup.core
+/logica
+/neup.logica
+
