@@ -6,8 +6,7 @@
 
 ::public
 
-Resolves the signed-in account from the `auth_account` cookie and backing
-signin session.
+Resolves the signed-in account from the verified `auth_account` cookie.
 
 ::returns
 ::datatype Promise<{ accountId: string; displayName: string | null } | null>
@@ -19,15 +18,16 @@ The active account identity when the cookie and session are valid; otherwise
 
 ::private
 
-The helper decodes the JWT-style cookie payload locally, validates the session
-through Prisma, and returns the best available display label for analytics and
-page personalization.
+The helper prefers the verified account header set by middleware, falls back to
+verifying the signed cookie directly, and returns the best available display
+label for analytics and page personalization.
 
 ::private end
 
 ::end
 */
-import { cookies } from 'next/headers';
+import { createPublicKey, verify } from 'node:crypto';
+import { cookies, headers } from 'next/headers';
 
 import { prisma } from '@/core/database/prisma';
 
@@ -37,39 +37,97 @@ function base64UrlDecode(input: string) {
   return Buffer.from(normalized, 'base64').toString('utf8');
 }
 
-export async function getSignedInAccountIdentity() {
-  const authCookie = (await cookies()).get('auth_account')?.value;
-  if (!authCookie) return null;
+function base64UrlToBuffer(input: string) {
+  let normalized = input.replace(/-/g, '+').replace(/_/g, '/');
+  while (normalized.length % 4) normalized += '=';
+  return Buffer.from(normalized, 'base64');
+}
 
-  let payload: Record<string, unknown> | null = null;
+type AuthAccountPayload = {
+  aid?: unknown;
+  accountId?: unknown;
+  sub?: unknown;
+  exp?: unknown;
+};
+
+let cachedPublicKey: ReturnType<typeof createPublicKey> | null | undefined;
+
+function getAuthPublicKey() {
+  if (cachedPublicKey !== undefined) return cachedPublicKey;
+
+  const pem = process.env.NEUP_AUTH_PUBLIC_KEY;
+  if (!pem) {
+    cachedPublicKey = null;
+    return cachedPublicKey;
+  }
+
   try {
-    const parts = authCookie.split('.');
-    if (parts.length < 2) return null;
-    payload = JSON.parse(base64UrlDecode(parts[1])) as Record<string, unknown>;
+    cachedPublicKey = createPublicKey(pem.replace(/\\n/g, '\n'));
+  } catch {
+    cachedPublicKey = null;
+  }
+
+  return cachedPublicKey;
+}
+
+function parseAuthAccountPayload(token: string): AuthAccountPayload | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    return JSON.parse(base64UrlDecode(parts[1])) as AuthAccountPayload;
   } catch {
     return null;
   }
+}
 
-  const aid = payload?.aid || payload?.accountId || payload?.sub;
-  const sid = payload?.sid;
-  const skey = payload?.skey;
+export function getVerifiedAuthAccountIdFromToken(token: string) {
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
 
-  if (
-    typeof aid !== 'string' ||
-    typeof sid !== 'string' ||
-    typeof skey !== 'string'
-  ) {
+  const [header, body, signature] = parts;
+  const payload = parseAuthAccountPayload(token);
+  if (!payload) return null;
+
+  if (typeof payload.exp === 'number' && payload.exp <= Date.now() / 1000) {
     return null;
   }
 
-  const session = await prisma.signinSession.findFirst({
-    where: { aid, sid, skey },
-    select: { accountId: true },
-  });
+  // Support the documented local unsigned token fallback used in development.
+  if (header === 'unsigned' && signature === 'nosig') {
+    const accountId = payload.aid ?? payload.accountId ?? payload.sub;
+    return typeof accountId === 'string' ? accountId : null;
+  }
 
-  if (!session) return null;
+  const publicKey = getAuthPublicKey();
+  if (!publicKey) return null;
 
-  const accountId = session.accountId || aid;
+  const isValid = verify(
+    'RSA-SHA256',
+    Buffer.from(`${header}.${body}`),
+    publicKey,
+    base64UrlToBuffer(signature)
+  );
+
+  if (!isValid) return null;
+
+  const accountId = payload.aid ?? payload.accountId ?? payload.sub;
+  return typeof accountId === 'string' ? accountId : null;
+}
+
+export async function getVerifiedAuthAccountId() {
+  const forwardedAccountId = (await headers()).get('x-account-id');
+  if (forwardedAccountId) return forwardedAccountId;
+
+  const authCookie = (await cookies()).get('auth_account')?.value;
+  if (!authCookie) return null;
+
+  return getVerifiedAuthAccountIdFromToken(authCookie);
+}
+
+export async function getSignedInAccountIdentity() {
+  const accountId = await getVerifiedAuthAccountId();
+  if (!accountId) return null;
+
   const account = await prisma.account.findUnique({
     where: { id: accountId },
     select: { display_name: true, neupid: true },

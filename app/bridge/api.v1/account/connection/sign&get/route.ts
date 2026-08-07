@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/core/lib/db';
+import { prisma } from '@/core/database/prisma';
 import crypto from 'crypto';
-
-function base64UrlDecode(input: string) {
-  input = input.replace(/-/g, '+').replace(/_/g, '/');
-  // Pad
-  while (input.length % 4) input += '=';
-  return Buffer.from(input, 'base64').toString('utf8');
-}
+import { getVerifiedAuthAccountIdFromToken } from '@/lib/account-session';
 
 function signJwt(payload: object, secret: string, expiresInSeconds = 3600) {
   const header = { alg: 'HS256', typ: 'JWT' };
@@ -44,38 +38,12 @@ export async function POST(request: NextRequest) {
     const cookie = request.cookies.get('auth_account')?.value;
     if (!cookie) return NextResponse.json({ error: 'Missing auth_account cookie' }, { status: 401 });
 
-    // Try to parse cookie as JWT and extract aid/sid/skey
-    let parsed: any = null;
-    try {
-      const parts = cookie.split('.');
-      if (parts.length >= 2) {
-        const payload = base64UrlDecode(parts[1]);
-        parsed = JSON.parse(payload);
-      }
-    } catch (e) {
-      // ignore - parsed stays null
-    }
-
-    if (!parsed || (!parsed.aid && !parsed.accountId)) {
+    const accountId = getVerifiedAuthAccountIdFromToken(cookie);
+    if (!accountId) {
       return NextResponse.json({ error: 'Invalid auth_account cookie' }, { status: 401 });
     }
 
-    const aid = parsed.aid || parsed.accountId || parsed.sub;
-    const sid = parsed.sid;
-    const skey = parsed.skey;
-
-    if (!aid || !sid || !skey) {
-      return NextResponse.json({ error: 'Invalid signin session data' }, { status: 401 });
-    }
-
-    // Validate backing signin session in DB
-    const session = await prisma.signinSession.findFirst({ where: { aid, sid, skey } });
-    if (!session) {
-      return NextResponse.json({ error: 'Invalid or expired signin session' }, { status: 401 });
-    }
-
     // Load account
-    const accountId = session.accountId || aid;
     const account = await prisma.account.findUnique({ where: { id: accountId } });
     if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 });
 

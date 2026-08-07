@@ -6,10 +6,10 @@ import type { Prisma } from '@prisma/client';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { appendBridgeFileAccessLog } from '@/core/lib/file-access-log';
-import { prisma } from '@/core/lib/db';
-import { createBridgeFileUrl, isActiveFileDetails } from '@/core/lib/bridge-api';
-import { recordFileFolderActivity } from '@/core/lib/filefolder';
+import { appendBridgeFileAccessLog } from '@/lib/file-access-log';
+import { prisma } from '@/core/database/prisma';
+import { createBridgeFileUrl, isActiveFileDetails } from '@/lib/bridge-api';
+import { recordFileFolderActivity } from '@/lib/filefolder';
 
 /*
 ::neup.documentation::viewer-page

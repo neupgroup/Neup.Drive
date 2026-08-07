@@ -62,6 +62,5 @@
 - [ ] Fix missing module import in `scripts/test-hashing.ts` for `../src/lib/sha256`.
 - [ ] Fix `npx tsc --noEmit` error in `components/prodrive/upload-status-toast.tsx`: toast `title` expects a string but receives JSX.
 - [ ] Fix unresolved `@/core/*` and `@/logica/*` module imports blocking `npx tsc --noEmit` across `app`, `components`, and `lib`.
-- [ ] Fix `npx tsc --noEmit` Prisma typing regressions in `core/database/prisma.ts` and `lib/account-session.ts`.
 - [ ] Apply the pending `filefolder` Prisma migrations to the runtime database so `stored_as` and `last_activity_on` exist without fallback query paths.
 - [ ] Restore runtime Postgres connectivity for Prisma; current `fileFolder` reads are failing with `ECONNREFUSED`.

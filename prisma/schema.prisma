@@ -3,8 +3,8 @@
 
 generator client {
   provider        = "prisma-client-js"
-  output          = "./client"
   previewFeatures = ["driverAdapters"]
+  output          = "./client"
 }
 
 datasource db {
@@ -86,4 +86,5 @@ model Account {
   neupid        String?
   created_on    DateTime @default(now())
   accessed_on   DateTime?
+
 }
