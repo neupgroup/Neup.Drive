@@ -28,8 +28,8 @@ bandwidth, file, domain, and page breakdowns without needing a client fetch.
 */
 import { BarChart3, Globe, HardDriveDownload, HardDriveUpload, Link2, TrendingUp } from 'lucide-react';
 
-import { getDriveAnalytics } from '@/core/lib/analytics';
-import { getSignedInAccountIdentity } from '@/core/lib/account-session';
+import { getDriveAnalytics } from '@/lib/analytics';
+import { getSignedInAccountIdentity } from '@/lib/account-session';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 function formatBytes(bytes: number) {

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'node:path';
-import { getRequestDeviceIp } from '@/core/lib/bridge-api';
-import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken, parseDurationSeconds } from '@/core/lib/cdn-token';
-import { prisma } from '@/core/lib/db';
-import { handleServerError } from '@/core/lib/error-server';
+import { getRequestDeviceIp } from '@/lib/bridge-api';
+import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken, parseDurationSeconds } from '@/lib/cdn-token';
+import { prisma } from '@/core/database/prisma';
+import { handleServerError } from '@/lib/error-server';
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 const CDN_BASE_URL = getCdnBaseUrl();

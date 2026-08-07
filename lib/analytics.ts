@@ -35,7 +35,7 @@ rows do not yet include byte sizes.
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
-import { prisma } from '@/core/lib/db';
+import { prisma } from '@/core/database/prisma';
 
 export const DEFAULT_ANALYTICS_OWNER = process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
 

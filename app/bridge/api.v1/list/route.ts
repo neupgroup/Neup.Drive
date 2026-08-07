@@ -10,10 +10,10 @@ import {
     getRequestDeviceIp,
     isActiveFileDetails,
     normalizeFolderType,
-} from '@/core/lib/bridge-api';
-import { prisma } from '@/core/lib/db';
-import { handleServerError } from '@/core/lib/error-server';
-import { isDirectoryMimeType, webdiskStoredAs } from '@/core/lib/filefolder';
+} from '@/lib/bridge-api';
+import { prisma } from '@/core/database/prisma';
+import { handleServerError } from '@/lib/error-server';
+import { isDirectoryMimeType, webdiskStoredAs } from '@/lib/filefolder';
 
 export async function GET(request: NextRequest) {
     try {

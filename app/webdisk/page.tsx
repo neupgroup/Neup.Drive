@@ -10,10 +10,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ToastAction } from '@/components/ui/toast';
 import { toast } from '@/core/hooks/use-toast';
-import { handleClientError } from '@/core/lib/error-client';
-import { PlaceHolderImages } from '@/core/lib/placeholder-images';
-import { storageTierFromWebdiskType, type StorageTier } from '@/core/lib/storage-tiers';
-import type { FileOrFolder } from '@/core/lib/types';
+import { handleClientError } from '@/lib/error-client';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { storageTierFromWebdiskType, type StorageTier } from '@/lib/storage-tiers';
+import type { FileOrFolder } from '@/lib/types';
 
 interface WebDiskRecord {
   id: string;

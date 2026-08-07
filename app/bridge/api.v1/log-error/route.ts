@@ -47,9 +47,9 @@ forwarded to the shared `logToDatabase` helper.
 ::end
 */
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/core/lib/db';
-import { logToDatabase } from '@/core/lib/error-server';
-import { identifyError } from '@/core/lib/error-types';
+import { prisma } from '@/core/database/prisma';
+import { logToDatabase } from '@/lib/error-server';
+import { identifyError } from '@/lib/error-types';
 
 function getSystemErrorAccount(context: Record<string, unknown>) {
     const value = context.accountId || context.account_id || context.owner || context.uploaded_by || context.on_account;

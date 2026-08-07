@@ -22,9 +22,9 @@ import type { Prisma } from '@prisma/client';
 import path from 'node:path';
 
 import { TrashPageManager } from '@/components/prodrive/trash-page-manager';
-import { prisma } from '@/core/lib/db';
-import { isDirectoryMimeType } from '@/core/lib/filefolder';
-import type { FileOrFolder } from '@/core/lib/types';
+import { prisma } from '@/core/database/prisma';
+import { isDirectoryMimeType } from '@/lib/filefolder';
+import type { FileOrFolder } from '@/lib/types';
 
 const TRASH_OWNER = process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
 

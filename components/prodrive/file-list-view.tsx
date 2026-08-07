@@ -117,10 +117,13 @@ export function FileListView({
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                     <TooltipProvider>
                       <Tooltip>
-                        <TooltipTrigger asChild>
+                        <TooltipTrigger
+                          type="button"
+                          className="inline-flex h-3 w-3 items-center justify-center rounded-full"
+                          aria-label={storageTierLabel(item.storageTier)}
+                        >
                           <span
                             className={`h-2 w-2 rounded-full ${storageTierDotClass(item.storageTier)}`}
-                            aria-label={storageTierLabel(item.storageTier)}
                           />
                         </TooltipTrigger>
                         <TooltipContent>{storageTierLabel(item.storageTier)} Storage</TooltipContent>
