@@ -1,13 +1,13 @@
 import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
-import { appendBridgeFileAccessLog } from '@/core/lib/file-access-log';
-import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/core/lib/cdn-token';
-import { prisma } from '@/core/lib/db';
-import { handleServerError } from '@/core/lib/error-server';
-import { logToDatabase } from '@/core/lib/error-server';
-import { buildFileFolderActivityUpdate, isDirectoryDetails, webdiskStoredAs } from '@/core/lib/filefolder';
-import { buildBridgeTrashPath, getTrashDeletesIn, isMissingCdnFileError, isReservedWebdiskRootFolder } from '@/core/lib/bridge-api';
-import { ErrorType } from '@/core/lib/error-types';
+import { appendBridgeFileAccessLog } from '@/lib/file-access-log';
+import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/lib/cdn-token';
+import { prisma } from '@/core/database/prisma';
+import { handleServerError } from '@/lib/error-server';
+import { logToDatabase } from '@/lib/error-server';
+import { buildFileFolderActivityUpdate, isDirectoryDetails, webdiskStoredAs } from '@/lib/filefolder';
+import { buildBridgeTrashPath, getTrashDeletesIn, isMissingCdnFileError, isReservedWebdiskRootFolder } from '@/lib/bridge-api';
+import { ErrorType } from '@/lib/error-types';
 
 /*
 ::neup.documentation::webdisk-files-operation-route

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 
-import { createBridgeFileUrl, getFolderType, getParam, getRequestDeviceIp, isActiveFileDetails } from '@/core/lib/bridge-api';
-import { parseDurationSeconds } from '@/core/lib/cdn-token';
-import { prisma } from '@/core/lib/db';
-import { handleServerError } from '@/core/lib/error-server';
-import { appendBridgeFileAccessLog } from '@/core/lib/file-access-log';
+import { createBridgeFileUrl, getFolderType, getParam, getRequestDeviceIp, isActiveFileDetails } from '@/lib/bridge-api';
+import { parseDurationSeconds } from '@/lib/cdn-token';
+import { prisma } from '@/core/database/prisma';
+import { handleServerError } from '@/lib/error-server';
+import { appendBridgeFileAccessLog } from '@/lib/file-access-log';
 
 /*
 ::neup.documentation::drive-files-preview-route

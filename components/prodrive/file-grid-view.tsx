@@ -1,10 +1,10 @@
 import Image from 'next/image';
-import type { FileOrFolder } from '@/core/lib/types';
+import type { FileOrFolder } from '@/lib/types';
 import { LoaderCircle } from 'lucide-react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { FileIcon } from '@/components/file-icon';
 import { Badge } from '@/components/ui/badge';
-import { storageTierBadgeClass, storageTierLabel } from '@/core/lib/storage-tiers';
+import { storageTierBadgeClass, storageTierLabel } from '@/lib/storage-tiers';
 
 export function FileGridView({
   data,

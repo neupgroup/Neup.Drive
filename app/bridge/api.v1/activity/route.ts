@@ -17,8 +17,8 @@ The activity action to record. Currently supports `folder_opened`.
 ::end
 */
 import { NextRequest, NextResponse } from 'next/server';
-import { handleServerError } from '@/core/lib/error-server';
-import { upsertFolderActivity } from '@/core/lib/filefolder';
+import { handleServerError } from '@/lib/error-server';
+import { upsertFolderActivity } from '@/lib/filefolder';
 
 interface RecordActivityRequest {
   action?: 'folder_opened';

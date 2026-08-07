@@ -1,5 +1,5 @@
 
-import { SHA256 } from '../src/lib/sha256';
+import { SHA256 } from '@/lib/sha256';
 
 async function testHashing() {
   const sha256 = new SHA256();

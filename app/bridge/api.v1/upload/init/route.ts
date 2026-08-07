@@ -9,9 +9,9 @@ import {
     getParam,
     isReservedWebdiskRootFolder,
     normalizeFolderType,
-} from '@/core/lib/bridge-api';
-import { handleServerError } from '@/core/lib/error-server';
-import type { UploadInitRequest } from '@/core/lib/upload-types';
+} from '@/lib/bridge-api';
+import { handleServerError } from '@/lib/error-server';
+import type { UploadInitRequest } from '@/lib/upload-types';
 
 function getBodyValue(body: Partial<UploadInitRequest> & Record<string, unknown>, name: string) {
     const value = body[name];

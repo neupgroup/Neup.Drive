@@ -30,10 +30,10 @@ The parent relative path within the target surface.
 */
 import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/core/lib/db';
-import { handleServerError } from '@/core/lib/error-server';
-import { createFileFolderLog, webdiskStoredAs } from '@/core/lib/filefolder';
-import { isActiveFileDetails, isReservedWebdiskRootFolder, normalizeInternalPath } from '@/core/lib/bridge-api';
+import { prisma } from '@/core/database/prisma';
+import { handleServerError } from '@/lib/error-server';
+import { createFileFolderLog, webdiskStoredAs } from '@/lib/filefolder';
+import { isActiveFileDetails, isReservedWebdiskRootFolder, normalizeInternalPath } from '@/lib/bridge-api';
 
 type FolderMode = 'drive' | 'webdisk';
 type FolderType = 'drive' | 'assets' | 'signed';

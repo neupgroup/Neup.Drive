@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { FileIcon, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { handleClientError } from '@/core/lib/error-client';
+import { handleClientError } from '@/lib/error-client';
 import {
     Table,
     TableBody,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/core/lib/db';
-import { handleServerError } from '@/core/lib/error-server';
-import { createFileFolderLog, recordFileFolderUpload, webdiskStoredAs } from '@/core/lib/filefolder';
+import { prisma } from '@/core/database/prisma';
+import { handleServerError } from '@/lib/error-server';
+import { createFileFolderLog, recordFileFolderUpload, webdiskStoredAs } from '@/lib/filefolder';
 
 const WEBDISK_TYPES = ['assets', 'signed'];
 

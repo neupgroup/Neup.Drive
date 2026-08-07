@@ -50,7 +50,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/core/hooks/use-toast';
-import type { FileOrFolder } from '@/core/lib/types';
+import type { FileOrFolder } from '@/lib/types';
 
 export function TrashPageManager({
   files,

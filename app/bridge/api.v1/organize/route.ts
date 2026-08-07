@@ -7,8 +7,8 @@ import {
     getBridgeOwner,
     getParam,
     organizeBridgeFile,
-} from '@/core/lib/bridge-api';
-import { handleServerError } from '@/core/lib/error-server';
+} from '@/lib/bridge-api';
+import { handleServerError } from '@/lib/error-server';
 
 function getOrganizeType(request: NextRequest): BridgeOrganizeType | null {
     const value = (

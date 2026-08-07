@@ -40,7 +40,7 @@ import { useRouter } from 'next/navigation';
 import { FileManager } from '@/components/prodrive/file-manager';
 import { toast } from '@/core/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
-import type { FileOrFolder } from '@/core/lib/types';
+import type { FileOrFolder } from '@/lib/types';
 
 type SortMode = 'recent-desc' | 'recent-asc' | 'name-asc' | 'name-desc';
 

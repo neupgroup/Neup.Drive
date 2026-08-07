@@ -25,7 +25,7 @@ the main file manager layout with search-specific heading and empty-state copy.
 ::end
 */
 import { FileManager } from '@/components/prodrive/file-manager';
-import { getDriveFiles } from '@/core/lib/drive-files';
+import { getDriveFiles } from '@/lib/drive-files';
 
 function normalizeQuery(value: string | string[] | undefined) {
   if (Array.isArray(value)) {

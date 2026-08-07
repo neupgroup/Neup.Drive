@@ -1,4 +1,4 @@
-import type { FileOrFolder } from '@/core/lib/types';
+import type { FileOrFolder } from '@/lib/types';
 import {
   FileImage,
   FileQuestion,

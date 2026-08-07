@@ -11,9 +11,9 @@ import {
     getParam,
     getRequestDeviceIp,
     isActiveFileDetails,
-} from '@/core/lib/bridge-api';
-import { parseDurationSeconds } from '@/core/lib/cdn-token';
-import { handleServerError } from '@/core/lib/error-server';
+} from '@/lib/bridge-api';
+import { parseDurationSeconds } from '@/lib/cdn-token';
+import { handleServerError } from '@/lib/error-server';
 
 export async function GET(request: NextRequest) {
     try {

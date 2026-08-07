@@ -4,7 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { ChevronRight, Copy, Download, Edit3, Eye, FolderInput, MoreHorizontal, Share2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import type { FileOrFolder } from '@/core/lib/types';
+import type { FileOrFolder } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {

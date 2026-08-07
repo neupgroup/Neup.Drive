@@ -37,7 +37,7 @@ viewer, and keeps the upload action scoped to the current drive folder.
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { FileManager } from '@/components/prodrive/file-manager';
-import type { FileOrFolder } from '@/core/lib/types';
+import type { FileOrFolder } from '@/lib/types';
 
 function buildDriveUploadHref(currentPath: string) {
   const params = new URLSearchParams();

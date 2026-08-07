@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
-import { prisma } from '@/core/lib/db';
-import { buildFileFolderActivityUpdate, createFileFolderLog } from '@/core/lib/filefolder';
+import { prisma } from '@/core/database/prisma';
+import { buildFileFolderActivityUpdate, createFileFolderLog } from '@/lib/filefolder';
 
 /*
 ::neup.documentation::upload-callback-route

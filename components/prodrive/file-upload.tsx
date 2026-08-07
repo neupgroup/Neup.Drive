@@ -4,14 +4,14 @@ import * as React from 'react';
 import { Upload, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { initializeUpload } from '@/core/lib/upload-client';
-import { cn } from '@/core/lib/utils';
-import { hashFile } from '@/core/lib/blake3';
-import type { UploadInitResponse } from '@/core/lib/upload-types';
-import { uploadFileChunks } from '@/core/lib/chunked-upload';
-import { saveUpload, getUploads, deleteUpload, type UploadQueueItem } from '@/core/lib/upload-persistence';
-import { handleClientError } from '@/core/lib/error-client';
-import { logUploadTrace } from '@/core/lib/upload-trace';
+import { initializeUpload } from '@/lib/upload-client';
+import { cn } from '@/core/utils';
+import { hashFile } from '@/lib/blake3';
+import type { UploadInitResponse } from '@/lib/upload-types';
+import { uploadFileChunks } from '@/lib/chunked-upload';
+import { saveUpload, getUploads, deleteUpload, type UploadQueueItem } from '@/lib/upload-persistence';
+import { handleClientError } from '@/lib/error-client';
+import { logUploadTrace } from '@/lib/upload-trace';
 
 interface FileUploadProps {
     accountId: string;

@@ -22,10 +22,10 @@ path, while signed file URLs resolve against `details.storage_path`.
 ::end
 */
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/core/lib/db';
-import { handleServerError } from '@/core/lib/error-server';
-import { createBridgeFileUrl, getRequestDeviceIp, isActiveFileDetails } from '@/core/lib/bridge-api';
-import { isDirectoryMimeType } from '@/core/lib/filefolder';
+import { prisma } from '@/core/database/prisma';
+import { handleServerError } from '@/lib/error-server';
+import { createBridgeFileUrl, getRequestDeviceIp, isActiveFileDetails } from '@/lib/bridge-api';
+import { isDirectoryMimeType } from '@/lib/filefolder';
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 

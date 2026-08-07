@@ -2,11 +2,11 @@ import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 
-import { prisma } from '@/core/lib/db';
-import { handleServerError } from '@/core/lib/error-server';
-import { appendBridgeFileAccessLog } from '@/core/lib/file-access-log';
-import { buildFileFolderActivityUpdate, createFileFolderLog, isDirectoryDetails } from '@/core/lib/filefolder';
-import { buildBridgeTrashPath, getDetails, getTrashDeletesIn, isActiveFileDetails } from '@/core/lib/bridge-api';
+import { prisma } from '@/core/database/prisma';
+import { handleServerError } from '@/lib/error-server';
+import { appendBridgeFileAccessLog } from '@/lib/file-access-log';
+import { buildFileFolderActivityUpdate, createFileFolderLog, isDirectoryDetails } from '@/lib/filefolder';
+import { buildBridgeTrashPath, getDetails, getTrashDeletesIn, isActiveFileDetails } from '@/lib/bridge-api';
 
 /*
 ::neup.documentation::drive-files-operation-route

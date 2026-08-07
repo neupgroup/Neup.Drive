@@ -1,6 +1,6 @@
 import type { LucideProps } from 'lucide-react';
 import { File, FileImage, FileQuestion, FileText, FileVideo, Folder, Music } from 'lucide-react';
-import type { FileOrFolder } from '@/core/lib/types';
+import type { FileOrFolder } from '@/lib/types';
 
 export function FileIcon({ type, ...props }: { type: FileOrFolder['type'] } & LucideProps) {
   switch (type) {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { prisma } from '@/core/lib/db';
+import { prisma } from '@/core/database/prisma';
 
 export default async function AccountsPage() {
   const accounts = await prisma.account.findMany({ orderBy: { created_on: 'desc' }, take: 200 });

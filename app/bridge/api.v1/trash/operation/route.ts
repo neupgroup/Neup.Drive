@@ -31,13 +31,13 @@ import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 
-import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/core/lib/cdn-token';
-import { prisma } from '@/core/lib/db';
-import { handleServerError } from '@/core/lib/error-server';
-import { logToDatabase } from '@/core/lib/error-server';
-import { buildFileFolderActivityUpdate, isDirectoryDetails, webdiskStoredAs } from '@/core/lib/filefolder';
-import { assertSafePathSegment, isMissingCdnFileError, isReservedWebdiskRootFolder, normalizeInternalPath } from '@/core/lib/bridge-api';
-import { ErrorType, GENERIC_ERROR_MESSAGE } from '@/core/lib/error-types';
+import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/lib/cdn-token';
+import { prisma } from '@/core/database/prisma';
+import { handleServerError } from '@/lib/error-server';
+import { logToDatabase } from '@/lib/error-server';
+import { buildFileFolderActivityUpdate, isDirectoryDetails, webdiskStoredAs } from '@/lib/filefolder';
+import { assertSafePathSegment, isMissingCdnFileError, isReservedWebdiskRootFolder, normalizeInternalPath } from '@/lib/bridge-api';
+import { ErrorType, GENERIC_ERROR_MESSAGE } from '@/lib/error-types';
 
 type TrashOperationAction = 'restore' | 'restore_to' | 'delete_permanently';
 type TrashDestinationType = 'drive' | 'assets' | 'signed';
