@@ -28,7 +28,7 @@ server so the client upload flow cannot fall back to the demo owner.
 */
 import { FileUpload } from '@/components/prodrive/file-upload';
 import { getCookie } from '@/core/helpers/cookie';
-import { account } from '@/logica/account';
+import { resolveAuthenticatedAccountId } from '@/lib/bridge-api';
 
 const WEBDISK_TYPES = ['assets', 'signed'] as const;
 
@@ -43,15 +43,7 @@ function normalizeUploadPath(value: string | string[] | undefined) {
 }
 
 async function getSignedInAccountId() {
-    const authAccountToken = (await getCookie('auth_account'))?.trim();
-    if (!authAccountToken) return null;
-
-    const response = await account.lookup.current.get(authAccountToken, ['accountId']);
-    if (!response.ok || !response.body.success || !response.body.accountId) {
-        return null;
-    }
-
-    return response.body.accountId.trim() || null;
+    return resolveAuthenticatedAccountId(await getCookie('auth_account'));
 }
 
 export default async function UploadPage({
@@ -110,15 +102,6 @@ export default async function UploadPage({
                     uploadPath="uploads"
                     uploadMode={uploadMode}
                     uploadInitEndpoint={uploadInitEndpoint}
-                    onUploadComplete={(url, file) => {
-                        console.log('✅ Upload complete:', {
-                            url,
-                            fileName: file.name,
-                        });
-                    }}
-                    onUploadError={(error) => {
-                        console.log(error);
-                    }}
                 />
             ) : (
                 <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">

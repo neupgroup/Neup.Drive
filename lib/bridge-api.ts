@@ -60,16 +60,20 @@ export function getBridgeOwner(request: NextRequest) {
     ).trim();
 }
 
-export async function getAuthenticatedBridgeOwner(request: NextRequest): Promise<string | null> {
-    const authAccountToken = request.cookies.get('auth_account')?.value?.trim();
-    if (!authAccountToken) return null;
+export async function resolveAuthenticatedAccountId(authAccountToken?: string | null): Promise<string | null> {
+    const normalizedToken = authAccountToken?.trim();
+    if (!normalizedToken) return null;
 
-    const response = await account.lookup.current.get(authAccountToken, ['accountId']);
+    const response = await account.lookup.current.get(normalizedToken, ['accountId']);
     if (!response.ok || !response.body.success || !response.body.accountId) {
         return null;
     }
 
     return response.body.accountId.trim() || null;
+}
+
+export async function getAuthenticatedBridgeOwner(request: NextRequest): Promise<string | null> {
+    return resolveAuthenticatedAccountId(request.cookies.get('auth_account')?.value);
 }
 
 export function getParam(request: NextRequest, name: string) {

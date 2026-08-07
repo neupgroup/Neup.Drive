@@ -26,7 +26,9 @@ client manager only receives safe internal drive paths.
 ::end
 */
 import { DrivePageManager } from '@/components/prodrive/drive-page-manager';
+import { getCookie } from '@/core/helpers/cookie';
 import { normalizeInternalPath } from '@/lib/bridge-api';
+import { resolveAuthenticatedAccountId } from '@/lib/bridge-api';
 import { getDriveFiles } from '@/lib/drive-files';
 
 function getCurrentPath(value: string | string[] | undefined) {
@@ -39,6 +41,10 @@ function getCurrentPath(value: string | string[] | undefined) {
   }
 }
 
+async function getSignedInAccountId() {
+  return resolveAuthenticatedAccountId(await getCookie('auth_account'));
+}
+
 export default async function DriveRootPage({
   searchParams,
 }: {
@@ -46,7 +52,10 @@ export default async function DriveRootPage({
 }) {
   const resolvedSearchParams = await searchParams;
   const currentPath = getCurrentPath(resolvedSearchParams?.path);
-  const files = await getDriveFiles({ internalPath: currentPath });
+  const accountId = await getSignedInAccountId();
+  const files = accountId
+    ? await getDriveFiles({ owner: accountId, internalPath: currentPath })
+    : [];
 
   return (
     <DrivePageManager currentPath={currentPath} files={files} />

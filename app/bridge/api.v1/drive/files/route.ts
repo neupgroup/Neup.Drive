@@ -24,17 +24,20 @@ path, while signed file URLs resolve against `details.storage_path`.
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/database/prisma';
 import { handleServerError } from '@/lib/error-server';
-import { createBridgeFileUrl, getRequestDeviceIp, isActiveFileDetails } from '@/lib/bridge-api';
+import { createBridgeFileUrl, getAuthenticatedBridgeOwner, getRequestDeviceIp, isActiveFileDetails } from '@/lib/bridge-api';
 import { isDirectoryMimeType } from '@/lib/filefolder';
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 
 export async function GET(request: NextRequest) {
     try {
-        const userId = 'demo-user-123'; // Mocked user ID
-
         if (!PRIVATE_KEY) {
             return NextResponse.json({ error: 'Server configuration error: Missing private key' }, { status: 500 });
+        }
+
+        const userId = await getAuthenticatedBridgeOwner(request);
+        if (!userId) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
         }
 
         const files = await prisma.fileFolder.findMany({

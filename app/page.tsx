@@ -28,6 +28,7 @@ file data resolve independently.
 */
 import { Suspense } from 'react';
 import { RecentPageManager } from '@/components/prodrive/recent-page-manager';
+import { resolveAuthenticatedAccountId } from '@/lib/bridge-api';
 import { getRecentDriveFiles } from '@/lib/drive-files';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getCookie } from '@/core/helpers/cookie';
@@ -49,7 +50,8 @@ async function HomeGreetingName() {
 }
 
 async function HomeRecentFiles() {
-  const files = await getRecentDriveFiles();
+  const accountId = await resolveAuthenticatedAccountId(await getCookie('auth_account'));
+  const files = accountId ? await getRecentDriveFiles({ owner: accountId, webdiskOwner: accountId }) : [];
   return <RecentPageManager files={files} showHeader={false} />;
 }
 
