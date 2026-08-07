@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "setup": "rm -rf core && rm -rf neup.core && git clone https://github.com/neupgroup/neup.core && mv neup.core core && rm -rf logica && rm -rf neup.logica && git clone https://github.com/neupgroup/neup.logica && mv neup.logica logica && cd core",
+    "setup": "rm -rf core && rm -rf neup.core && git clone https://github.com/neupgroup/neup.core && mv neup.core core && rm -rf logica && rm -rf neup.logica && git clone https://github.com/neupgroup/neup.logica && mv neup.logica logica",
     
     "prebuild": "npm run setup",
     "predev": "npm run setup",
 
     "dev": "next dev --port 3748 --experimental-https",
     "build": "next build",
-    "start": "next start --port 3748",
+    "start": "next --port 3748",
     "lint": "eslint"
   },
   "dependencies": {
