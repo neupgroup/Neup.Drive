@@ -28,9 +28,10 @@ bandwidth, file, domain, and page breakdowns without needing a client fetch.
 */
 import { BarChart3, Globe, HardDriveDownload, HardDriveUpload, Link2, TrendingUp } from 'lucide-react';
 
+import { getCookie } from '@/core/helpers/cookie';
 import { getDriveAnalytics } from '@/lib/analytics';
-import { getSignedInAccountIdentity } from '@/lib/account-session';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { logica } from '@/logica';
 
 function formatBytes(bytes: number) {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
@@ -81,7 +82,22 @@ function StatCard({
 }
 
 export default async function AnalyticsPage() {
-  const account = await getSignedInAccountIdentity();
+  const authAccountToken = await getCookie('auth_account');
+  const account = authAccountToken?.trim()
+    ? await logica.account.lookup.current
+        .get(authAccountToken, ['accountId', 'displayName', 'neupid'])
+        .then((response) => {
+          if (!response.ok || !response.body.success || !response.body.accountId) {
+            return null;
+          }
+
+          return {
+            accountId: response.body.accountId,
+            displayName: response.body.displayName || response.body.neupid || null,
+          };
+        })
+    : null;
+
   const analytics = await getDriveAnalytics({
     accountId: account?.accountId,
     displayName: account?.displayName,

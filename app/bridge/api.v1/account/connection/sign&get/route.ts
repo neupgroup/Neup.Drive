@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/core/database/prisma';
 import crypto from 'crypto';
-import { getVerifiedAuthAccountIdFromToken } from '@/lib/account-session';
+import { logica } from '@/logica';
 
 function signJwt(payload: object, secret: string, expiresInSeconds = 3600) {
   const header = { alg: 'HS256', typ: 'JWT' };
@@ -35,32 +34,38 @@ export async function POST(request: NextRequest) {
     // should check application metadata.
 
     // Get auth_account cookie
-    const cookie = request.cookies.get('auth_account')?.value;
-    if (!cookie) return NextResponse.json({ error: 'Missing auth_account cookie' }, { status: 401 });
+    const authAccountToken = request.cookies.get('auth_account')?.value?.trim();
+    if (!authAccountToken) return NextResponse.json({ error: 'Missing auth_account cookie' }, { status: 401 });
 
-    const accountId = getVerifiedAuthAccountIdFromToken(cookie);
-    if (!accountId) {
+    const lookupResponse = await logica.account.lookup.current.get(authAccountToken, [
+      'accountId',
+      'connectionId',
+      'displayName',
+      'displayImage',
+      'neupid',
+    ]);
+
+    if (!lookupResponse.ok || !lookupResponse.body.success || !lookupResponse.body.accountId) {
       return NextResponse.json({ error: 'Invalid auth_account cookie' }, { status: 401 });
     }
 
-    // Load account
-    const account = await prisma.account.findUnique({ where: { id: accountId } });
-    if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 });
-
     // Build response shape (filter fields if empty)
     const occurredAt = new Date().toISOString();
-    const accountObj: any = { id: account.id, connectionId: account.connection_id ?? null };
-    if (account.neupid) accountObj.neupid = account.neupid;
+    const accountObj: any = {
+      id: lookupResponse.body.accountId,
+      connectionId: lookupResponse.body.connectionId ?? null,
+    };
+    if (lookupResponse.body.neupid) accountObj.neupid = lookupResponse.body.neupid;
     // isMinor unknown - default to false
     accountObj.isMinor = false;
 
     const profile: any = {};
-    if (account.display_name) profile.displayName = account.display_name;
-    if (account.display_image) profile.displayImage = account.display_image;
+    if (lookupResponse.body.displayName) profile.displayName = lookupResponse.body.displayName;
+    if (lookupResponse.body.displayImage) profile.displayImage = lookupResponse.body.displayImage;
 
     // Create a signed token for the account
     const jwtSecret = process.env.NEUP_APP_SECRET || process.env.UPLOAD_SECRET_PRIVATE_KEY || 'fallback_secret';
-    const token = signJwt({ sub: account.id, appId }, jwtSecret);
+    const token = signJwt({ sub: lookupResponse.body.accountId, appId }, jwtSecret);
 
     const response: any = {
       success: true,

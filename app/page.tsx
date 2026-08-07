@@ -28,13 +28,19 @@ file data resolve independently.
 */
 import { Suspense } from 'react';
 import { RecentPageManager } from '@/components/prodrive/recent-page-manager';
-import { getSignedInAccountIdentity } from '@/lib/account-session';
 import { getRecentDriveFiles } from '@/lib/drive-files';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getCookie } from '@/core/helpers/cookie';
+import { logica } from '@/logica';
 
 async function getHomepageDisplayName() {
-  const account = await getSignedInAccountIdentity();
-  return account?.displayName || null;
+  const authAccountToken = await getCookie('auth_account');
+  if (!authAccountToken?.trim()) return null;
+
+  const response = await logica.account.lookup.current.get(authAccountToken, ['displayName', 'neupid']);
+  if (!response.ok || !response.body.success) return null;
+
+  return response.body.displayName || response.body.neupid || null;
 }
 
 async function HomeGreetingName() {
