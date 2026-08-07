@@ -310,6 +310,11 @@ function WebdiskContent() {
     folderRecords[0]?.path.replace(/^\/+/, '').split('/')[0] ||
     'demo-user-123'
   ), [files, folderRecords]);
+  const webdiskOwnerName = React.useMemo(() => (
+    files[0]?.uploaded_by_name ||
+    files.find((file) => file.uploaded_by === webdiskOwner)?.uploaded_by_name ||
+    webdiskOwner
+  ), [files, webdiskOwner]);
 
   const currentItems = React.useMemo(() => {
     const folders = new Map<string, WebDiskFolder>();
@@ -574,6 +579,7 @@ function WebdiskContent() {
         cdn_path: folder.storagePath,
         mimeType: 'inode/directory',
         uploaded_by: webdiskOwner,
+        uploaded_by_name: webdiskOwnerName,
         uploaded_on: new Date(0).toISOString(),
       }, 'delete', {
         action: 'delete',
@@ -591,7 +597,7 @@ function WebdiskContent() {
       cdn_path: file.cdn_path || file.id,
       type: selectedType,
     });
-  }, [foldersById, performOperation, recordsById, selectedType, webdiskOwner]);
+  }, [foldersById, performOperation, recordsById, selectedType, webdiskOwner, webdiskOwnerName]);
 
   const busyIds = operatingPath ? [operatingPath] : [];
   const breadcrumbs = React.useMemo(
