@@ -1,7 +1,7 @@
 import { appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { NextResponse } from 'next/server';
-import { prisma } from './db';
+import { prisma } from '@/core/database/prisma';
 import { ErrorType, identifyError, GENERIC_ERROR_MESSAGE } from './error-types';
 
 const LOG_FILE_PATH = join(process.cwd(), 'errors.log');
