@@ -22,11 +22,11 @@ import type { Prisma } from '@prisma/client';
 import path from 'node:path';
 
 import { TrashPageManager } from '@/components/prodrive/trash-page-manager';
+import { getCookie } from '@/core/helpers/cookie';
 import { prisma } from '@/core/database/prisma';
+import { resolveAuthenticatedAccountId } from '@/lib/bridge-api';
 import { isDirectoryMimeType } from '@/lib/filefolder';
 import type { FileOrFolder } from '@/lib/types';
-
-const TRASH_OWNER = process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
 
 function getDetails(details: Prisma.JsonValue): Prisma.JsonObject {
   return details && typeof details === 'object' && !Array.isArray(details) ? details : {};
@@ -109,9 +109,12 @@ function getOriginalFolderInfo(previousPath: string, previousMode: string, owner
 }
 
 async function getTrashItems() {
+  const accountId = await resolveAuthenticatedAccountId(await getCookie('auth_account'));
+  if (!accountId) return [];
+
   const rows = await prisma.fileFolder.findMany({
     where: {
-      owner: TRASH_OWNER,
+      owner: accountId,
     },
     orderBy: { updated_on: 'desc' },
     take: 100,
