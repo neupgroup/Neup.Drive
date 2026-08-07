@@ -16,6 +16,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { NavLinks } from '@/components/prodrive/nav-links';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/core/database/prisma';
 import { isActiveFileDetails } from '@/lib/bridge-api';
 import {
@@ -24,8 +25,12 @@ import {
   storageTierFromStoredAs,
   type StorageTier,
 } from '@/lib/storage-tiers';
+import { getCookie } from '@/core/helpers/cookie';
+import { account } from '@/logica/account';
 
 const STORAGE_OWNER = process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
+const DEFAULT_ACCOUNT_LABEL = 'Signed out';
+const DEFAULT_ACCOUNT_SECONDARY_LABEL = 'No connected account';
 
 function isFileFolderSchemaDriftError(error: unknown) {
   return (
@@ -55,16 +60,46 @@ function isFileFolderUnavailableError(error: unknown) {
   );
 }
 
-async function getStorageUsage() {
+type SignedInAccountInfo = {
+  accountId: string;
+  displayName: string | null;
+  displayImage: string | null;
+  neupid: string | null;
+};
+
+async function getSignedInAccountInfo(): Promise<SignedInAccountInfo | null> {
+  const authAccountToken = (await getCookie('auth_account'))?.trim();
+  if (!authAccountToken) return null;
+
+  const response = await account.lookup.current.get(authAccountToken, [
+    'accountId',
+    'displayName',
+    'displayImage',
+    'neupid',
+  ]);
+
+  if (!response.ok || !response.body.success || !response.body.accountId) {
+    return null;
+  }
+
+  return {
+    accountId: response.body.accountId,
+    displayName: response.body.displayName || null,
+    displayImage: response.body.displayImage || null,
+    neupid: response.body.neupid || null,
+  };
+}
+
+async function getStorageUsage(owner: string) {
   let rows: Array<{
     size: bigint;
-    details: unknown;
+    details: Prisma.JsonValue;
     stored_as: string;
   }>;
 
   try {
     rows = await prisma.fileFolder.findMany({
-      where: { owner: STORAGE_OWNER },
+      where: { owner },
       select: {
         size: true,
         stored_as: true,
@@ -76,11 +111,11 @@ async function getStorageUsage() {
 
     let fallbackRows: Array<{
       size: bigint;
-      details: unknown;
+      details: Prisma.JsonValue;
     }>;
     try {
       fallbackRows = await prisma.fileFolder.findMany({
-        where: { owner: STORAGE_OWNER },
+        where: { owner },
         select: {
           size: true,
           details: true,
@@ -129,7 +164,8 @@ function tierTitle(tier: StorageTier) {
 }
 
 export async function Sidebar() {
-  const storage = await getStorageUsage();
+  const signedInAccount = await getSignedInAccountInfo();
+  const storage = await getStorageUsage(signedInAccount?.accountId || STORAGE_OWNER);
   const usedPercent = Math.min(100, (storage.used / STORAGE_LIMIT_BYTES) * 100);
   const storageTiers: Array<{ tier: StorageTier; color: string }> = [
     { tier: 'cold', color: 'bg-blue-500' },
@@ -137,6 +173,14 @@ export async function Sidebar() {
     { tier: 'hot', color: 'bg-red-500' },
   ];
   const visibleTiers = storageTiers.filter(({ tier }) => storage.totals[tier] > 0);
+  const displayName = signedInAccount?.displayName || signedInAccount?.neupid || DEFAULT_ACCOUNT_LABEL;
+  const secondaryLabel = signedInAccount?.neupid || signedInAccount?.accountId || DEFAULT_ACCOUNT_SECONDARY_LABEL;
+  const avatarFallback = displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((segment) => segment[0]?.toUpperCase() || '')
+    .join('') || 'NA';
 
   return (
     <aside className="sticky top-16 h-[calc(100vh-4rem)] z-0 hidden w-64 flex-col border-r bg-white sm:flex">
@@ -197,12 +241,12 @@ export async function Sidebar() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex h-auto items-center justify-start gap-2 p-1">
               <Avatar className="h-9 w-9 border">
-                <AvatarImage src="https://picsum.photos/seed/101/40/40" alt="Avatar" data-ai-hint="person face" />
-                <AvatarFallback>AD</AvatarFallback>
+                <AvatarImage src={signedInAccount?.displayImage || undefined} alt={displayName} data-ai-hint="person face" />
+                <AvatarFallback>{avatarFallback}</AvatarFallback>
               </Avatar>
               <div className="text-left">
-                <div className="font-medium">Admin</div>
-                <div className="text-xs text-muted-foreground">admin@prodrive.io</div>
+                <div className="font-medium">{displayName}</div>
+                <div className="text-xs text-muted-foreground">{secondaryLabel}</div>
               </div>
             </Button>
           </DropdownMenuTrigger>
