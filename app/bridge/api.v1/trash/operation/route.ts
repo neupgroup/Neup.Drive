@@ -50,7 +50,7 @@ interface TrashOperationRequest {
 }
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
-const CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
+const CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_BASE_URL || process.env.CDN_HOST || 'https://neupcdn.com').replace(/\/$/, '');
 const CDN_OPERATION_BASE = getCdnOperationBase();
 
 function getCdnOperationBase() {

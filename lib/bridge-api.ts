@@ -42,7 +42,7 @@ export type BridgeOrganizeType = 'rename' | 'move' | 'delete';
 
 export const BRIDGE_PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 export const BRIDGE_UPLOAD_URL = process.env.CDN_UPLOAD_URL || 'https://neupcdn.com/upload';
-export const BRIDGE_CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
+export const BRIDGE_CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_BASE_URL || process.env.CDN_HOST || 'https://neupcdn.com').replace(/\/$/, '');
 export const BRIDGE_CDN_OPERATION_BASE = getCdnOperationBase();
 export const DEFAULT_BRIDGE_OWNER = 'demo-user-123';
 const DRIVE_LOGICAL_ROOT = 'drive';

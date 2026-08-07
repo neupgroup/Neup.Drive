@@ -64,4 +64,4 @@
 - [ ] Fix unresolved `@/core/*` and `@/logica/*` module imports blocking `npx tsc --noEmit` across `app`, `components`, and `lib`.
 - [ ] Apply the pending `filefolder` Prisma migrations to the runtime database so `stored_as` and `last_activity_on` exist without fallback query paths.
 - [ ] Restore runtime Postgres connectivity for Prisma; current `fileFolder` reads are failing with `ECONNREFUSED`.
-- [ ] Scope remaining file surfaces that still use default/demo owners to the signed-in account, including `app/webdisk/page.tsx`, `app/bridge/api.v1/activity/route.ts`, `app/bridge/api.v1/folders/create/route.ts`, and WebDisk operation routes.
+- [ ] Scope remaining file surfaces that still use default/demo owners to the signed-in account, including `app/bridge/api.v1/activity/route.ts`, `app/bridge/api.v1/folders/create/route.ts`, and WebDisk operation routes.

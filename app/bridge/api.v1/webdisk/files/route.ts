@@ -3,12 +3,13 @@ import path from 'node:path';
 import { getRequestDeviceIp } from '@/lib/bridge-api';
 import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken, parseDurationSeconds } from '@/lib/cdn-token';
 import { prisma } from '@/core/database/prisma';
+import { resolveAuthenticatedAccountId } from '@/lib/bridge-api';
 import { handleServerError } from '@/lib/error-server';
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 const CDN_BASE_URL = getCdnBaseUrl();
 const CDN_LIST_URL = process.env.CDN_LIST_URL || `${CDN_BASE_URL}/list`;
-const WEBDISK_ACCOUNT_ID = process.env.WEBDISK_ACCOUNT_ID || process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
+const DEFAULT_WEBDISK_ACCOUNT_ID = process.env.WEBDISK_ACCOUNT_ID || process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
 
 interface CdnListedFile {
     name: string;
@@ -27,11 +28,11 @@ function getCdnBaseUrl() {
         try {
             return new URL(uploadUrl).origin;
         } catch {
-            // Fall through to local default.
+            // Fall through to the production CDN default.
         }
     }
 
-    return 'http://localhost:3001';
+    return 'https://neupcdn.com';
 }
 
 function getWebdiskType(relativePath: string) {
@@ -39,9 +40,9 @@ function getWebdiskType(relativePath: string) {
     return type?.toLowerCase() === 'signed' ? 'signed' : 'assets';
 }
 
-function toAccountStoragePath(relativePath: string) {
+function toAccountStoragePath(owner: string, relativePath: string) {
     const cleanPath = relativePath.replace(/^\/+/, '');
-    return path.posix.join(WEBDISK_ACCOUNT_ID, cleanPath);
+    return path.posix.join(owner, cleanPath);
 }
 
 function stripWebdiskType(relativePath: string, folderType: string) {
@@ -52,15 +53,15 @@ function stripWebdiskType(relativePath: string, folderType: string) {
     return relativePath;
 }
 
-function fileUrl(relativePath: string, request: NextRequest) {
+function fileUrl(owner: string, relativePath: string, request: NextRequest) {
     const cleanPath = relativePath.replace(/^\/+/, '');
     const folderType = getWebdiskType(relativePath);
     const exposedPath = stripWebdiskType(relativePath, folderType);
     const encodedPath = exposedPath.split('/').filter(Boolean).map(encodeURIComponent).join('/');
-    const storagePath = toAccountStoragePath(cleanPath);
+    const storagePath = toAccountStoragePath(owner, cleanPath);
 
     if (folderType === 'assets') {
-        return `${CDN_BASE_URL}/serve/${encodeURIComponent(WEBDISK_ACCOUNT_ID)}/${encodedPath}`;
+        return `${CDN_BASE_URL}/serve/${encodeURIComponent(owner)}/${encodedPath}`;
     }
     const expiresIn = request.nextUrl.searchParams.get('expires_in') || request.nextUrl.searchParams.get('expires');
     const expiresInSeconds = parseDurationSeconds(expiresIn, {
@@ -71,8 +72,8 @@ function fileUrl(relativePath: string, request: NextRequest) {
 
     const signedToken = createSignedCdnToken(createExpiringOperationPayload({
         action: 'view',
-        account_id: WEBDISK_ACCOUNT_ID,
-        account_folder: WEBDISK_ACCOUNT_ID,
+        account_id: owner,
+        account_folder: owner,
         folder_type: folderType,
         path: storagePath,
         method: 'GET',
@@ -80,15 +81,15 @@ function fileUrl(relativePath: string, request: NextRequest) {
         user_agent: request.headers.get('user-agent') || '',
     }, expiresInSeconds), PRIVATE_KEY);
 
-    return `${CDN_BASE_URL}/serve/${encodeURIComponent(WEBDISK_ACCOUNT_ID)}/signed/${encodedPath}?token=${encodeURIComponent(encodeSignedCdnToken(signedToken))}`;
+    return `${CDN_BASE_URL}/serve/${encodeURIComponent(owner)}/signed/${encodedPath}?token=${encodeURIComponent(encodeSignedCdnToken(signedToken))}`;
 }
 
-async function listCdnFiles() {
-    const listPath = path.posix.join(WEBDISK_ACCOUNT_ID);
+async function listCdnFiles(owner: string) {
+    const listPath = path.posix.join(owner);
     const signedToken = createSignedCdnToken(createExpiringOperationPayload({
         action: 'list',
-        account_id: WEBDISK_ACCOUNT_ID,
-        account_folder: WEBDISK_ACCOUNT_ID,
+        account_id: owner,
+        account_folder: owner,
         folder_type: 'webdisk',
         path: listPath,
         method: 'GET',
@@ -122,7 +123,8 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Server configuration error: Missing private key' }, { status: 500 });
         }
 
-        const files = await listCdnFiles();
+        const owner = await resolveAuthenticatedAccountId(request.cookies.get('auth_account')?.value) || DEFAULT_WEBDISK_ACCOUNT_ID;
+        const files = await listCdnFiles(owner);
         const visibleFiles = files.filter((file) => {
             const cleanPath = file.path.replace(/^\/+/, '');
             return (
@@ -132,12 +134,12 @@ export async function GET(request: NextRequest) {
                 !cleanPath.startsWith('.logs/')
             );
         });
-        const storagePaths = visibleFiles.map((file) => toAccountStoragePath(file.path));
+        const storagePaths = visibleFiles.map((file) => toAccountStoragePath(owner, file.path));
         const matchingFilefolders = storagePaths.length === 0
             ? []
             : await prisma.fileFolder.findMany({
                 where: {
-                    owner: WEBDISK_ACCOUNT_ID,
+                    owner,
                     path: { in: storagePaths },
                 },
                 select: {
@@ -149,19 +151,19 @@ export async function GET(request: NextRequest) {
             matchingFilefolders.map((filefolder) => [filefolder.path, filefolder.id]),
         );
         const mappedFiles = visibleFiles.map((file) => ({
-            id: filefolderIdByPath.get(toAccountStoragePath(file.path)) || toAccountStoragePath(file.path),
+            id: filefolderIdByPath.get(toAccountStoragePath(owner, file.path)) || toAccountStoragePath(owner, file.path),
             filename: file.name,
-            path: fileUrl(file.path, request),
-            cdn_path: toAccountStoragePath(file.path),
-            filefolder_id: filefolderIdByPath.get(toAccountStoragePath(file.path)) || null,
+            path: fileUrl(owner, file.path, request),
+            cdn_path: toAccountStoragePath(owner, file.path),
+            filefolder_id: filefolderIdByPath.get(toAccountStoragePath(owner, file.path)) || null,
             mimeType: file.mime_type || 'application/octet-stream',
-            uploaded_by: WEBDISK_ACCOUNT_ID,
+            uploaded_by: owner,
             uploaded_on: file.modified_time || new Date(0).toISOString(),
             size: Number(file.size || 0),
             type: 'file',
             details: {
                 source: 'cdn-api',
-                account_id: WEBDISK_ACCOUNT_ID,
+                account_id: owner,
             },
         }));
 

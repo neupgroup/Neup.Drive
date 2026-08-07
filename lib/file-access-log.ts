@@ -26,7 +26,7 @@ This module reads the current log file from the CDN, appends a new JSON line, an
 ::end
 */
 
-const CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_BASE_URL || process.env.CDN_HOST || 'http://localhost:3001').replace(/\/$/, '');
+const CDN_BASE_URL = (process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_BASE_URL || process.env.CDN_HOST || 'https://neupcdn.com').replace(/\/$/, '');
 const CDN_UPLOAD_URL = process.env.CDN_UPLOAD_URL || process.env.NEXT_PUBLIC_CDN_UPLOAD_URL || `${CDN_BASE_URL}/upload`;
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 const LOG_FOLDER = '.logs';

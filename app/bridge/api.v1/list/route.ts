@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
     BRIDGE_PRIVATE_KEY,
     createBridgeFileUrl,
+    getAuthenticatedBridgeOwner,
     getBridgeOwner,
     getDetails,
     getFolderType,
@@ -17,7 +18,7 @@ import { isDirectoryMimeType, webdiskStoredAs } from '@/lib/filefolder';
 
 export async function GET(request: NextRequest) {
     try {
-        const owner = getBridgeOwner(request);
+        const owner = await getAuthenticatedBridgeOwner(request) || getBridgeOwner(request);
         const folderType = normalizeFolderType(getParam(request, 'folder_type') || getParam(request, 'type'));
         if (folderType !== 'assets' && !BRIDGE_PRIVATE_KEY) {
             return NextResponse.json({ error: 'Server configuration error: Missing private key' }, { status: 500 });
