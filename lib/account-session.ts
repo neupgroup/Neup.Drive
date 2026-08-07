@@ -29,7 +29,7 @@ page personalization.
 */
 import { cookies } from 'next/headers';
 
-import { prisma } from '@/core/lib/db';
+import { prisma } from '@/core/database/prisma';
 
 function base64UrlDecode(input: string) {
   let normalized = input.replace(/-/g, '+').replace(/_/g, '/');

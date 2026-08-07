@@ -28,8 +28,8 @@ file data resolve independently.
 */
 import { Suspense } from 'react';
 import { RecentPageManager } from '@/components/prodrive/recent-page-manager';
-import { getSignedInAccountIdentity } from '@/core/lib/account-session';
-import { getRecentDriveFiles } from '@/core/lib/drive-files';
+import { getSignedInAccountIdentity } from '@/lib/account-session';
+import { getRecentDriveFiles } from '@/lib/drive-files';
 import { Skeleton } from '@/components/ui/skeleton';
 
 async function getHomepageDisplayName() {

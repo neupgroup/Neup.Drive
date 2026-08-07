@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { useToast } from '@/core/hooks/use-toast';
-import { getUploads } from '@/core/lib/upload-persistence';
+import { getUploads } from '@/lib/upload-persistence';
 import { ToastAction } from '@/components/ui/toast';
 
 const ACTIVE_UPLOAD_STATUSES = new Set([

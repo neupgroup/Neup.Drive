@@ -16,7 +16,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Card } from '@/components/ui/card';
-import { storageTierDotClass, storageTierLabel } from '@/core/lib/storage-tiers';
+import { storageTierDotClass, storageTierLabel } from '@/lib/storage-tiers';
 
 export function FileListView({
   data,

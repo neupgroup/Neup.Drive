@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { AlertCircle, BarChart3, Globe, HardDrive, Home, Share, Trash2, Users } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { cn } from '@/core/lib/utils';
+import { cn } from '@/core/utils';
 
 const primaryNavLinks = [
   { href: '/', icon: Home, label: 'Home' },

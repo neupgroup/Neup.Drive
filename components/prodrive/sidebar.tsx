@@ -16,14 +16,14 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { NavLinks } from '@/components/prodrive/nav-links';
-import { prisma } from '@/core/lib/db';
-import { isActiveFileDetails } from '@/core/lib/bridge-api';
+import { prisma } from '@/core/database/prisma';
+import { isActiveFileDetails } from '@/lib/bridge-api';
 import {
   formatStorageBytes,
   STORAGE_LIMIT_BYTES,
   storageTierFromStoredAs,
   type StorageTier,
-} from '@/core/lib/storage-tiers';
+} from '@/lib/storage-tiers';
 
 const STORAGE_OWNER = process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
 

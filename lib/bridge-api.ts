@@ -8,13 +8,13 @@ import {
     createSignedCdnToken,
     encodeSignedCdnToken,
     parseDurationSeconds,
-} from '@/core/lib/cdn-token';
-import { prisma } from '@/core/lib/db';
-import { appendBridgeFileAccessLog } from '@/core/lib/file-access-log';
-import { createFileFolderLog, recordFileFolderUpload, webdiskStoredAs } from '@/core/lib/filefolder';
-import { generateNonce } from '@/core/lib/upload-client';
-import type { UploadInitResponse, UploadSignaturePayload } from '@/core/lib/upload-types';
-import { signCdnPayloadBase64 } from '@/core/lib/cdn-token';
+} from '@/lib/cdn-token';
+import { prisma } from '@/core/database/prisma';
+import { appendBridgeFileAccessLog } from '@/lib/file-access-log';
+import { createFileFolderLog, recordFileFolderUpload, webdiskStoredAs } from '@/lib/filefolder';
+import { generateNonce } from '@/lib/upload-client';
+import type { UploadInitResponse, UploadSignaturePayload } from '@/lib/upload-types';
+import { signCdnPayloadBase64 } from '@/lib/cdn-token';
 
 /*
 ::neup.documentation::bridge-api-file-operations

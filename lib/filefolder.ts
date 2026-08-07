@@ -14,7 +14,7 @@ audit logs, and last-activity counters used by Drive and WebDisk flows.
 */
 import path from 'node:path';
 import type { Prisma } from '@prisma/client';
-import { prisma } from '@/core/lib/db';
+import { prisma } from '@/core/database/prisma';
 
 export type FileFolderMode = 'drive' | 'webdisk';
 export type FileFolderStoredAs = 'drive' | 'assets' | 'signed';

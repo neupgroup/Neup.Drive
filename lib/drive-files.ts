@@ -31,12 +31,12 @@ maps them into the `FileOrFolder` UI shape used by the drive pages.
 ::end
 */
 import type { Prisma } from '@prisma/client';
-import { prisma } from '@/core/lib/db';
-import { isActiveFileDetails, normalizeInternalPath } from '@/core/lib/bridge-api';
-import { isDirectoryDetails } from '@/core/lib/filefolder';
-import { PlaceHolderImages } from '@/core/lib/placeholder-images';
-import { storageTierFromStoredAs } from '@/core/lib/storage-tiers';
-import type { FileOrFolder } from '@/core/lib/types';
+import { prisma } from '@/core/database/prisma';
+import { isActiveFileDetails, normalizeInternalPath } from '@/lib/bridge-api';
+import { isDirectoryDetails } from '@/lib/filefolder';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { storageTierFromStoredAs } from '@/lib/storage-tiers';
+import type { FileOrFolder } from '@/lib/types';
 
 export const DEFAULT_DRIVE_OWNER = process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
 export const DEFAULT_WEBDISK_OWNER = process.env.WEBDISK_ACCOUNT_ID || process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';

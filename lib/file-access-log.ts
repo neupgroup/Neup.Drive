@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 
-import { generateNonce } from '@/core/lib/upload-client';
-import { signCdnPayloadBase64 } from '@/core/lib/cdn-token';
-import type { UploadSignaturePayload } from '@/core/lib/upload-types';
+import { generateNonce } from '@/lib/upload-client';
+import { signCdnPayloadBase64 } from '@/lib/cdn-token';
+import type { UploadSignaturePayload } from '@/lib/upload-types';
 
 /*
 ::neup.documentation::bridge-file-access-log
