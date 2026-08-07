@@ -3,7 +3,7 @@ import path from 'node:path';
 import { getRequestDeviceIp } from '@/lib/bridge-api';
 import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken, parseDurationSeconds } from '@/lib/cdn-token';
 import { prisma } from '@/core/database/prisma';
-import { resolveAuthenticatedAccountId } from '@/lib/bridge-api';
+import { resolveAuthenticatedAccountId, resolveAuthenticatedAccountProfile } from '@/lib/bridge-api';
 import { handleServerError } from '@/lib/error-server';
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
@@ -123,7 +123,10 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Server configuration error: Missing private key' }, { status: 500 });
         }
 
-        const owner = await resolveAuthenticatedAccountId(request.cookies.get('auth_account')?.value) || DEFAULT_WEBDISK_ACCOUNT_ID;
+        const authAccountToken = request.cookies.get('auth_account')?.value;
+        const accountProfile = await resolveAuthenticatedAccountProfile(authAccountToken);
+        const owner = accountProfile?.accountId || await resolveAuthenticatedAccountId(authAccountToken) || DEFAULT_WEBDISK_ACCOUNT_ID;
+        const uploaderName = accountProfile?.displayName || accountProfile?.neupid || owner;
         const files = await listCdnFiles(owner);
         const visibleFiles = files.filter((file) => {
             const cleanPath = file.path.replace(/^\/+/, '');
@@ -158,6 +161,7 @@ export async function GET(request: NextRequest) {
             filefolder_id: filefolderIdByPath.get(toAccountStoragePath(owner, file.path)) || null,
             mimeType: file.mime_type || 'application/octet-stream',
             uploaded_by: owner,
+            uploaded_by_name: uploaderName,
             uploaded_on: file.modified_time || new Date(0).toISOString(),
             size: Number(file.size || 0),
             type: 'file',

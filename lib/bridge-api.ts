@@ -72,6 +72,32 @@ export async function resolveAuthenticatedAccountId(authAccountToken?: string | 
     return response.body.accountId.trim() || null;
 }
 
+export type AuthenticatedAccountProfile = {
+    accountId: string;
+    displayName: string | null;
+    neupid: string | null;
+};
+
+export async function resolveAuthenticatedAccountProfile(authAccountToken?: string | null): Promise<AuthenticatedAccountProfile | null> {
+    const normalizedToken = authAccountToken?.trim();
+    if (!normalizedToken) return null;
+
+    const response = await account.lookup.current.get(normalizedToken, [
+        'accountId',
+        'displayName',
+        'neupid',
+    ]);
+    if (!response.ok || !response.body.success || !response.body.accountId) {
+        return null;
+    }
+
+    return {
+        accountId: response.body.accountId.trim(),
+        displayName: response.body.displayName?.trim() || null,
+        neupid: response.body.neupid?.trim() || null,
+    };
+}
+
 export async function getAuthenticatedBridgeOwner(request: NextRequest): Promise<string | null> {
     return resolveAuthenticatedAccountId(request.cookies.get('auth_account')?.value);
 }

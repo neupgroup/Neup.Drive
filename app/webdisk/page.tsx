@@ -22,6 +22,7 @@ interface WebDiskRecord {
   cdn_path?: string;
   mimeType: string;
   uploaded_by: string;
+  uploaded_by_name?: string;
   uploaded_on: string;
   size?: number;
   storageTier?: StorageTier;
@@ -419,7 +420,7 @@ function WebdiskContent() {
       size: formatBytes(file.size),
       storageTier: file.storageTier || storageTierFromWebdiskType(selectedType),
       lastModified: formatLastModified(file.uploaded_on),
-      members: [{ id: file.uploaded_by, name: file.uploaded_by }],
+      members: [{ id: file.uploaded_by, name: file.uploaded_by_name || file.uploaded_by }],
     }));
 
     const systemSignedItem = folderItems.find((item) => item.locationType === 'signed' && !item.navigationPath);

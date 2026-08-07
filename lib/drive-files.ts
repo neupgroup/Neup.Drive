@@ -32,10 +32,11 @@ maps them into the `FileOrFolder` UI shape used by the drive pages.
 */
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/core/database/prisma';
-import { isActiveFileDetails, normalizeInternalPath } from '@/lib/bridge-api';
+import { isActiveFileDetails, normalizeInternalPath, resolveAuthenticatedAccountProfile } from '@/lib/bridge-api';
 import { isDirectoryDetails } from '@/lib/filefolder';
 import { storageTierFromStoredAs } from '@/lib/storage-tiers';
 import type { FileOrFolder } from '@/lib/types';
+import { getCookie } from '@/core/helpers/cookie';
 
 export const DEFAULT_DRIVE_OWNER = process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
 export const DEFAULT_WEBDISK_OWNER = process.env.WEBDISK_ACCOUNT_ID || process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
@@ -181,6 +182,13 @@ function locationLabel(locationType: FileOrFolder['locationType']) {
   return 'Drive';
 }
 
+async function getSignedInOwnerLabel(owner: string) {
+  const authAccountToken = await getCookie('auth_account');
+  const profile = await resolveAuthenticatedAccountProfile(authAccountToken);
+  if (!profile || profile.accountId !== owner) return null;
+  return profile.displayName || profile.neupid || profile.accountId;
+}
+
 /*
 ::neup.documentation::recent-drive-files-helper
 ::function getRecentDriveFiles(options)
@@ -222,6 +230,13 @@ export async function getRecentDriveFiles({
   webdiskOwner?: string;
   take?: number;
 } = {}): Promise<FileOrFolder[]> {
+  const ownerLabels = new Map<string, string>();
+  const primaryOwnerLabel = await getSignedInOwnerLabel(owner);
+  if (primaryOwnerLabel) ownerLabels.set(owner, primaryOwnerLabel);
+  if (webdiskOwner !== owner) {
+    const webdiskOwnerLabel = await getSignedInOwnerLabel(webdiskOwner);
+    if (webdiskOwnerLabel) ownerLabels.set(webdiskOwner, webdiskOwnerLabel);
+  }
   const owners = Array.from(new Set([owner, webdiskOwner]));
   let rows: Array<{
     id: string;
@@ -282,7 +297,7 @@ export async function getRecentDriveFiles({
     .filter((row) => isActiveFileDetails(row.details))
     .map((row) => {
       const details = getDetails(row.details);
-      const ownerName = typeof details.uploaded_by === 'string' ? details.uploaded_by : row.owner;
+      const ownerName = ownerLabels.get(row.owner) || (typeof details.uploaded_by === 'string' ? details.uploaded_by : row.owner);
       const locationType = getLocationTypeFromRow(row);
       const relativePath = getRelativePathForStoredAs(row.path, row.owner, row.stored_as);
       const activityAt = row.lastActivityOn || row.updated_on;
@@ -316,6 +331,7 @@ export async function getDriveFiles({
   includeFolders?: boolean;
   take?: number;
 } = {}): Promise<FileOrFolder[]> {
+  const signedInOwnerLabel = await getSignedInOwnerLabel(owner);
   const trimmedQuery = query?.trim();
   const currentPath = normalizeInternalPath(internalPath);
   let rows: Array<{
@@ -407,7 +423,7 @@ export async function getDriveFiles({
     }
 
     const details = getDetails(row.details);
-    const ownerName = typeof details.uploaded_by === 'string' ? details.uploaded_by : row.owner;
+    const ownerName = signedInOwnerLabel || (typeof details.uploaded_by === 'string' ? details.uploaded_by : row.owner);
 
     files.push({
       id: row.id,
