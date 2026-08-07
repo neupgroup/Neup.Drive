@@ -27,15 +27,79 @@ import {
 
 const STORAGE_OWNER = process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
 
+function isFileFolderSchemaDriftError(error: unknown) {
+  return (
+    error instanceof Error &&
+    (
+      ('code' in error && error.code === 'P2022') ||
+      error.message.includes('The column') ||
+      error.message.includes('stored_as')
+    )
+  );
+}
+
+function isFileFolderUnavailableError(error: unknown) {
+  return (
+    error instanceof Error &&
+    (
+      ('code' in error && typeof error.code === 'string' && (
+        error.code === 'P2022' ||
+        error.code === 'ECONNREFUSED' ||
+        error.code === 'P1001'
+      )) ||
+      error.message.includes('The column') ||
+      error.message.includes('stored_as') ||
+      error.message.includes('Can\'t reach database server') ||
+      error.message.includes('ECONNREFUSED')
+    )
+  );
+}
+
 async function getStorageUsage() {
-  const rows = await prisma.fileFolder.findMany({
-    where: { owner: STORAGE_OWNER },
-    select: {
-      size: true,
-      stored_as: true,
-      details: true,
-    },
-  });
+  let rows: Array<{
+    size: bigint;
+    details: unknown;
+    stored_as: string;
+  }>;
+
+  try {
+    rows = await prisma.fileFolder.findMany({
+      where: { owner: STORAGE_OWNER },
+      select: {
+        size: true,
+        stored_as: true,
+        details: true,
+      },
+    });
+  } catch (error) {
+    if (!isFileFolderUnavailableError(error)) throw error;
+
+    let fallbackRows: Array<{
+      size: bigint;
+      details: unknown;
+    }>;
+    try {
+      fallbackRows = await prisma.fileFolder.findMany({
+        where: { owner: STORAGE_OWNER },
+        select: {
+          size: true,
+          details: true,
+        },
+      });
+    } catch (fallbackError) {
+      if (!isFileFolderUnavailableError(fallbackError)) throw fallbackError;
+      return {
+        totals: { cold: 0, warm: 0, hot: 0 },
+        used: 0,
+        empty: STORAGE_LIMIT_BYTES,
+      };
+    }
+
+    rows = fallbackRows.map((row) => ({
+      ...row,
+      stored_as: 'drive',
+    }));
+  }
 
   const totals: Record<StorageTier, number> = {
     cold: 0,

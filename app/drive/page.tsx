@@ -26,8 +26,8 @@ client manager only receives safe internal drive paths.
 ::end
 */
 import { DrivePageManager } from '@/components/prodrive/drive-page-manager';
-import { normalizeInternalPath } from '@/core/lib/bridge-api';
-import { getDriveFiles } from '@/core/lib/drive-files';
+import { normalizeInternalPath } from '@/lib/bridge-api';
+import { getDriveFiles } from '@/lib/drive-files';
 
 function getCurrentPath(value: string | string[] | undefined) {
   const rawValue = Array.isArray(value) ? value[0] : value;

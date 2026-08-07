@@ -43,6 +43,36 @@ export const DEFAULT_WEBDISK_OWNER = process.env.WEBDISK_ACCOUNT_ID || process.e
 
 const MEMBER_AVATAR = PlaceHolderImages.find((image) => image.id === 'avatar1') || PlaceHolderImages[0];
 
+function isFileFolderSchemaDriftError(error: unknown) {
+  return (
+    error instanceof Error &&
+    (
+      ('code' in error && error.code === 'P2022') ||
+      error.message.includes('The column') ||
+      error.message.includes('stored_as') ||
+      error.message.includes('last_activity_on')
+    )
+  );
+}
+
+function isFileFolderUnavailableError(error: unknown) {
+  return (
+    error instanceof Error &&
+    (
+      ('code' in error && typeof error.code === 'string' && (
+        error.code === 'P2022' ||
+        error.code === 'ECONNREFUSED' ||
+        error.code === 'P1001'
+      )) ||
+      error.message.includes('The column') ||
+      error.message.includes('stored_as') ||
+      error.message.includes('last_activity_on') ||
+      error.message.includes('Can\'t reach database server') ||
+      error.message.includes('ECONNREFUSED')
+    )
+  );
+}
+
 function getDetails(details: Prisma.JsonValue): Prisma.JsonObject {
   return details && typeof details === 'object' && !Array.isArray(details) ? details : {};
 }
@@ -195,21 +225,61 @@ export async function getRecentDriveFiles({
   webdiskOwner?: string;
   take?: number;
 } = {}): Promise<FileOrFolder[]> {
-  const rows = await prisma.fileFolder.findMany({
-    where: {
-      owner: {
-        in: Array.from(new Set([owner, webdiskOwner])),
+  const owners = Array.from(new Set([owner, webdiskOwner]));
+  let rows: Array<{
+    id: string;
+    name: string;
+    type: string;
+    owner: string;
+    path: string;
+    size: bigint;
+    details: Prisma.JsonValue;
+    updated_on: Date;
+    lastActivityOn: Date | null;
+    stored_as: string;
+  }>;
+
+  try {
+    rows = await prisma.fileFolder.findMany({
+      where: {
+        owner: {
+          in: owners,
+        },
+        stored_as: {
+          in: ['drive', 'assets', 'signed'],
+        },
       },
-      stored_as: {
-        in: ['drive', 'assets', 'signed'],
-      },
-    },
-    orderBy: [
-      { lastActivityOn: 'desc' },
-      { updated_on: 'desc' },
-    ],
-    take,
-  });
+      orderBy: [
+        { lastActivityOn: 'desc' },
+        { updated_on: 'desc' },
+      ],
+      take,
+    });
+  } catch (error) {
+    if (!isFileFolderUnavailableError(error)) throw error;
+
+    let fallbackRows: Awaited<ReturnType<typeof prisma.fileFolder.findMany>>;
+    try {
+      fallbackRows = await prisma.fileFolder.findMany({
+        where: {
+          owner: {
+            in: owners,
+          },
+        },
+        orderBy: { updated_on: 'desc' },
+        take,
+      });
+    } catch (fallbackError) {
+      if (!isFileFolderUnavailableError(fallbackError)) throw fallbackError;
+      return [];
+    }
+
+    rows = fallbackRows.map((row) => ({
+      ...row,
+      lastActivityOn: null,
+      stored_as: 'drive',
+    }));
+  }
 
   return rows
     .filter((row) => isActiveFileDetails(row.details))
@@ -253,23 +323,65 @@ export async function getDriveFiles({
 } = {}): Promise<FileOrFolder[]> {
   const trimmedQuery = query?.trim();
   const currentPath = normalizeInternalPath(internalPath);
+  let rows: Array<{
+    id: string;
+    name: string;
+    type: string;
+    owner: string;
+    path: string;
+    size: bigint;
+    details: Prisma.JsonValue;
+    updated_on: Date;
+    stored_as: string;
+  }>;
 
-  const rows = await prisma.fileFolder.findMany({
-    where: {
-      owner,
+  try {
+    rows = await prisma.fileFolder.findMany({
+      where: {
+        owner,
+        stored_as: 'drive',
+        ...(trimmedQuery
+          ? {
+              name: {
+                contains: trimmedQuery,
+                mode: 'insensitive',
+              },
+            }
+          : {}),
+      },
+      orderBy: { updated_on: 'desc' },
+      take,
+    });
+  } catch (error) {
+    if (!isFileFolderUnavailableError(error)) throw error;
+
+    let fallbackRows: Awaited<ReturnType<typeof prisma.fileFolder.findMany>>;
+    try {
+      fallbackRows = await prisma.fileFolder.findMany({
+        where: {
+          owner,
+          ...(trimmedQuery
+            ? {
+                name: {
+                  contains: trimmedQuery,
+                  mode: 'insensitive',
+                },
+              }
+            : {}),
+        },
+        orderBy: { updated_on: 'desc' },
+        take,
+      });
+    } catch (fallbackError) {
+      if (!isFileFolderUnavailableError(fallbackError)) throw fallbackError;
+      return [];
+    }
+
+    rows = fallbackRows.map((row) => ({
+      ...row,
       stored_as: 'drive',
-      ...(trimmedQuery
-        ? {
-            name: {
-              contains: trimmedQuery,
-              mode: 'insensitive',
-            },
-          }
-        : {}),
-    },
-    orderBy: { updated_on: 'desc' },
-    take,
-  });
+    }));
+  }
 
   const activeRows = rows.filter((row) => isActiveFileDetails(row.details));
   const folders = new Map<string, number>();
