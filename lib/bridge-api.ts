@@ -15,6 +15,7 @@ import { createFileFolderLog, recordFileFolderUpload, webdiskStoredAs } from '@/
 import { generateNonce } from '@/lib/upload-client';
 import type { UploadInitResponse, UploadSignaturePayload } from '@/lib/upload-types';
 import { signCdnPayloadBase64 } from '@/lib/cdn-token';
+import { account } from '@/logica/account';
 
 /*
 ::neup.documentation::bridge-api-file-operations
@@ -57,6 +58,18 @@ export function getBridgeOwner(request: NextRequest) {
         request.nextUrl.searchParams.get('owner') ||
         DEFAULT_BRIDGE_OWNER
     ).trim();
+}
+
+export async function getAuthenticatedBridgeOwner(request: NextRequest): Promise<string | null> {
+    const authAccountToken = request.cookies.get('auth_account')?.value?.trim();
+    if (!authAccountToken) return null;
+
+    const response = await account.lookup.current.get(authAccountToken, ['accountId']);
+    if (!response.ok || !response.body.success || !response.body.accountId) {
+        return null;
+    }
+
+    return response.body.accountId.trim() || null;
 }
 
 export function getParam(request: NextRequest, name: string) {

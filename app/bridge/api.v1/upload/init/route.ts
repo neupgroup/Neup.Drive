@@ -3,9 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
     BRIDGE_PRIVATE_KEY,
     createBridgeUploadInit,
-    DEFAULT_BRIDGE_OWNER,
     getDuplicateWebdiskFilename,
-    getBridgeOwner,
+    getAuthenticatedBridgeOwner,
     getParam,
     isReservedWebdiskRootFolder,
     normalizeFolderType,
@@ -23,18 +22,16 @@ function getBodyNumber(body: Partial<UploadInitRequest> & Record<string, unknown
     return typeof value === 'number' || typeof value === 'string' ? Number(value) : NaN;
 }
 
-function getBridgeOwnerFromBody(request: NextRequest, body: Record<string, unknown>) {
-    const bodyOwner = body.account_id || body.owner;
-    return (typeof bodyOwner === 'string' && bodyOwner.trim() ? bodyOwner.trim() : getBridgeOwner(request)) || DEFAULT_BRIDGE_OWNER;
-}
-
 export async function GET(request: NextRequest) {
     try {
         if (!BRIDGE_PRIVATE_KEY) {
             return NextResponse.json({ error: 'Server configuration error: Missing private key' }, { status: 500 });
         }
 
-        const owner = getBridgeOwner(request);
+        const owner = await getAuthenticatedBridgeOwner(request);
+        if (!owner) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
         const fileId = getParam(request, 'file_id') || crypto.randomUUID();
         const filename = getParam(request, 'filename');
         const sizeValue = getParam(request, 'size');
@@ -107,7 +104,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
         }
 
-        const owner = getBridgeOwnerFromBody(request, body);
+        const owner = await getAuthenticatedBridgeOwner(request);
+        if (!owner) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
         const fileId = getBodyValue(body, 'file_id') || crypto.randomUUID();
         const filename = getBodyValue(body, 'filename');
         const size = getBodyNumber(body, 'size');

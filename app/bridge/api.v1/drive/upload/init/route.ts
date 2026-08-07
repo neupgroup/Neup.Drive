@@ -30,9 +30,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
     BRIDGE_PRIVATE_KEY,
     createBridgeUploadInit,
-    DEFAULT_BRIDGE_OWNER,
     getDuplicateWebdiskFilename,
-    getBridgeOwner,
+    getAuthenticatedBridgeOwner,
     isReservedWebdiskRootFolder,
     normalizeFolderType,
 } from '@/lib/bridge-api';
@@ -49,11 +48,6 @@ function getBodyNumber(body: Partial<UploadInitRequest> & Record<string, unknown
     return typeof value === 'number' || typeof value === 'string' ? Number(value) : NaN;
 }
 
-function getOwnerFromBody(request: NextRequest, body: Record<string, unknown>) {
-    const bodyOwner = body.account_id || body.owner;
-    return (typeof bodyOwner === 'string' && bodyOwner.trim() ? bodyOwner.trim() : getBridgeOwner(request)) || DEFAULT_BRIDGE_OWNER;
-}
-
 export async function POST(request: NextRequest) {
     let body: Record<string, unknown> = {};
 
@@ -68,7 +62,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
         }
 
-        const owner = getOwnerFromBody(request, body);
+        const owner = await getAuthenticatedBridgeOwner(request);
+        if (!owner) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
         const fileId = getBodyValue(body, 'file_id') || crypto.randomUUID();
         const filename = getBodyValue(body, 'filename');
         const size = getBodyNumber(body, 'size');
