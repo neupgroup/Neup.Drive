@@ -1,11 +1,10 @@
 import type { FileOrFolder, User } from './types';
-import { PlaceHolderImages } from './placeholder-images';
 
 const users: User[] = [
-  { id: 'user1', name: 'Alice', avatar: PlaceHolderImages.find(p => p.id === 'avatar1')! },
-  { id: 'user2', name: 'Bob', avatar: PlaceHolderImages.find(p => p.id === 'avatar2')! },
-  { id: 'user3', name: 'Charlie', avatar: PlaceHolderImages.find(p => p.id === 'avatar3')! },
-  { id: 'user4', name: 'Diana', avatar: PlaceHolderImages.find(p => p.id === 'avatar4')! },
+  { id: 'user1', name: 'Alice' },
+  { id: 'user2', name: 'Bob' },
+  { id: 'user3', name: 'Charlie' },
+  { id: 'user4', name: 'Diana' },
 ];
 
 export const files: FileOrFolder[] = [
@@ -26,7 +25,6 @@ export const files: FileOrFolder[] = [
     storageTier: 'cold',
     lastModified: '3 hours ago',
     members: [users[0]],
-    thumbnail: PlaceHolderImages.find(p => p.id === 'thumbnail-corporate-deck'),
   },
   {
     id: '3',
@@ -45,7 +43,6 @@ export const files: FileOrFolder[] = [
     storageTier: 'hot',
     lastModified: '5 days ago',
     members: [users[3]],
-    thumbnail: PlaceHolderImages.find(p => p.id === 'thumbnail-summer-vacation'),
   },
   {
     id: '5',
@@ -64,7 +61,6 @@ export const files: FileOrFolder[] = [
     storageTier: 'hot',
     lastModified: '20 minutes ago',
     members: [users[0], users[3]],
-    thumbnail: PlaceHolderImages.find(p => p.id === 'thumbnail-drone-footage'),
   },
   {
     id: '7',

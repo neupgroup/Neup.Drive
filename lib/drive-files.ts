@@ -34,14 +34,11 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '@/core/database/prisma';
 import { isActiveFileDetails, normalizeInternalPath } from '@/lib/bridge-api';
 import { isDirectoryDetails } from '@/lib/filefolder';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { storageTierFromStoredAs } from '@/lib/storage-tiers';
 import type { FileOrFolder } from '@/lib/types';
 
 export const DEFAULT_DRIVE_OWNER = process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
 export const DEFAULT_WEBDISK_OWNER = process.env.WEBDISK_ACCOUNT_ID || process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
-
-const MEMBER_AVATAR = PlaceHolderImages.find((image) => image.id === 'avatar1') || PlaceHolderImages[0];
 
 function isFileFolderSchemaDriftError(error: unknown) {
   return (
@@ -298,9 +295,7 @@ export async function getRecentDriveFiles({
         size: formatBytes(row.size),
         storageTier: storageTierFromStoredAs(row.stored_as),
         lastModified: formatRecentActivity(activityAt),
-        members: MEMBER_AVATAR
-          ? [{ id: row.owner, name: ownerName, avatar: MEMBER_AVATAR }]
-          : [],
+        members: [{ id: row.owner, name: ownerName }],
         description: activityMessage,
         locationType,
         navigationPath: isDirectoryDetails(row.details) ? relativePath : undefined,
@@ -421,9 +416,7 @@ export async function getDriveFiles({
       size: formatBytes(row.size),
       storageTier: storageTierFromStoredAs(row.stored_as),
       lastModified: formatLastModified(row.updated_on),
-      members: MEMBER_AVATAR
-        ? [{ id: row.owner, name: ownerName, avatar: MEMBER_AVATAR }]
-        : [],
+      members: [{ id: row.owner, name: ownerName }],
     });
   }
 

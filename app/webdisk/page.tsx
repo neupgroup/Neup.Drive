@@ -11,7 +11,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ToastAction } from '@/components/ui/toast';
 import { toast } from '@/core/hooks/use-toast';
 import { handleClientError } from '@/lib/error-client';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { storageTierFromWebdiskType, type StorageTier } from '@/lib/storage-tiers';
 import type { FileOrFolder } from '@/lib/types';
 
@@ -50,8 +49,6 @@ const WEBDISK_TYPES = [
   { id: 'signed', label: 'Signed' },
 ];
 const WEBDISK_SKELETON_ROWS = 8;
-
-const MEMBER_AVATAR = PlaceHolderImages.find((image) => image.id === 'avatar1') || PlaceHolderImages[0];
 
 function getAccountRelativePathFromStoragePath(storagePath: string) {
   const cleanPath = storagePath.replace(/^\/+/, '');
@@ -422,9 +419,7 @@ function WebdiskContent() {
       size: formatBytes(file.size),
       storageTier: file.storageTier || storageTierFromWebdiskType(selectedType),
       lastModified: formatLastModified(file.uploaded_on),
-      members: MEMBER_AVATAR
-        ? [{ id: file.uploaded_by, name: file.uploaded_by, avatar: MEMBER_AVATAR }]
-        : [],
+      members: [{ id: file.uploaded_by, name: file.uploaded_by }],
     }));
 
     const systemSignedItem = folderItems.find((item) => item.locationType === 'signed' && !item.navigationPath);

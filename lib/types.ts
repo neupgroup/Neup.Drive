@@ -11,13 +11,17 @@ Shared TypeScript shapes used by Drive and WebDisk UI components.
 
 ::end
 */
-import type { ImagePlaceholder } from './placeholder-images';
 import type { StorageTier } from './storage-tiers';
+
+export type FileImage = {
+  imageUrl: string;
+  imageHint: string;
+};
 
 export type User = {
   id: string;
   name: string;
-  avatar: ImagePlaceholder;
+  avatar?: FileImage | null;
 };
 
 export type FileOrFolder = {
@@ -29,7 +33,7 @@ export type FileOrFolder = {
   storageTier: StorageTier;
   lastModified: string;
   members: User[];
-  thumbnail?: ImagePlaceholder;
+  thumbnail?: FileImage;
   actionHref?: string;
   description?: string;
   locationType?: 'drive' | 'assets' | 'signed';
