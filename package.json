@@ -3,13 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -p 3748",
-    "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
-    "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "NODE_ENV=production next build",
-    "start": "next start -p 3748",
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "setup": "rm -rf core && rm -rf neup.core && git clone https://github.com/neupgroup/neup.core && mv neup.core core && rm -rf logica && rm -rf neup.logica && git clone https://github.com/neupgroup/neup.logica && mv neup.logica logica && cd core",
+    
+    "prebuild": "npm run setup",
+    "predev": "npm run setup",
+
+    "dev": "next dev --port 3748 --experimental-https",
+    "build": "next build",
+    "start": "next start --port 3748",
+    "lint": "eslint"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",
