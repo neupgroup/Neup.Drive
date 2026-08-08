@@ -50,6 +50,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/core/hooks/use-toast';
+import { APP_STORAGE_PATH } from '@/core/appconfig';
+import { logAuth } from '@/core/logger';
 import type { FileOrFolder } from '@/lib/types';
 
 export function TrashPageManager({
@@ -72,7 +74,11 @@ export function TrashPageManager({
     if (!item.secondaryNavigationPath || !item.locationType) return;
 
     if (item.locationType === 'drive') {
-      router.push(item.secondaryNavigationPath ? `/drive?path=${encodeURIComponent(item.secondaryNavigationPath)}` : '/drive');
+      router.push(
+        item.secondaryNavigationPath
+          ? `${APP_STORAGE_PATH}?path=${encodeURIComponent(item.secondaryNavigationPath)}`
+          : APP_STORAGE_PATH,
+      );
       return;
     }
 
@@ -98,6 +104,7 @@ export function TrashPageManager({
       });
 
       const data = await response.json().catch(() => null);
+      logAuth({ status: response.status, payload: data });
       if (!response.ok || !data?.success) {
         throw new Error(data?.error || 'Failed to restore file');
       }
@@ -131,6 +138,7 @@ export function TrashPageManager({
       });
 
       const data = await response.json().catch(() => null);
+      logAuth({ status: response.status, payload: data });
       if (!response.ok || !data?.success) {
         throw new Error(data?.error || 'Failed to delete file permanently');
       }
@@ -168,6 +176,7 @@ export function TrashPageManager({
         });
 
         const data = await response.json().catch(() => null);
+        logAuth({ status: response.status, payload: data });
         if (!response.ok || !data?.success) {
           throw new Error(data?.error || `Failed to ${action === 'restore' ? 'restore' : 'delete'} file`);
         }
@@ -217,6 +226,7 @@ export function TrashPageManager({
       });
 
       const data = await response.json().catch(() => null);
+      logAuth({ status: response.status, payload: data });
       if (!response.ok || !data?.success) {
         throw new Error(data?.error || 'Failed to restore file');
       }

@@ -1,63 +1,37 @@
 /*
-::neup.documentation::drive-root-page
+::neup.documentation::drive-route-redirect
 ::route /drive
-::title Drive Root Page
+::title Drive Route Redirect
 ::owner Neup Drive
 
 ::public
 
-Hosts the main drive browser, including folder breadcrumb navigation and
-drive-scoped uploads, after the homepage moved to the recent-items surface.
+Redirects the legacy Drive route to the canonical storage route while
+preserving the folder query string.
 
 ::returns
-::datatype Promise<JSX.Element>
+::datatype never
 
-The main drive file browser for the requested internal path.
+The response always redirects to `/storage`.
 
 ::public end
 
-::private
-
-The `path` search param is normalized on the server before loading files so the
-client manager only receives safe internal drive paths.
-
-::private end
-
 ::end
 */
-import { DrivePageManager } from '@/components/prodrive/drive-page-manager';
-import { getCookie } from '@/core/helpers/cookie';
-import { normalizeInternalPath } from '@/lib/bridge-api';
-import { resolveAuthenticatedAccountId } from '@/lib/bridge-api';
-import { getDriveFiles } from '@/lib/drive-files';
+import { redirect } from 'next/navigation';
+import { APP_STORAGE_PATH } from '@/core/appconfig';
 
-function getCurrentPath(value: string | string[] | undefined) {
-  const rawValue = Array.isArray(value) ? value[0] : value;
-
-  try {
-    return normalizeInternalPath(rawValue);
-  } catch {
-    return '';
-  }
-}
-
-async function getSignedInAccountId() {
-  return resolveAuthenticatedAccountId(await getCookie('auth_account'));
-}
-
-export default async function DriveRootPage({
+export default async function DriveRouteRedirect({
   searchParams,
 }: {
   searchParams?: Promise<{ path?: string | string[] }>;
 }) {
   const resolvedSearchParams = await searchParams;
-  const currentPath = getCurrentPath(resolvedSearchParams?.path);
-  const accountId = await getSignedInAccountId();
-  const files = accountId
-    ? await getDriveFiles({ owner: accountId, internalPath: currentPath })
-    : [];
-
-  return (
-    <DrivePageManager currentPath={currentPath} files={files} />
-  );
+  const rawPath = Array.isArray(resolvedSearchParams?.path)
+    ? resolvedSearchParams?.path[0]
+    : resolvedSearchParams?.path;
+  const target = rawPath?.trim()
+    ? `${APP_STORAGE_PATH}?path=${encodeURIComponent(rawPath)}`
+    : APP_STORAGE_PATH;
+  redirect(target);
 }

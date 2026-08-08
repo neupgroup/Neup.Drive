@@ -19,7 +19,8 @@ The response always redirects to `/`.
 ::end
 */
 import { redirect } from 'next/navigation';
+import { APP_HOME_PATH } from '@/core/appconfig';
 
 export default function RecentPage() {
-  redirect('/');
+  redirect(APP_HOME_PATH);
 }

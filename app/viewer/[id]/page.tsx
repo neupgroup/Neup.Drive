@@ -6,6 +6,7 @@ import type { Prisma } from '@/core/database/prisma';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { APP_HOME_PATH } from '@/core/appconfig';
 import { appendBridgeFileAccessLog } from '@/lib/file-access-log';
 import { prisma } from '@/core/database/prisma';
 import { createBridgeFileUrl, isActiveFileDetails } from '@/lib/bridge-api';
@@ -270,7 +271,7 @@ export default async function ViewerPage({
       <div className="flex min-w-0 flex-col gap-3">
         <div className="min-w-0 flex-1">
           <Button variant="ghost" size="sm" asChild className="-ml-2 mb-2">
-            <Link href="/">
+            <Link href={APP_HOME_PATH}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Link>

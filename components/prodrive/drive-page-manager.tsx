@@ -37,6 +37,8 @@ viewer, and keeps the upload action scoped to the current drive folder.
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { FileManager } from '@/components/prodrive/file-manager';
+import { APP_STORAGE_PATH } from '@/core/appconfig';
+import { logAuth } from '@/core/logger';
 import type { FileOrFolder } from '@/lib/types';
 
 function buildDriveUploadHref(currentPath: string) {
@@ -50,14 +52,14 @@ function buildDriveBreadcrumbs(currentPath: string) {
   const segments = currentPath.split('/').filter(Boolean);
   if (segments.length === 0) return [];
 
-  const breadcrumbs: Array<{ label: string; href?: string }> = [{ label: 'Drive', href: '/drive' }];
+  const breadcrumbs: Array<{ label: string; href?: string }> = [{ label: 'Storage', href: APP_STORAGE_PATH }];
 
   let accumulatedPath = '';
   for (const segment of segments) {
     accumulatedPath = accumulatedPath ? `${accumulatedPath}/${segment}` : segment;
     breadcrumbs.push({
       label: segment,
-      href: `/drive?path=${encodeURIComponent(accumulatedPath)}`,
+      href: `${APP_STORAGE_PATH}?path=${encodeURIComponent(accumulatedPath)}`,
     });
   }
 
@@ -119,7 +121,7 @@ export function DrivePageManager({
 
         const nextPath = item.navigationPath || (item.id.startsWith('folder:') ? item.id.slice('folder:'.length) : item.name);
         trackFolderOpen(nextPath);
-        router.push(`/drive?path=${encodeURIComponent(nextPath)}`);
+        router.push(`${APP_STORAGE_PATH}?path=${encodeURIComponent(nextPath)}`);
       }}
       onDeleteItem={async (item) => {
         const response = await fetch('/bridge/api.v1/drive/files/operation', {
@@ -131,6 +133,7 @@ export function DrivePageManager({
           }),
         });
         const data = await response.json().catch(() => null);
+        logAuth({ status: response.status, payload: data });
         if (!response.ok || !data?.success) {
           throw new Error(data?.error || 'Failed to delete file');
         }
@@ -148,6 +151,7 @@ export function DrivePageManager({
           }),
         });
         const data = await response.json().catch(() => null);
+        logAuth({ status: response.status, payload: data });
         if (!response.ok || !data?.success) {
           throw new Error(data?.error || 'Failed to create folder');
         }

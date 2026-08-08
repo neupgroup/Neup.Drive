@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { FileQuestion } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { APP_HOME_PATH, APP_SHARED_PATH } from '@/core/appconfig';
 
 export default function NotFound() {
     return (
@@ -21,12 +22,12 @@ export default function NotFound() {
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Button asChild size="lg">
-                        <Link href="/">
-                            Go to My Drive
+                        <Link href={APP_HOME_PATH}>
+                            Go to Home
                         </Link>
                     </Button>
                     <Button asChild variant="outline" size="lg">
-                        <Link href="/shared">
+                        <Link href={APP_SHARED_PATH}>
                             View Shared Files
                         </Link>
                     </Button>

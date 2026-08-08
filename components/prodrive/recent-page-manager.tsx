@@ -40,6 +40,8 @@ import { useRouter } from 'next/navigation';
 import { FileManager } from '@/components/prodrive/file-manager';
 import { toast } from '@/core/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
+import { APP_STORAGE_PATH } from '@/core/appconfig';
+import { logAuth } from '@/core/logger';
 import type { FileOrFolder } from '@/lib/types';
 
 type SortMode = 'recent-desc' | 'recent-asc' | 'name-asc' | 'name-desc';
@@ -119,6 +121,7 @@ export function RecentPageManager({
       body: JSON.stringify(body),
     });
     const data = await response.json().catch(() => null);
+    logAuth({ status: response.status, payload: data });
     if (!response.ok || !data?.success) {
       throw new Error(data?.error || 'Failed to update item');
     }
@@ -183,7 +186,7 @@ export function RecentPageManager({
           trackFolderOpen(item);
 
           if (item.locationType === 'drive') {
-            router.push(`/drive?path=${encodeURIComponent(item.navigationPath)}`);
+            router.push(`${APP_STORAGE_PATH}?path=${encodeURIComponent(item.navigationPath)}`);
             return;
           }
 
@@ -214,7 +217,7 @@ export function RecentPageManager({
                   if (!item.navigationPath || !item.locationType) return;
                   trackFolderOpen(item);
                   if (item.locationType === 'drive') {
-                    router.push(`/drive?path=${encodeURIComponent(item.navigationPath)}`);
+                    router.push(`${APP_STORAGE_PATH}?path=${encodeURIComponent(item.navigationPath)}`);
                     return;
                   }
                   const params = new URLSearchParams();
