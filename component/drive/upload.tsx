@@ -24,12 +24,17 @@ external apps do not depend on `@/components`.
 
 import * as React from 'react';
 
-import { hashFile } from '@/lib/blake3';
-import { uploadFileChunks } from '@/lib/chunked-upload';
-import { deleteUpload, getUploads, saveUpload, type UploadQueueItem } from '@/lib/upload-persistence';
-import { logUploadTrace } from '@/lib/upload-trace';
-import { drive } from '@/logica/drive';
-import type { UploadInitRequest, UploadInitResponse } from '@/lib/upload-types';
+import {
+  deleteUpload,
+  getUploads,
+  hashFile,
+  logUploadTrace,
+  saveUpload,
+  uploadFileChunks,
+  type UploadInitRequest,
+  type UploadInitResponse,
+  type UploadQueueItem,
+} from './upload-runtime';
 
 type FileState = UploadQueueItem['status'];
 type WebDiskType = 'assets' | 'signed';
@@ -163,7 +168,7 @@ function resolveUploadConfig(
     };
   }
 
-  const basePath = (apiBasePath || drive.getBasepath()).replace(/\/$/, '');
+  const basePath = (apiBasePath || '').replace(/\/$/, '');
   const params = new URLSearchParams();
 
   if (destination?.kind === 'webdisk') {
