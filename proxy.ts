@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { buildPublicAppUrl } from '@/core/helpers/link/url';
+import { account } from '@/logica/account';
 
 /**
  * proxy.ts — Next.js Edge Middleware
@@ -27,91 +28,17 @@ type JwtPayload = {
   guest?: number;
 };
 
-// ---------------------------------------------------------------------------
-// Web Crypto key import — Edge runtime compatible
-// ---------------------------------------------------------------------------
-
-let _cachedKey: CryptoKey | null | undefined = undefined;
-
-async function getPublicKey(): Promise<CryptoKey | null> {
-  if (_cachedKey !== undefined) return _cachedKey;
-
-  const pem = process.env.NEUP_AUTH_PUBLIC_KEY;
-  if (!pem) {
-    _cachedKey = null;
-    return null;
-  }
-
-  try {
-    const pemBody = pem
-      .replace(/-----BEGIN PUBLIC KEY-----/g, '')
-      .replace(/-----END PUBLIC KEY-----/g, '')
-      .replace(/\\n/g, '')
-      .replace(/\s/g, '');
-
-    const keyBuffer = Uint8Array.from(atob(pemBody), c => c.charCodeAt(0));
-
-    _cachedKey = await crypto.subtle.importKey(
-      'spki',
-      keyBuffer,
-      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-      false,
-      ['verify']
-    );
-    return _cachedKey;
-  } catch {
-    _cachedKey = null;
-    return null;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// JWT verification
-// ---------------------------------------------------------------------------
-
-function b64urlDecode(str: string): string {
-  const s = str.replace(/-/g, '+').replace(/_/g, '/');
-  const pad = s.length % 4;
-  return atob(pad ? s + '='.repeat(4 - pad) : s);
-}
-
 async function verifyJwt(token: string): Promise<JwtPayload | null> {
-  const parts = token.split('.');
-  if (parts.length !== 3) return null;
+  const verification = await account.auth.verify(token);
+  if (!verification.valid) return null;
 
-  const [header, body, sig] = parts;
-
-  // Dev fallback: unsigned token
-  if (header === 'unsigned' && sig === 'nosig') {
-    try { return JSON.parse(b64urlDecode(body)); } catch { return null; }
-  }
-
-  const publicKey = await getPublicKey();
-
-  // No public key → cannot verify → treat as unauthenticated
-  if (!publicKey) return null;
-
-  try {
-    const signingInput = `${header}.${body}`;
-    const sigPadded = sig.replace(/-/g, '+').replace(/_/g, '/');
-    const pad = sigPadded.length % 4;
-    const sigBuffer = Uint8Array.from(
-      atob(pad ? sigPadded + '='.repeat(4 - pad) : sigPadded),
-      c => c.charCodeAt(0)
-    );
-
-    const valid = await crypto.subtle.verify(
-      'RSASSA-PKCS1-v1_5',
-      publicKey,
-      sigBuffer,
-      new TextEncoder().encode(signingInput)
-    );
-
-    if (!valid) return null;
-    return JSON.parse(b64urlDecode(body));
-  } catch {
-    return null;
-  }
+  return {
+    aid: typeof verification.payload.aid === 'string' ? verification.payload.aid : undefined,
+    sid: typeof verification.payload.sid === 'string' ? verification.payload.sid : undefined,
+    skey: typeof verification.payload.skey === 'string' ? verification.payload.skey : undefined,
+    nid: typeof verification.payload.nid === 'string' ? verification.payload.nid : undefined,
+    guest: verification.payload.guest === true ? 1 : verification.payload.guest === false ? 0 : verification.payload.guest,
+  };
 }
 
 // ---------------------------------------------------------------------------
