@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@/prisma/client';
 
 import { prisma } from '@/core/database/prisma';
 import { handleServerError } from '@/lib/error-server';
