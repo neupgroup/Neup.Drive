@@ -21,5 +21,5 @@ import { redirect } from 'next/navigation';
 import { PRODRIVE_HOME_PATH } from '@/components/prodrive/routes';
 
 export default function RootPage() {
-  redirect(PRODRIVE_HOME_PATH);
+  redirect("/home");
 }
