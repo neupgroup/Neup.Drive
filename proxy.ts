@@ -10,11 +10,9 @@ import { buildPublicAppUrl } from '@/core/helpers/link/url';
  * Rules:
  *   1. /bridge/*       → always pass through
  *   2. Static/_next    → always pass through
- *   3. /manage/*       → full auth required:
+ *   3. All other app routes require a full authenticated session:
  *                        - valid JWT, aid present, nid present, no guest flag
  *                        → redirect to the documented handshake grant flow on failure
- *   4. All other paths → pass through and let page-level auth determine whether
- *                        the session is required.
  */
 
 // ---------------------------------------------------------------------------
@@ -127,12 +125,16 @@ const NEUPID_BASE = 'https://neupgroup.com/account';
 // ---------------------------------------------------------------------------
 
 function redirectToNeupStart(request: NextRequest, pathname: string): NextResponse {
-  const dest = new URL(`${NEUPID_BASE}/account/auth/start`);
+  const dest = new URL(`${NEUPID_BASE}/auth/start`);
   const redirectTarget = buildPublicAppUrl(request, `${pathname}${request.nextUrl.search}`);
   if (redirectTarget) {
     dest.searchParams.set('authenticatesTo', redirectTarget);
   }
   return NextResponse.redirect(dest);
+}
+
+function hasAuthenticatedSession(payload: JwtPayload | null): payload is JwtPayload & { aid: string; nid: string } {
+  return Boolean(payload?.aid && payload.nid && payload.guest !== 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -172,7 +174,7 @@ export default async function proxy(request: NextRequest) {
   }
 
   // ── 4. Device block ──────────────────────────────────────────────────────
-  if (request.cookies.has('device_block')) {
+  if (request.cookies.has('device_block') && pathname !== '/auth/blocked') {
     return NextResponse.redirect(new URL('/auth/blocked', request.url));
   }
 
@@ -186,13 +188,9 @@ export default async function proxy(request: NextRequest) {
     requestHeaders.set('x-account-id', payload.aid);
   }
 
-  // ── 5. /manage/* — full auth required ────────────────────────────────────
-  //    Must have: valid JWT, aid, nid, no guest flag
-  if (pathname.startsWith('/manage')) {
-    if (!payload || !payload.aid || !payload.nid || payload.guest === 1) {
-      return redirectToNeupStart(request, pathname);
-    }
-    return pass();
+  // ── 5. All app routes require a full authenticated session ───────────────
+  if (!hasAuthenticatedSession(payload)) {
+    return redirectToNeupStart(request, pathname);
   }
 
   return pass();
