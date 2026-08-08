@@ -217,28 +217,29 @@ export async function Sidebar() {
                 <div className="h-full bg-red-500" style={{ width: segmentWidth(storage.totals.hot) }} />
                 <div className="h-full bg-slate-200" style={{ width: segmentWidth(storage.empty) }} />
               </div>
-              {visibleTiers.length > 0 ? (
-                <TooltipProvider>
-                  <div className="mt-3 flex items-center justify-center gap-3">
-                    {visibleTiers.map(({ tier, color }) => (
-                      <Tooltip key={tier}>
-                        <TooltipTrigger asChild>
-                          <span
-                            className="inline-flex h-3 w-3 items-center justify-center rounded-full"
-                            aria-label={`${tierTitle(tier)}: ${formatStorageBytes(storage.totals[tier])}`}
-                          >
-                            <span className={`inline-block h-2.5 w-2.5 rounded-full ${color}`} />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {tierTitle(tier)}: {formatStorageBytes(storage.totals[tier])}
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </div>
-                </TooltipProvider>
-              ) : null}
             </Link>
+            {visibleTiers.length > 0 ? (
+              <TooltipProvider>
+                <div className="mt-3 flex items-center justify-center gap-3">
+                  {visibleTiers.map(({ tier, color }) => (
+                    <Tooltip key={tier}>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex h-3 w-3 items-center justify-center rounded-full"
+                          aria-label={`${tierTitle(tier)}: ${formatStorageBytes(storage.totals[tier])}`}
+                        >
+                          <span className={`inline-block h-2.5 w-2.5 rounded-full ${color}`} />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {tierTitle(tier)}: {formatStorageBytes(storage.totals[tier])}
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </div>
+              </TooltipProvider>
+            ) : null}
           </CardContent>
           <CardFooter className="p-2 pt-0 md:p-4">
             <Button size="sm" className="w-full">

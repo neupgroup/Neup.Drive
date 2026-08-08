@@ -51,7 +51,7 @@ export function FileListView({
             onDoubleClick={(event) => onItemDoubleClick?.(item, index, event)}
             onContextMenu={(event) => onItemContextMenu?.(event, item)}
             aria-selected={isSelected}
-            className={`select-none cursor-default rounded-none border-b-0 shadow-none transition-colors ${
+            className={`select-none cursor-pointer rounded-none border-b-0 shadow-none transition-colors ${
               isSelected ? 'hover:bg-primary/[0.12]' : 'hover:border-primary/20 hover:bg-primary/[0.03]'
             } ${
               index === 0 ? 'rounded-t-3xl' : ''
@@ -86,7 +86,7 @@ export function FileListView({
                           ) : null}
                           <button
                             type="button"
-                            className="transition-colors hover:text-primary"
+                            className="cursor-pointer transition-colors hover:text-primary"
                             onClick={(event) => {
                               event.stopPropagation();
                               onSecondaryNavigation(item);
@@ -102,7 +102,7 @@ export function FileListView({
                         <span aria-hidden="true" className="px-1">•</span>
                         <button
                           type="button"
-                          className="font-medium text-muted-foreground transition-colors hover:text-primary"
+                          className="cursor-pointer font-medium text-muted-foreground transition-colors hover:text-primary"
                           onClick={(event) => {
                             event.stopPropagation();
                             onSecondaryAction(item);
@@ -119,7 +119,7 @@ export function FileListView({
                       <Tooltip>
                         <TooltipTrigger
                           type="button"
-                          className="inline-flex h-3 w-3 items-center justify-center rounded-full"
+                          className="inline-flex h-3 w-3 cursor-help items-center justify-center rounded-full"
                           aria-label={storageTierLabel(item.storageTier)}
                         >
                           <span

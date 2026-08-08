@@ -10,11 +10,13 @@ export function FileGridView({
   data,
   selectedIds,
   onItemClick,
+  onItemDoubleClick,
   onItemContextMenu,
 }: {
   data: FileOrFolder[];
   selectedIds?: string[];
   onItemClick?: (item: FileOrFolder, index: number, event: React.MouseEvent) => void;
+  onItemDoubleClick?: (item: FileOrFolder, index: number, event: React.MouseEvent) => void;
   onItemContextMenu?: (event: React.MouseEvent, item: FileOrFolder) => void;
 }) {
   return (
@@ -26,9 +28,10 @@ export function FileGridView({
         <Card
           key={item.id}
           onClick={(event) => onItemClick?.(item, index, event)}
+          onDoubleClick={(event) => onItemDoubleClick?.(item, index, event)}
           onContextMenu={(event) => onItemContextMenu?.(event, item)}
           aria-selected={isSelected}
-          className={`select-none cursor-default overflow-hidden border-border/70 transition-colors hover:border-primary/20 hover:bg-primary/[0.02] ${
+          className={`select-none cursor-pointer overflow-hidden border-border/70 transition-colors hover:border-primary/20 hover:bg-primary/[0.02] ${
             isSelected ? 'border-primary bg-primary/[0.08] ring-2 ring-primary/20' : ''
           }`}
         >

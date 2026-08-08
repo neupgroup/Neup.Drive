@@ -251,50 +251,6 @@ export function FileManager({
     setBackgroundMenu({ x: Math.max(8, x), y: Math.max(8, y) });
   }, []);
 
-  const selectItem = React.useCallback((item: FileOrFolder, index: number, event: React.MouseEvent) => {
-    setMenu(null);
-    setBackgroundMenu(null);
-
-    if (item.type === 'action') {
-      if (item.actionHref) {
-        router.push(item.actionHref);
-        return;
-      }
-
-      if (onOpenItem) {
-        onOpenItem(item);
-      }
-      return;
-    }
-
-    if (event.shiftKey) {
-      setSelectedIds((current) => {
-        const anchorId = lastSelectedId ?? current[current.length - 1] ?? item.id;
-        const anchorIndex = files.findIndex((entry) => entry.id === anchorId);
-        if (anchorIndex === -1) return [item.id];
-
-        const start = Math.min(anchorIndex, index);
-        const end = Math.max(anchorIndex, index);
-        return files.slice(start, end + 1).map((entry) => entry.id);
-      });
-      setLastSelectedId(item.id);
-      return;
-    }
-
-    if (event.metaKey || event.ctrlKey) {
-      setSelectedIds((current) => (
-        current.includes(item.id)
-          ? current.filter((id) => id !== item.id)
-          : [...current, item.id]
-      ));
-      setLastSelectedId(item.id);
-      return;
-    }
-
-    setSelectedIds([item.id]);
-    setLastSelectedId(item.id);
-  }, [files, lastSelectedId, onOpenItem, router]);
-
   const runOperation = React.useCallback(async (
     item: FileOrFolder,
     body: Record<string, string>
@@ -461,6 +417,56 @@ export function FileManager({
 
     router.push(`/viewer/${encodeURIComponent(item.id)}`);
   }, [onOpenItem, router]);
+
+  const selectItem = React.useCallback((item: FileOrFolder, index: number, event: React.MouseEvent) => {
+    setMenu(null);
+    setBackgroundMenu(null);
+
+    if (item.type === 'action') {
+      if (item.actionHref) {
+        router.push(item.actionHref);
+        return;
+      }
+
+      if (onOpenItem) {
+        onOpenItem(item);
+      }
+      return;
+    }
+
+    if (event.shiftKey) {
+      setSelectedIds((current) => {
+        const anchorId = lastSelectedId ?? current[current.length - 1] ?? item.id;
+        const anchorIndex = files.findIndex((entry) => entry.id === anchorId);
+        if (anchorIndex === -1) return [item.id];
+
+        const start = Math.min(anchorIndex, index);
+        const end = Math.max(anchorIndex, index);
+        return files.slice(start, end + 1).map((entry) => entry.id);
+      });
+      setLastSelectedId(item.id);
+      return;
+    }
+
+    if (event.metaKey || event.ctrlKey) {
+      setSelectedIds((current) => (
+        current.includes(item.id)
+          ? current.filter((id) => id !== item.id)
+          : [...current, item.id]
+      ));
+      setLastSelectedId(item.id);
+      return;
+    }
+
+    const isSingleSelected = selectedIds.length === 1 && selectedIds[0] === item.id;
+    if (isSingleSelected) {
+      openItem(item);
+      return;
+    }
+
+    setSelectedIds([item.id]);
+    setLastSelectedId(item.id);
+  }, [files, lastSelectedId, onOpenItem, openItem, router, selectedIds]);
 
   const submitCreateFolder = React.useCallback(async () => {
     if (!onCreateFolder) return;

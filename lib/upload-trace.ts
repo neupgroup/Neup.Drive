@@ -1,9 +1,13 @@
+import { getBasePath } from '@/core/appconfig';
+
+const ERROR_LOG_ENDPOINT = `${getBasePath() ?? ''}/bridge/api.v1/log-error`;
+
 export async function logUploadTrace(onPage: string, message: string, context: Record<string, unknown> = {}) {
     const lowerMessage = message.toLowerCase();
     if (!lowerMessage.includes('failed') && !lowerMessage.includes('error')) return;
 
     try {
-        await fetch('/bridge/api.v1/log-error', {
+        await fetch(ERROR_LOG_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

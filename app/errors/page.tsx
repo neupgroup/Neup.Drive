@@ -33,6 +33,7 @@ import { AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getBasePath } from '@/core/appconfig';
 import { formatDistanceToNow } from 'date-fns';
 
 interface ErrorLog {
@@ -53,6 +54,7 @@ interface ErrorLogResponse {
 const PAGE_SIZE = 10;
 const MIN_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 100;
+const ERROR_LOG_ENDPOINT = `${getBasePath() ?? ''}/bridge/api.v1/log-error`;
 
 function parsePageParam(value: string | null) {
     const parsed = Number(value ?? '1');
@@ -116,7 +118,7 @@ function ErrorsPageContent() {
                 page: String(nextPage),
                 pagesize: String(nextPageSize),
             });
-            const res = await fetch(`/bridge/api.v1/log-error?${params.toString()}`);
+            const res = await fetch(`${ERROR_LOG_ENDPOINT}?${params.toString()}`);
             if (res.ok) {
                 const data: ErrorLogResponse = await res.json();
                 setErrors(data.items);

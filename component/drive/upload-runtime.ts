@@ -1,4 +1,5 @@
 import { createBLAKE3 } from 'hash-wasm';
+import { getBasePath } from '@/core/appconfig';
 
 /*
 ::neup.documentation::portable-drive-upload-runtime
@@ -183,11 +184,13 @@ export async function deleteUpload(id: string): Promise<void> {
   });
 }
 
+const ERROR_LOG_ENDPOINT = `${getBasePath() ?? ''}/bridge/api.v1/log-error`;
+
 export async function logUploadTrace(
   onPage: string,
   message: string,
   context: Record<string, unknown> = {},
-  endpoint = '/bridge/api.v1/log-error',
+  endpoint = ERROR_LOG_ENDPOINT,
 ) {
   const lowerMessage = message.toLowerCase();
   if (!lowerMessage.includes('failed') && !lowerMessage.includes('error')) return;

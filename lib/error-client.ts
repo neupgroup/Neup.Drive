@@ -1,4 +1,5 @@
 import { toast } from '@/core/hooks/use-toast';
+import { getBasePath } from '@/core/appconfig';
 import { ErrorType, identifyError } from './error-types';
 
 type ErrorContext = {
@@ -8,6 +9,8 @@ type ErrorContext = {
     cdnResponse?: unknown;
     [key: string]: unknown;
 };
+
+const ERROR_LOG_ENDPOINT = `${getBasePath() ?? ''}/bridge/api.v1/log-error`;
 
 function getResponseFromContext(context: ErrorContext) {
     return context.response ?? context.apiResponse ?? context.cdnResponse;
@@ -76,7 +79,7 @@ export async function handleClientError(error: any, onPage: string, context: Err
     // Try to notify the server about this client error
     if (!chunkUploadError) {
         try {
-            await fetch('/bridge/api.v1/log-error', {
+            await fetch(ERROR_LOG_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
