@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -24,7 +25,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <div className="flex min-h-screen w-full flex-col bg-white">
-          <Header />
+          <Suspense fallback={null}>
+            <Header />
+          </Suspense>
           <div className="flex flex-1 w-full max-w-[1440px] mx-auto">
             <Sidebar />
             <main className="flex-1 p-6 sm:px-8 sm:py-8">

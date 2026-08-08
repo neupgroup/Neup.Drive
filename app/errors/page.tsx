@@ -28,6 +28,7 @@ without leaving the page.
 'use client';
 
 import * as React from 'react';
+import { Suspense } from 'react';
 import { AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -89,7 +90,7 @@ function formatLogContext(context: string) {
     return parsed === null ? context : JSON.stringify(parsed, null, 2);
 }
 
-export default function ErrorsPage() {
+function ErrorsPageContent() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -235,5 +236,13 @@ export default function ErrorsPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function ErrorsPage() {
+    return (
+        <Suspense fallback={null}>
+            <ErrorsPageContent />
+        </Suspense>
     );
 }
