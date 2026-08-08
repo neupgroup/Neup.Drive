@@ -57,8 +57,6 @@
 - [ ] Add `::neup.documentation::` source documentation for `prisma/migrations/20260608090000_create_system_error/migration.sql`.
 - [ ] Add `::neup.documentation::` source documentation for `components/ui/card.tsx`.
 - [ ] Add `::neup.documentation::` source documentation for `core/lib/error-server.ts`.
-- [ ] Fix `npx tsc --noEmit` error in `components/ui/calendar.tsx`: `IconLeft` is not a valid `CustomComponents` property.
-- [ ] Fix implicit `any` `className` bindings in `components/ui/calendar.tsx`.
 - [ ] Fix missing module import in `scripts/test-hashing.ts` for `../src/lib/sha256`.
 - [ ] Fix `npx tsc --noEmit` error in `components/prodrive/upload-status-toast.tsx`: toast `title` expects a string but receives JSX.
 - [ ] Fix unresolved `@/core/*` and `@/logica/*` module imports blocking `npx tsc --noEmit` across `app`, `components`, and `lib`.
