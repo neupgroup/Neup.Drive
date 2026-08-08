@@ -19,7 +19,7 @@ The response always redirects to `/storage`.
 ::end
 */
 import { redirect } from 'next/navigation';
-import { APP_STORAGE_PATH } from '@/core/appconfig';
+import { PRODRIVE_STORAGE_PATH } from '@/components/prodrive/routes';
 
 export default async function DriveRouteRedirect({
   searchParams,
@@ -31,7 +31,7 @@ export default async function DriveRouteRedirect({
     ? resolvedSearchParams?.path[0]
     : resolvedSearchParams?.path;
   const target = rawPath?.trim()
-    ? `${APP_STORAGE_PATH}?path=${encodeURIComponent(rawPath)}`
-    : APP_STORAGE_PATH;
+    ? `${PRODRIVE_STORAGE_PATH}?path=${encodeURIComponent(rawPath)}`
+    : PRODRIVE_STORAGE_PATH;
   redirect(target);
 }

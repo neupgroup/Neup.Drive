@@ -5,13 +5,13 @@ import { usePathname } from 'next/navigation';
 import { AlertCircle, BarChart3, Globe, HardDrive, Home, Share, Trash2, Users } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { APP_HOME_PATH, APP_SHARED_PATH, APP_STORAGE_PATH } from '@/core/appconfig';
 import { cn } from '@/core/utils';
+import { PRODRIVE_HOME_PATH, PRODRIVE_SHARED_PATH, PRODRIVE_STORAGE_PATH } from './routes';
 
 const primaryNavLinks = [
-  { href: APP_HOME_PATH, icon: Home, label: 'Home' },
-  { href: APP_STORAGE_PATH, icon: HardDrive, label: 'Storage' },
-  { href: APP_SHARED_PATH, icon: Share, label: 'Shared' },
+  { href: PRODRIVE_HOME_PATH, icon: Home, label: 'Home' },
+  { href: PRODRIVE_STORAGE_PATH, icon: HardDrive, label: 'Storage' },
+  { href: PRODRIVE_SHARED_PATH, icon: Share, label: 'Shared' },
   { href: '/webdisk', icon: Globe, label: 'WebDisk' },
   { href: '/analytics', icon: BarChart3, label: 'Analytics' },
   { href: '/trash', icon: Trash2, label: 'Trash' },

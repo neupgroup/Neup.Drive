@@ -50,9 +50,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/core/hooks/use-toast';
-import { APP_STORAGE_PATH } from '@/core/appconfig';
 import { logAuth } from '@/core/logger';
 import type { FileOrFolder } from '@/lib/types';
+import { PRODRIVE_STORAGE_PATH } from './routes';
 
 export function TrashPageManager({
   files,
@@ -76,8 +76,8 @@ export function TrashPageManager({
     if (item.locationType === 'drive') {
       router.push(
         item.secondaryNavigationPath
-          ? `${APP_STORAGE_PATH}?path=${encodeURIComponent(item.secondaryNavigationPath)}`
-          : APP_STORAGE_PATH,
+          ? `${PRODRIVE_STORAGE_PATH}?path=${encodeURIComponent(item.secondaryNavigationPath)}`
+          : PRODRIVE_STORAGE_PATH,
       );
       return;
     }

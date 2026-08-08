@@ -40,9 +40,9 @@ import { useRouter } from 'next/navigation';
 import { FileManager } from '@/components/prodrive/file-manager';
 import { toast } from '@/core/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
-import { APP_STORAGE_PATH } from '@/core/appconfig';
 import { logAuth } from '@/core/logger';
 import type { FileOrFolder } from '@/lib/types';
+import { PRODRIVE_STORAGE_PATH } from './routes';
 
 type SortMode = 'recent-desc' | 'recent-asc' | 'name-asc' | 'name-desc';
 
@@ -186,7 +186,7 @@ export function RecentPageManager({
           trackFolderOpen(item);
 
           if (item.locationType === 'drive') {
-            router.push(`${APP_STORAGE_PATH}?path=${encodeURIComponent(item.navigationPath)}`);
+            router.push(`${PRODRIVE_STORAGE_PATH}?path=${encodeURIComponent(item.navigationPath)}`);
             return;
           }
 
@@ -217,7 +217,7 @@ export function RecentPageManager({
                   if (!item.navigationPath || !item.locationType) return;
                   trackFolderOpen(item);
                   if (item.locationType === 'drive') {
-                    router.push(`${APP_STORAGE_PATH}?path=${encodeURIComponent(item.navigationPath)}`);
+                    router.push(`${PRODRIVE_STORAGE_PATH}?path=${encodeURIComponent(item.navigationPath)}`);
                     return;
                   }
                   const params = new URLSearchParams();

@@ -18,8 +18,8 @@ The response always redirects to `/home`.
 ::end
 */
 import { redirect } from 'next/navigation';
-import { APP_HOME_PATH } from '@/core/appconfig';
+import { PRODRIVE_HOME_PATH } from '@/components/prodrive/routes';
 
 export default function RootPage() {
-  redirect(APP_HOME_PATH);
+  redirect(PRODRIVE_HOME_PATH);
 }

@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Logo } from '@/components/icons';
-import { APP_HOME_PATH } from '@/core/appconfig';
 import { MobileNavLinks } from './nav-links';
+import { PRODRIVE_HOME_PATH } from './routes';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 
@@ -28,7 +28,7 @@ function MobileSidebar() {
       <SheetContent side="left" className="sm:max-w-xs bg-card">
         <nav className="flex h-full flex-col gap-6 text-lg font-medium">
           <Link
-            href={APP_HOME_PATH}
+            href={PRODRIVE_HOME_PATH}
             className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full border border-border bg-white text-lg font-semibold text-foreground md:text-base"
           >
             <Logo className="h-5 w-5 transition-all group-hover:scale-110" />
@@ -84,7 +84,7 @@ export function Header() {
     <header className="sticky top-0 z-10 flex h-16 items-center border-b bg-white backdrop-blur-sm shadow-lg">
       <div className="w-full max-w-[1440px] mx-auto px-4 md:px-6 flex items-center gap-4">
         <MobileSidebar />
-        <Link href={APP_HOME_PATH} className="flex items-center gap-2 text-lg font-semibold">
+        <Link href={PRODRIVE_HOME_PATH} className="flex items-center gap-2 text-lg font-semibold">
           <Logo className="h-6 w-6 transition-all hover:scale-110" />
           <span className="font-bold">Neup.Drive</span>
         </Link>
