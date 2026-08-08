@@ -7,8 +7,8 @@ import { resolveAuthenticatedAccountId, resolveAuthenticatedAccountProfile } fro
 import { handleServerError } from '@/lib/error-server';
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
-const CDN_BASE_URL = getCdnBaseUrl();
-const CDN_LIST_URL = process.env.CDN_LIST_URL || `${CDN_BASE_URL}/list`;
+const CDN_BASE_URL = (process.env.CDN_BASE_URL || '').replace(/\/$/, '');
+const CDN_LIST_URL = `${CDN_BASE_URL}/list`;
 const DEFAULT_WEBDISK_ACCOUNT_ID = process.env.WEBDISK_ACCOUNT_ID || process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
 
 interface CdnListedFile {
@@ -17,22 +17,6 @@ interface CdnListedFile {
     size: number;
     mime_type?: string;
     modified_time?: string;
-}
-
-function getCdnBaseUrl() {
-    const explicitBase = process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_BASE_URL || process.env.CDN_HOST;
-    if (explicitBase) return explicitBase.replace(/\/$/, '');
-
-    const uploadUrl = process.env.CDN_UPLOAD_URL || process.env.NEXT_PUBLIC_CDN_UPLOAD_URL;
-    if (uploadUrl) {
-        try {
-            return new URL(uploadUrl).origin;
-        } catch {
-            // Fall through to the production CDN default.
-        }
-    }
-
-    return 'https://neupcdn.com';
 }
 
 function getWebdiskType(relativePath: string) {
@@ -121,6 +105,9 @@ export async function GET(request: NextRequest) {
     try {
         if (!PRIVATE_KEY) {
             return NextResponse.json({ error: 'Server configuration error: Missing private key' }, { status: 500 });
+        }
+        if (!CDN_BASE_URL) {
+            return NextResponse.json({ error: 'Server configuration error: Missing CDN_BASE_URL' }, { status: 500 });
         }
 
         const authAccountToken = request.cookies.get('auth_account')?.value;
