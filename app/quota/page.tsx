@@ -25,7 +25,7 @@ loads storage totals through the existing Drive status API.
 
 ::end
 */
-import { FileAudio, FileImage, FileText, FileVideo, FolderOpen, HardDrive, Upload } from 'lucide-react';
+import { FileAudio, FileImage, FileText, FileVideo, Flame, FolderOpen, HardDrive, Upload } from 'lucide-react';
 import Link from 'next/link';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -214,15 +214,15 @@ export default async function QuotaPage() {
                 return (
                   <Tooltip key={category.id}>
                     <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-2 rounded-full px-1 py-0.5 transition-colors hover:bg-slate-100"
+                      <span
+                        tabIndex={0}
+                        className="inline-flex cursor-help items-center gap-2 rounded-full px-1 py-0.5 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         aria-label={`${category.label}: ${formatStorageBytes(category.bytes)}`}
                       >
                         <span className={`h-2.5 w-2.5 rounded-full ${quotaCategoryStyles[category.id].dot}`} />
                         <span>{category.label}</span>
                         <span className="text-slate-500">({formatStorageBytes(category.bytes)})</span>
-                      </button>
+                      </span>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>{category.label}</p>
@@ -302,15 +302,16 @@ export default async function QuotaPage() {
             rel="noopener noreferrer"
             className="block cursor-pointer bg-white px-4 py-4 transition-colors hover:bg-rose-50/60 sm:px-5 sm:py-4.5"
           >
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-600">
-                <span className="h-2 w-2 rounded-full bg-rose-500" />
-                Hot Storage
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 shadow-sm">
+                <Flame className="h-5 w-5 text-rose-600" />
               </div>
-              <p className="text-base font-semibold text-slate-900">10GB at just USD 2 per month</p>
-              <p className="text-sm text-slate-500">
-                Extra high-availability storage for frequently accessed files.
-              </p>
+              <div className="space-y-1">
+                <p className="text-base font-semibold text-slate-900">Hot 10 GB Storage</p>
+                <p className="text-sm text-slate-500">
+                  <span className="font-semibold text-slate-900">USD 2</span> per Month
+                </p>
+              </div>
             </div>
           </a>
 
@@ -320,15 +321,16 @@ export default async function QuotaPage() {
             rel="noopener noreferrer"
             className="block cursor-pointer border-t border-slate-200 bg-white px-4 py-4 transition-colors hover:bg-rose-50/60 sm:px-5 sm:py-4.5"
           >
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-600">
-                <span className="h-2 w-2 rounded-full bg-rose-500" />
-                Hot Storage
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 shadow-sm">
+                <Flame className="h-5 w-5 text-rose-600" />
               </div>
-              <p className="text-base font-semibold text-slate-900">100GB at just USD 15 per month</p>
-              <p className="text-sm text-slate-500">
-                A larger hot storage option for growing media and asset libraries.
-              </p>
+              <div className="space-y-1">
+                <p className="text-base font-semibold text-slate-900">Hot 100 GB Storage</p>
+                <p className="text-sm text-slate-500">
+                  <span className="font-semibold text-slate-900">USD 15</span> per Month
+                </p>
+              </div>
             </div>
           </a>
         </div>
