@@ -27,6 +27,7 @@ server so the client upload flow cannot fall back to the demo owner.
 ::end
 */
 import { FileUpload } from '@/components/prodrive/file-upload';
+import { makeAppPath } from '@/core/appconfig';
 import { getCookie } from '@/core/helpers/cookie';
 import { resolveAuthenticatedAccountId } from '@/lib/bridge-api';
 
@@ -77,7 +78,7 @@ export default async function UploadPage({
         params.set('path', drivePath);
     }
 
-    const uploadInitEndpoint = `/bridge/api.v1/upload/init?${params.toString()}`;
+    const uploadInitEndpoint = makeAppPath(`/bridge/api.v1/upload/init?${params.toString()}`);
 
     return (
         <div className="space-y-6">

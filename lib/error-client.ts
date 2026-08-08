@@ -1,5 +1,5 @@
 import { toast } from '@/core/hooks/use-toast';
-import { getBasePath } from '@/core/appconfig';
+import { makeAppPath } from '@/core/appconfig';
 import { ErrorType, identifyError } from './error-types';
 
 type ErrorContext = {
@@ -10,7 +10,7 @@ type ErrorContext = {
     [key: string]: unknown;
 };
 
-const ERROR_LOG_ENDPOINT = `${getBasePath() ?? ''}/bridge/api.v1/log-error`;
+const ERROR_LOG_ENDPOINT = makeAppPath('/bridge/api.v1/log-error');
 
 function getResponseFromContext(context: ErrorContext) {
     return context.response ?? context.apiResponse ?? context.cdnResponse;

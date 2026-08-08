@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ToastAction } from '@/components/ui/toast';
+import { makeAppPath } from '@/core/appconfig';
 import { toast } from '@/core/hooks/use-toast';
 import { handleClientError } from '@/lib/error-client';
 import { storageTierFromWebdiskType, type StorageTier } from '@/lib/storage-tiers';
@@ -50,6 +51,12 @@ const WEBDISK_TYPES = [
   { id: 'signed', label: 'Signed' },
 ];
 const WEBDISK_SKELETON_ROWS = 8;
+const WEBDISK_FILES_ENDPOINT = makeAppPath('/bridge/api.v1/webdisk/files');
+const ASSETS_FOLDER_LIST_ENDPOINT = makeAppPath('/bridge/api.v1/list?type=assets&limit=500');
+const SIGNED_FOLDER_LIST_ENDPOINT = makeAppPath('/bridge/api.v1/list?type=signed&limit=500');
+const WEBDISK_OPERATION_ENDPOINT = makeAppPath('/bridge/api.v1/webdisk/files/operation');
+const ACTIVITY_ENDPOINT = makeAppPath('/bridge/api.v1/activity');
+const CREATE_FOLDER_ENDPOINT = makeAppPath('/bridge/api.v1/folders/create');
 
 function getAccountRelativePathFromStoragePath(storagePath: string) {
   const cleanPath = storagePath.replace(/^\/+/, '');
@@ -239,9 +246,9 @@ function WebdiskContent() {
     try {
       setLoading(true);
       const [fileResponse, assetsFolderResponse, signedFolderResponse] = await Promise.all([
-        fetch('/bridge/api.v1/webdisk/files'),
-        fetch('/bridge/api.v1/list?type=assets&limit=500'),
-        fetch('/bridge/api.v1/list?type=signed&limit=500'),
+        fetch(WEBDISK_FILES_ENDPOINT),
+        fetch(ASSETS_FOLDER_LIST_ENDPOINT),
+        fetch(SIGNED_FOLDER_LIST_ENDPOINT),
       ]);
 
       const failedResponse = [fileResponse, assetsFolderResponse, signedFolderResponse].find((response) => !response.ok);
@@ -453,7 +460,7 @@ function WebdiskContent() {
   ) => {
     try {
       setOperatingPath(file.cdn_path || file.id);
-      const response = await fetch('/bridge/api.v1/webdisk/files/operation', {
+      const response = await fetch(WEBDISK_OPERATION_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -523,7 +530,7 @@ function WebdiskContent() {
     const folder = foldersById.get(item.id);
     if (folder) {
       if (folder.path) {
-        void fetch('/bridge/api.v1/activity', {
+        void fetch(ACTIVITY_ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -675,7 +682,7 @@ function WebdiskContent() {
               ];
             }}
             onCreateFolder={async (name) => {
-              const response = await fetch('/bridge/api.v1/folders/create', {
+              const response = await fetch(CREATE_FOLDER_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

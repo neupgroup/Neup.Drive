@@ -1,4 +1,5 @@
 - [ ] Add a local `documentation.guide.md` for this repo or sync the Neup standard into a source-owned guide file.
+- [ ] Fix existing TypeScript errors in `core/infrastructure/api.ts` where `UrlBuilder | URL` is used with `addParams()` and `get()`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/webdisk/files/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/webdisk/record/route.ts`.
 - [ ] Add `::neup.documentation::` source documentation for `app/bridge/api.v1/upload/init/route.ts`.
