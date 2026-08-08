@@ -37,7 +37,6 @@ viewer, and keeps the upload action scoped to the current drive folder.
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { FileManager } from '@/components/prodrive/file-manager';
-import { logAuth } from '@/core/logger';
 import type { FileOrFolder } from '@/lib/types';
 import { PRODRIVE_STORAGE_PATH } from './routes';
 
@@ -133,7 +132,6 @@ export function DrivePageManager({
           }),
         });
         const data = await response.json().catch(() => null);
-        logAuth({ status: response.status, payload: data });
         if (!response.ok || !data?.success) {
           throw new Error(data?.error || 'Failed to delete file');
         }
@@ -151,7 +149,6 @@ export function DrivePageManager({
           }),
         });
         const data = await response.json().catch(() => null);
-        logAuth({ status: response.status, payload: data });
         if (!response.ok || !data?.success) {
           throw new Error(data?.error || 'Failed to create folder');
         }

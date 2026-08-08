@@ -50,7 +50,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/core/hooks/use-toast';
-import { logAuth } from '@/core/logger';
 import type { FileOrFolder } from '@/lib/types';
 import { PRODRIVE_STORAGE_PATH } from './routes';
 
@@ -104,7 +103,6 @@ export function TrashPageManager({
       });
 
       const data = await response.json().catch(() => null);
-      logAuth({ status: response.status, payload: data });
       if (!response.ok || !data?.success) {
         throw new Error(data?.error || 'Failed to restore file');
       }
@@ -138,7 +136,6 @@ export function TrashPageManager({
       });
 
       const data = await response.json().catch(() => null);
-      logAuth({ status: response.status, payload: data });
       if (!response.ok || !data?.success) {
         throw new Error(data?.error || 'Failed to delete file permanently');
       }
@@ -176,7 +173,6 @@ export function TrashPageManager({
         });
 
         const data = await response.json().catch(() => null);
-        logAuth({ status: response.status, payload: data });
         if (!response.ok || !data?.success) {
           throw new Error(data?.error || `Failed to ${action === 'restore' ? 'restore' : 'delete'} file`);
         }
@@ -226,7 +222,6 @@ export function TrashPageManager({
       });
 
       const data = await response.json().catch(() => null);
-      logAuth({ status: response.status, payload: data });
       if (!response.ok || !data?.success) {
         throw new Error(data?.error || 'Failed to restore file');
       }
