@@ -25,10 +25,9 @@ loads storage totals through the existing Drive status API.
 
 ::end
 */
-import { FileAudio, FileImage, FileText, FileVideo, Flame, FolderOpen, HardDrive, Upload } from 'lucide-react';
+import { FileAudio, FileImage, FileText, FileVideo, Flame } from 'lucide-react';
 import Link from 'next/link';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Tooltip,
   TooltipContent,
@@ -53,6 +52,14 @@ function getSegmentPercent(bytes: number) {
 function getUsedPercent(bytes: number, usedBytes: number) {
   if (usedBytes <= 0) return 0;
   return Math.max(0, Math.min(100, (bytes / usedBytes) * 100));
+}
+
+const MIN_VISIBLE_SEGMENT_PERCENT = 1;
+
+function getCapacityClassName(usedPercent: number) {
+  if (usedPercent >= 90) return 'bg-red-100';
+  if (usedPercent >= 75) return 'bg-orange-100';
+  return 'bg-slate-200';
 }
 
 const quotaCategoryStyles = {
@@ -141,6 +148,23 @@ export default async function QuotaPage() {
 
   const availableBytes = Math.max(STORAGE_LIMIT_BYTES - storage.bytes_used, 0);
   const usedPercent = getPercent(storage.bytes_used);
+  const visibleCategories = [...quotaDetails.categories]
+    .filter((category) => category.bytes > 0)
+    .sort((a, b) => b.bytes - a.bytes);
+  const tinyCategories = visibleCategories.filter(
+    (category) => getSegmentPercent(category.bytes) < MIN_VISIBLE_SEGMENT_PERCENT
+  );
+  const standardCategories = visibleCategories.filter(
+    (category) => getSegmentPercent(category.bytes) >= MIN_VISIBLE_SEGMENT_PERCENT
+  );
+  const markerPercent = Math.min(100, tinyCategories.length * MIN_VISIBLE_SEGMENT_PERCENT);
+  const standardRawPercent = standardCategories.reduce(
+    (total, category) => total + getSegmentPercent(category.bytes),
+    0
+  );
+  const standardDisplayPercent = Math.max(0, usedPercent - markerPercent);
+  const displayedUsedPercent = Math.min(100, markerPercent + standardDisplayPercent);
+  const availableDisplayPercent = Math.max(0, 100 - displayedUsedPercent);
 
   return (
     <div className="space-y-6">
@@ -159,70 +183,56 @@ export default async function QuotaPage() {
         </div>
 
         <TooltipProvider>
-          <div className="space-y-5">
+          <div className="space-y-2">
             <div
-              className="flex h-4 w-full overflow-hidden rounded-full bg-slate-200"
+              className={`flex h-4 w-full overflow-hidden rounded-full ${getCapacityClassName(usedPercent)}`}
               aria-label={`${usedPercent.toFixed(1)}% storage used`}
               aria-valuemax={100}
               aria-valuemin={0}
               aria-valuenow={Number(usedPercent.toFixed(1))}
               role="meter"
             >
-              {quotaDetails.categories.map((category) => {
+              {visibleCategories.map((category) => {
                 const percentOfPlan = getSegmentPercent(category.bytes);
                 const percentOfUsed = getUsedPercent(category.bytes, quotaDetails.usedBytes);
+                const displayPercent = percentOfPlan < MIN_VISIBLE_SEGMENT_PERCENT
+                  ? MIN_VISIBLE_SEGMENT_PERCENT
+                  : standardRawPercent > 0
+                    ? (percentOfPlan / standardRawPercent) * standardDisplayPercent
+                    : percentOfPlan;
 
                 return (
-                  <Tooltip key={category.id}>
-                    <TooltipTrigger asChild>
-                      <div
-                        className={`${quotaCategoryStyles[category.id].bar} transition-opacity hover:opacity-80`}
-                        style={{ width: `${percentOfPlan}%` }}
-                        aria-label={`${category.label}: ${formatStorageBytes(category.bytes)} used`}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{category.label}</p>
-                      <p>{formatStorageBytes(category.bytes)} used</p>
-                      <p>{percentOfUsed.toFixed(1)}% of used storage</p>
-                      <p>{percentOfPlan.toFixed(1)}% of plan</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <div
+                    key={category.id}
+                    className={quotaCategoryStyles[category.id].bar}
+                    style={{ width: `${displayPercent}%` }}
+                    aria-label={`${category.label}: ${formatStorageBytes(category.bytes)} used`}
+                    title={`${category.label}: ${formatStorageBytes(category.bytes)} used (${percentOfUsed.toFixed(1)}% of used storage, ${percentOfPlan.toFixed(1)}% of plan)`}
+                  />
                 );
               })}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div
-                    className="transition-opacity hover:opacity-80"
-                    style={{ width: `${getSegmentPercent(availableBytes)}%` }}
-                    aria-label={`${formatStorageBytes(availableBytes)} available`}
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Available</p>
-                  <p>{formatStorageBytes(availableBytes)} free</p>
-                  <p>{(100 - usedPercent).toFixed(1)}% of plan</p>
-                </TooltipContent>
-              </Tooltip>
+              <div
+                style={{ width: `${availableDisplayPercent}%` }}
+                aria-label={`${formatStorageBytes(availableBytes)} available`}
+                title={`${formatStorageBytes(availableBytes)} available (${(100 - usedPercent).toFixed(1)}% of plan)`}
+              />
             </div>
 
             <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-slate-600">
-              {quotaDetails.categories.map((category) => {
+              {visibleCategories.map((category) => {
                 const percentOfPlan = getSegmentPercent(category.bytes);
                 const percentOfUsed = getUsedPercent(category.bytes, quotaDetails.usedBytes);
 
                 return (
                   <Tooltip key={category.id}>
-                    <TooltipTrigger asChild>
-                      <span
-                        tabIndex={0}
-                        className="inline-flex cursor-help items-center gap-2 rounded-full px-1 py-0.5 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        aria-label={`${category.label}: ${formatStorageBytes(category.bytes)}`}
-                      >
-                        <span className={`h-2.5 w-2.5 rounded-full ${quotaCategoryStyles[category.id].dot}`} />
-                        <span>{category.label}</span>
-                        <span className="text-slate-500">({formatStorageBytes(category.bytes)})</span>
-                      </span>
+                    <TooltipTrigger
+                      type="button"
+                      className="inline-flex cursor-help items-center gap-2 rounded-full px-1 py-0.5 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      aria-label={`${category.label}: ${formatStorageBytes(category.bytes)}`}
+                    >
+                      <span className={`h-2.5 w-2.5 rounded-full ${quotaCategoryStyles[category.id].dot}`} />
+                      <span>{category.label}</span>
+                      <span className="text-slate-500">({formatStorageBytes(category.bytes)})</span>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>{category.label}</p>
@@ -306,10 +316,11 @@ export default async function QuotaPage() {
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 shadow-sm">
                 <Flame className="h-5 w-5 text-rose-600" />
               </div>
-              <div className="space-y-1">
-                <p className="text-base font-semibold text-slate-900">Hot 10 GB Storage</p>
-                <p className="text-sm text-slate-500">
-                  <span className="font-semibold text-slate-900">USD 2</span> per Month
+              <div className="flex min-w-0 flex-col">
+                <p className="text-base font-semibold leading-tight text-slate-900">Hot 10 GB Storage</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  <span>USD 1.99</span>{' '}
+                  <span>per Month</span>
                 </p>
               </div>
             </div>
@@ -325,10 +336,11 @@ export default async function QuotaPage() {
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 shadow-sm">
                 <Flame className="h-5 w-5 text-rose-600" />
               </div>
-              <div className="space-y-1">
-                <p className="text-base font-semibold text-slate-900">Hot 100 GB Storage</p>
-                <p className="text-sm text-slate-500">
-                  <span className="font-semibold text-slate-900">USD 15</span> per Month
+              <div className="flex min-w-0 flex-col">
+                <p className="text-base font-semibold leading-tight text-slate-900">Hot 100 GB Storage</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  <span>USD 14.99</span>{' '}
+                  <span>per Month</span>
                 </p>
               </div>
             </div>

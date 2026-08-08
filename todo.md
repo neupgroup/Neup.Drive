@@ -60,6 +60,7 @@
 - [ ] Fix missing module import in `scripts/test-hashing.ts` for `../src/lib/sha256`.
 - [ ] Fix `npx tsc --noEmit` error in `components/prodrive/upload-status-toast.tsx`: toast `title` expects a string but receives JSX.
 - [ ] Fix unresolved `@/core/*` and `@/logica/*` module imports blocking `npx tsc --noEmit` across `app`, `components`, and `lib`.
+- [ ] Fix `npx tsc --noEmit` errors in `core/infrastructure/api.ts`: `UrlBuilder | URL` is narrowed incorrectly before calling `addParams` and `get`.
 - [ ] Apply the pending `filefolder` Prisma migrations to the runtime database so `stored_as` and `last_activity_on` exist without fallback query paths.
 - [ ] Restore runtime Postgres connectivity for Prisma; current `fileFolder` reads are failing with `ECONNREFUSED`.
 - [ ] Scope remaining file surfaces that still use default/demo owners to the signed-in account, including `app/bridge/api.v1/activity/route.ts`, `app/bridge/api.v1/folders/create/route.ts`, and WebDisk operation routes.

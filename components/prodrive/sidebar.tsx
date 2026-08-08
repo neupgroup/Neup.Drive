@@ -223,14 +223,12 @@ export async function Sidebar() {
                 <div className="mt-3 flex items-center justify-center gap-3">
                   {visibleTiers.map(({ tier, color }) => (
                     <Tooltip key={tier}>
-                      <TooltipTrigger asChild>
-                        <span
-                          tabIndex={0}
-                          className="inline-flex h-3 w-3 cursor-help items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                          aria-label={`${tierTitle(tier)}: ${formatStorageBytes(storage.totals[tier])}`}
-                        >
-                          <span className={`inline-block h-2.5 w-2.5 rounded-full ${color}`} />
-                        </span>
+                      <TooltipTrigger
+                        type="button"
+                        className="inline-flex h-3 w-3 cursor-help items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        aria-label={`${tierTitle(tier)}: ${formatStorageBytes(storage.totals[tier])}`}
+                      >
+                        <span className={`inline-block h-2.5 w-2.5 rounded-full ${color}`} />
                       </TooltipTrigger>
                       <TooltipContent>
                         {tierTitle(tier)}: {formatStorageBytes(storage.totals[tier])}
