@@ -30,7 +30,7 @@ maps them into the `FileOrFolder` UI shape used by the drive pages.
 
 ::end
 */
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@/core/database/prisma';
 import { prisma } from '@/core/database/prisma';
 import { isActiveFileDetails, normalizeInternalPath, resolveAuthenticatedAccountProfile } from '@/lib/bridge-api';
 import { isDirectoryDetails } from '@/lib/filefolder';

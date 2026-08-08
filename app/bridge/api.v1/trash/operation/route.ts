@@ -29,7 +29,7 @@ restore targets are missing on the CDN.
 */
 import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@/core/database/prisma';
 
 import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/lib/cdn-token';
 import { prisma } from '@/core/database/prisma';

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft, Download, ExternalLink, FileQuestion } from 'lucide-react';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@/core/database/prisma';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

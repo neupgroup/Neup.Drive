@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import type { NextRequest } from 'next/server';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@/core/database/prisma';
 
 import {
     createExpiringOperationPayload,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@/core/database/prisma';
 
 import { createBridgeFileUrl, getFolderType, getParam, getRequestDeviceIp, isActiveFileDetails } from '@/lib/bridge-api';
 import { parseDurationSeconds } from '@/lib/cdn-token';

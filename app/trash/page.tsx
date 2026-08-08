@@ -18,7 +18,7 @@ The trash page for the configured owner.
 
 ::end
 */
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@/core/database/prisma';
 import path from 'node:path';
 
 import { TrashPageManager } from '@/components/prodrive/trash-page-manager';
