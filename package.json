@@ -9,10 +9,8 @@
   },
   "scripts": {
     "setup": "rm -rf core && rm -rf neup.core && git clone https://github.com/neupgroup/neup.core && mv neup.core core && rm -rf logica && rm -rf neup.logica && git clone https://github.com/neupgroup/neup.logica && mv neup.logica logica",
-
     "prebuild": "npm run setup && npx prisma generate",
     "predev": "npm run setup",
-    
     "dev": "next dev --port 3748 --experimental-https",
     "build": "next build",
     "start": "next --port 3748",
@@ -65,13 +63,13 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@prisma/client": "^5.22.0",
+    "@prisma/client": "^7.9.1",
     "@types/node": "^20.19.33",
     "@types/react": "^19.2.1",
     "@types/react-dom": "^19.2.1",
     "genkit-cli": "^1.20.0",
     "postcss": "^8",
-    "prisma": "^5.22.0",
+    "prisma": "^7.9.1",
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
     "typescript": "^5"
