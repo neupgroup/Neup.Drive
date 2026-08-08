@@ -453,3 +453,147 @@ export async function getDriveFiles({
 
   return [...folderItems, ...files];
 }
+
+export type DriveQuotaCategory = {
+  id: 'documents' | 'images' | 'videos' | 'audio' | 'other';
+  label: string;
+  bytes: number;
+};
+
+export type DriveLargestFile = {
+  id: string;
+  name: string;
+  path: string;
+  sizeBytes: number;
+  size: string;
+  lastModified: string;
+  type: FileOrFolder['type'];
+};
+
+export async function getDriveQuotaDetails({
+  owner = DEFAULT_DRIVE_OWNER,
+  take = 20,
+}: {
+  owner?: string;
+  take?: number;
+} = {}): Promise<{
+  usedBytes: number;
+  categories: DriveQuotaCategory[];
+  largestFiles: DriveLargestFile[];
+}> {
+  let rows: Array<{
+    id: string;
+    name: string;
+    type: string;
+    owner: string;
+    path: string;
+    size: bigint;
+    details: Prisma.JsonValue;
+    updated_on: Date;
+    stored_as: string;
+  }>;
+
+  try {
+    rows = await prisma.fileFolder.findMany({
+      where: {
+        owner,
+        stored_as: 'drive',
+      },
+      orderBy: [
+        { size: 'desc' },
+        { updated_on: 'desc' },
+      ],
+      take: Math.max(take * 3, 100),
+    });
+  } catch (error) {
+    if (!isFileFolderUnavailableError(error)) throw error;
+
+    let fallbackRows: Awaited<ReturnType<typeof prisma.fileFolder.findMany>>;
+    try {
+      fallbackRows = await prisma.fileFolder.findMany({
+        where: { owner },
+        orderBy: [
+          { size: 'desc' },
+          { updated_on: 'desc' },
+        ],
+        take: Math.max(take * 3, 100),
+      });
+    } catch (fallbackError) {
+      if (!isFileFolderUnavailableError(fallbackError)) throw fallbackError;
+      return {
+        usedBytes: 0,
+        categories: [
+          { id: 'documents', label: 'Documents', bytes: 0 },
+          { id: 'images', label: 'Images', bytes: 0 },
+          { id: 'videos', label: 'Videos', bytes: 0 },
+          { id: 'audio', label: 'Audio', bytes: 0 },
+          { id: 'other', label: 'Other', bytes: 0 },
+        ],
+        largestFiles: [],
+      };
+    }
+
+    rows = fallbackRows.map((row) => ({
+      ...row,
+      stored_as: 'drive',
+    }));
+  }
+
+  const categoryMap: Record<DriveQuotaCategory['id'], number> = {
+    documents: 0,
+    images: 0,
+    videos: 0,
+    audio: 0,
+    other: 0,
+  };
+
+  const largestFiles: DriveLargestFile[] = [];
+  let usedBytes = 0;
+
+  for (const row of rows) {
+    if (!isActiveFileDetails(row.details) || isDirectoryDetails(row.details)) continue;
+
+    const sizeBytes = Number(row.size || 0);
+    usedBytes += sizeBytes;
+
+    const fileType = fileTypeFromRecord(row.type, row.name, row.details);
+    const categoryId: DriveQuotaCategory['id'] =
+      fileType === 'doc' || fileType === 'pdf'
+        ? 'documents'
+        : fileType === 'jpg' || fileType === 'png'
+          ? 'images'
+          : fileType === 'mp4'
+            ? 'videos'
+            : fileType === 'audio'
+              ? 'audio'
+              : 'other';
+
+    categoryMap[categoryId] += sizeBytes;
+
+    if (largestFiles.length < take) {
+      largestFiles.push({
+        id: row.id,
+        name: row.name,
+        path: getDriveRelativePath(row.path, row.owner),
+        sizeBytes,
+        size: formatBytes(row.size) || '0 B',
+        lastModified: formatLastModified(row.updated_on),
+        type: fileType,
+      });
+    }
+  }
+
+  const categories: DriveQuotaCategory[] = [
+    { id: 'documents', label: 'Documents', bytes: categoryMap.documents },
+    { id: 'images', label: 'Images', bytes: categoryMap.images },
+    { id: 'videos', label: 'Videos', bytes: categoryMap.videos },
+    { id: 'audio', label: 'Audio', bytes: categoryMap.audio },
+    { id: 'other', label: 'Other', bytes: categoryMap.other },
+  ];
+
+  return {
+    usedBytes,
+    categories,
+    largestFiles,
+  };
+}

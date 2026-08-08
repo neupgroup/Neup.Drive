@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +29,7 @@ import {
 } from '@/lib/storage-tiers';
 import { getCookie } from '@/core/helpers/cookie';
 import { account } from '@/logica/account';
+import { PRODRIVE_QUOTA_PATH } from './routes';
 
 const STORAGE_OWNER = process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
 const DEFAULT_ACCOUNT_LABEL = 'Signed out';
@@ -193,42 +196,49 @@ export async function Sidebar() {
             <CardTitle className="text-base font-medium">Storage</CardTitle>
           </CardHeader>
           <CardContent className="p-2 pt-0 md:p-4 md:pt-0">
-            <div className="text-center text-sm text-muted-foreground">
-              <span className="font-bold">{formatStorageBytes(storage.used)}</span> of {formatStorageBytes(STORAGE_LIMIT_BYTES)} used
-            </div>
-            <div
-              className="mt-3 flex h-3 w-full overflow-hidden rounded-full bg-slate-100"
-              aria-label={`${usedPercent.toFixed(1)}% storage used`}
-              role="meter"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={Number(usedPercent.toFixed(1))}
+            <Link
+              href={PRODRIVE_QUOTA_PATH}
+              className="block rounded-md transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              aria-label="Open quota page"
             >
-              <div className="h-full bg-blue-500" style={{ width: segmentWidth(storage.totals.cold) }} />
-              <div className="h-full bg-orange-500" style={{ width: segmentWidth(storage.totals.warm) }} />
-              <div className="h-full bg-red-500" style={{ width: segmentWidth(storage.totals.hot) }} />
-              <div className="h-full bg-slate-200" style={{ width: segmentWidth(storage.empty) }} />
-            </div>
-            {visibleTiers.length > 0 ? (
-              <TooltipProvider>
-                <div className="mt-3 flex items-center justify-center gap-3">
-                  {visibleTiers.map(({ tier, color }) => (
-                    <Tooltip key={tier}>
-                      <TooltipTrigger
-                        type="button"
-                        className="inline-flex h-3 w-3 items-center justify-center rounded-full"
-                        aria-label={`${tierTitle(tier)}: ${formatStorageBytes(storage.totals[tier])}`}
-                      >
-                        <span className={`inline-block h-2.5 w-2.5 rounded-full ${color}`} />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {tierTitle(tier)}: {formatStorageBytes(storage.totals[tier])}
-                      </TooltipContent>
-                    </Tooltip>
-                  ))}
-                </div>
-              </TooltipProvider>
-            ) : null}
+              <div className="text-center text-sm text-muted-foreground">
+                <span className="font-bold">{formatStorageBytes(storage.used)}</span> of {formatStorageBytes(STORAGE_LIMIT_BYTES)} used
+              </div>
+              <div
+                className="mt-3 flex h-3 w-full overflow-hidden rounded-full bg-slate-100"
+                aria-label={`${usedPercent.toFixed(1)}% storage used`}
+                role="meter"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Number(usedPercent.toFixed(1))}
+              >
+                <div className="h-full bg-blue-500" style={{ width: segmentWidth(storage.totals.cold) }} />
+                <div className="h-full bg-orange-500" style={{ width: segmentWidth(storage.totals.warm) }} />
+                <div className="h-full bg-red-500" style={{ width: segmentWidth(storage.totals.hot) }} />
+                <div className="h-full bg-slate-200" style={{ width: segmentWidth(storage.empty) }} />
+              </div>
+              {visibleTiers.length > 0 ? (
+                <TooltipProvider>
+                  <div className="mt-3 flex items-center justify-center gap-3">
+                    {visibleTiers.map(({ tier, color }) => (
+                      <Tooltip key={tier}>
+                        <TooltipTrigger asChild>
+                          <span
+                            className="inline-flex h-3 w-3 items-center justify-center rounded-full"
+                            aria-label={`${tierTitle(tier)}: ${formatStorageBytes(storage.totals[tier])}`}
+                          >
+                            <span className={`inline-block h-2.5 w-2.5 rounded-full ${color}`} />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {tierTitle(tier)}: {formatStorageBytes(storage.totals[tier])}
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </div>
+                </TooltipProvider>
+              ) : null}
+            </Link>
           </CardContent>
           <CardFooter className="p-2 pt-0 md:p-4">
             <Button size="sm" className="w-full">
