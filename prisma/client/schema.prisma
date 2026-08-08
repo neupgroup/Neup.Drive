@@ -3,7 +3,6 @@
 
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
   output          = "./client"
 }
 
@@ -85,4 +84,18 @@ model Account {
   neupid        String?
   created_on    DateTime  @default(now())
   accessed_on   DateTime?
+  sites         Site[]
+}
+
+model Site {
+  id          String   @id
+  name        String
+  ownerId     String
+  tokenHash   String
+  allowedIp   String[]
+  lastUpdated DateTime @updatedAt
+  owner       Account  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@map("sites")
 }
