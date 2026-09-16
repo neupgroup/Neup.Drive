@@ -35,7 +35,6 @@ import {
     isReservedWebdiskRootFolder,
     normalizeFolderType,
 } from '@/lib/bridge-api';
-import { handleServerError } from '@/lib/error-server';
 import type { UploadInitRequest } from '@/lib/upload-types';
 
 function getBodyValue(body: Partial<UploadInitRequest> & Record<string, unknown>, name: string) {
@@ -118,8 +117,8 @@ export async function POST(request: NextRequest) {
             ...response,
         }, { status: 200 });
     } catch (error) {
-        return handleServerError(error, 'bridge/api.v1/drive/upload/init', {
-            body: { ...body, file_hash: 'REDACTED', hash: 'REDACTED' },
-        });
+        await logica.logger.type('error').data({ route: 'bridge/api.v1/drive/upload/init' }).error(error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+import { logica } from '@neup/logica';

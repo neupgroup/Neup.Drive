@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@neup/core/database/prisma';
 
 import { prisma } from '@neup/core/database/prisma';
-import { handleServerError } from '@/lib/error-server';
 import { appendBridgeFileAccessLog } from '@/lib/file-access-log';
 import { buildFileFolderActivityUpdate, createFileFolderLog, isDirectoryDetails } from '@/lib/filefolder';
 import { buildBridgeTrashPath, getDetails, getTrashDeletesIn, isActiveFileDetails } from '@/lib/bridge-api';
@@ -427,6 +426,8 @@ export async function POST(request: NextRequest) {
             cdn: cdnResult,
         });
     } catch (error) {
-        return handleServerError(error, 'bridge/api.v1/drive/files/operation', { body });
+        await logica.logger.type('error').data({ route: 'bridge/api.v1/drive/files/operation' }).error(error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+import { logica } from '@neup/logica';

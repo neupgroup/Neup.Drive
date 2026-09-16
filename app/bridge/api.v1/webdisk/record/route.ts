@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@neup/core/database/prisma';
-import { handleServerError } from '@/lib/error-server';
 import { createFileFolderLog, recordFileFolderUpload, webdiskStoredAs } from '@/lib/filefolder';
 
 const WEBDISK_TYPES = ['assets', 'signed'];
@@ -94,6 +93,8 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true, id: record.id, filefolder_id: filefolder.id });
     } catch (error) {
-        return handleServerError(error, '/bridge/api.v1/webdisk/record', { method: 'POST' });
+        await logica.logger.type('error').data({ route: '/bridge/api.v1/webdisk/record' }).error(error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+import { logica } from '@neup/logica';

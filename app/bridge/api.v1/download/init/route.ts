@@ -13,7 +13,6 @@ import {
     isActiveFileDetails,
 } from '@/lib/bridge-api';
 import { parseDurationSeconds } from '@/lib/cdn-token';
-import { handleServerError } from '@/lib/error-server';
 
 export async function GET(request: NextRequest) {
     try {
@@ -71,6 +70,8 @@ export async function GET(request: NextRequest) {
             },
         });
     } catch (error) {
-        return handleServerError(error, 'bridge/api.v1/download/init');
+        await logica.logger.type('error').data({ route: 'bridge/api.v1/download/init' }).error(error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+import { logica } from '@neup/logica';

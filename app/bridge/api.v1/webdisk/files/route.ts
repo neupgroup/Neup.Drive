@@ -4,7 +4,6 @@ import { getRequestDeviceIp } from '@/lib/bridge-api';
 import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken, parseDurationSeconds } from '@/lib/cdn-token';
 import { prisma } from '@neup/core/database/prisma';
 import { resolveAuthenticatedAccountId, resolveAuthenticatedAccountProfile } from '@/lib/bridge-api';
-import { handleServerError } from '@/lib/error-server';
 
 const PRIVATE_KEY = process.env.UPLOAD_SECRET_PRIVATE_KEY || '';
 const CDN_BASE_URL = (process.env.CDN_BASE_URL || '').replace(/\/$/, '');
@@ -160,6 +159,8 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(mappedFiles);
     } catch (error) {
-        return handleServerError(error, '/bridge/api.v1/webdisk/files', { method: 'GET' });
+        await logica.logger.type('error').data({ route: '/bridge/api.v1/webdisk/files' }).error(error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+import { logica } from '@neup/logica';

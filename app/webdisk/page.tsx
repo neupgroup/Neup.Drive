@@ -11,7 +11,6 @@ import { Skeleton } from '@neup/components/ui/skeleton';
 import { ToastAction } from '@neup/components/ui/toast';
 import { makeAppPath } from '@neup/core/appconfig';
 import { toast } from '@neup/core/hooks/useToast';
-import { handleClientError } from '@/lib/error-client';
 import { storageTierFromWebdiskType, type StorageTier } from '@/lib/storage-tiers';
 import type { FileOrFolder } from '@/lib/types';
 
@@ -281,10 +280,8 @@ function WebdiskContent() {
       ]);
       setError(null);
     } catch (err) {
-      const message = await handleClientError(err, 'WebDiskPage', {
-        status: typeof err === 'object' && err && 'status' in err ? (err as { status?: number }).status : undefined,
-        response: typeof err === 'object' && err && 'response' in err ? (err as { response?: unknown }).response : undefined,
-      });
+      await logica.logger.type('client-error').data({ component: 'app/webdisk/page.tsx' }).error(error);
+      const message = 'Something went wrong. The team has been notified.';
       setError(message);
     } finally {
       setLoading(false);
@@ -516,10 +513,8 @@ function WebdiskContent() {
         toast({ title: 'File moved.' });
       }
     } catch (err) {
-      const message = await handleClientError(err, 'WebDiskOperation', {
-        status: typeof err === 'object' && err && 'status' in err ? (err as { status?: number }).status : undefined,
-        response: typeof err === 'object' && err && 'response' in err ? (err as { response?: unknown }).response : undefined,
-      });
+      await logica.logger.type('client-error').data({ component: 'app/webdisk/page.tsx' }).error(error);
+      const message = 'Something went wrong. The team has been notified.';
       setError(message);
     } finally {
       setOperatingPath(null);
@@ -719,3 +714,4 @@ export default function WebdiskPage() {
     </React.Suspense>
   );
 }
+import { logica } from '@neup/logica';

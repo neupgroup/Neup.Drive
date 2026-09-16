@@ -40,7 +40,7 @@ The server failed to record the error.
 ::private
 
 Upload trace payloads are normalized into `system_error`; all other payloads are
-forwarded to the shared `logToDatabase` helper.
+sent directly through `logica.logger`.
 
 ::private end
 
@@ -48,7 +48,6 @@ forwarded to the shared `logToDatabase` helper.
 */
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@neup/core/database/prisma';
-import { logToDatabase } from '@/lib/error-server';
 import { identifyError } from '@/lib/error-types';
 
 function getSystemErrorAccount(context: Record<string, unknown>) {
@@ -90,7 +89,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Preserve the client-reported error type/message so logs are usable.
-        await logToDatabase(clientError, JSON.stringify(context), on_page);
+        await logica.logger.type('error').data({ route: on_page, context }).error(clientError);
 
         return NextResponse.json({ success: true });
     } catch (error) {
@@ -187,3 +186,4 @@ export async function GET(request: NextRequest) {
         );
     }
 }
+import { logica } from '@neup/logica';

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { prisma } from '@neup/core/database/prisma';
-import { handleServerError } from '@/lib/error-server';
 import {
     createBridgeFileUrl,
     getAuthenticatedBridgeOwner,
@@ -84,7 +83,8 @@ export async function GET(request: NextRequest) {
             },
         });
     } catch (error) {
-        return handleServerError(error, 'bridge/api.v1/drive/file');
+        await logica.logger.type('error').data({ route: 'bridge/api.v1/drive/file' }).error(error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 
@@ -120,3 +120,4 @@ async function resolveDriveOwner(request: NextRequest) {
     const requestedOwner = request.nextUrl.searchParams.get('account_id') || request.nextUrl.searchParams.get('owner');
     return requestedOwner?.trim() || null;
 }
+import { logica } from '@neup/logica';

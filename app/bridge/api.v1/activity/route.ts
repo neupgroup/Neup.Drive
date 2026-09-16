@@ -17,7 +17,6 @@ The activity action to record. Currently supports `folder_opened`.
 ::end
 */
 import { NextRequest, NextResponse } from 'next/server';
-import { handleServerError } from '@/lib/error-server';
 import { upsertFolderActivity } from '@/lib/filefolder';
 
 interface RecordActivityRequest {
@@ -75,6 +74,8 @@ export async function POST(request: NextRequest) {
       },
     }, { status: 200 });
   } catch (error) {
-    return handleServerError(error, '/bridge/api.v1/activity', { method: 'POST', body });
+    await logica.logger.type('error').data({ route: '/bridge/api.v1/activity' }).error(error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+import { logica } from '@neup/logica';

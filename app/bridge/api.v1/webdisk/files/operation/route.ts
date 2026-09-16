@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { appendBridgeFileAccessLog } from '@/lib/file-access-log';
 import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/lib/cdn-token';
 import { prisma } from '@neup/core/database/prisma';
-import { handleServerError } from '@/lib/error-server';
-import { logToDatabase } from '@/lib/error-server';
 import { buildFileFolderActivityUpdate, isDirectoryDetails, webdiskStoredAs } from '@/lib/filefolder';
 import { buildBridgeTrashPath, getTrashDeletesIn, isMissingCdnFileError, isReservedWebdiskRootFolder } from '@/lib/bridge-api';
 import { ErrorType } from '@/lib/error-types';
@@ -174,13 +172,7 @@ async function registerMissingFileMoveError(params: {
     const error = new Error('file_not_found');
     (error as Error & { code?: string }).code = ErrorType.FILE_NOT_FOUND;
 
-    await logToDatabase(error, JSON.stringify({
-        errorType: 'file_not_found',
-        old_location: params.oldLocation,
-        attempted_action: params.attemptedAction,
-        attempted_by: params.attemptedBy,
-        destination_path: params.destinationPath,
-    }), '/bridge/api.v1/webdisk/files/operation');
+    await logica.logger.type('error').data({ route: 'app/bridge/api.v1/webdisk/files/operation/route.ts' }).error(error);
 }
 
 async function registerFolderNotFoundError(params: {
@@ -193,16 +185,7 @@ async function registerFolderNotFoundError(params: {
     const error = new Error('Folder not found');
     (error as Error & { code?: string }).code = ErrorType.FOLDER_NOT_FOUND;
 
-    await logToDatabase(error, JSON.stringify({
-        errorType: ErrorType.FOLDER_NOT_FOUND,
-        filefolder_id: params.filefolderId,
-        cdn_path: params.cdnPath,
-        action: params.action,
-        reason: params.reason,
-        body: params.body,
-    }), '/bridge/api.v1/webdisk/files/operation', {
-        suppressConsole: true,
-    });
+    await logica.logger.type('error').data({ route: 'app/bridge/api.v1/webdisk/files/operation/route.ts' }).error(error);
 }
 
 function isMissingFileFolderTableError(error: unknown) {
@@ -640,6 +623,8 @@ export async function POST(request: NextRequest) {
         }
         return NextResponse.json({ success: true, action: body.action, missing_source: missingSource, cdn });
     } catch (error) {
-        return handleServerError(error, '/bridge/api.v1/webdisk/files/operation', { body });
+        await logica.logger.type('error').data({ route: '/bridge/api.v1/webdisk/files/operation' }).error(error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+import { logica } from '@neup/logica';

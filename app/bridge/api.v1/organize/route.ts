@@ -8,7 +8,6 @@ import {
     getParam,
     organizeBridgeFile,
 } from '@/lib/bridge-api';
-import { handleServerError } from '@/lib/error-server';
 
 function getOrganizeType(request: NextRequest): BridgeOrganizeType | null {
     const value = (
@@ -71,6 +70,8 @@ export async function GET(request: NextRequest) {
             cdn: cdnResult,
         });
     } catch (error) {
-        return handleServerError(error, 'bridge/api.v1/organize');
+        await logica.logger.type('error').data({ route: 'bridge/api.v1/organize' }).error(error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+import { logica } from '@neup/logica';

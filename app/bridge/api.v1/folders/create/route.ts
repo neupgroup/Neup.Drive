@@ -31,7 +31,6 @@ The parent relative path within the target surface.
 import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@neup/core/database/prisma';
-import { handleServerError } from '@/lib/error-server';
 import { createFileFolderLog, webdiskStoredAs } from '@/lib/filefolder';
 import { isActiveFileDetails, isReservedWebdiskRootFolder, normalizeInternalPath } from '@/lib/bridge-api';
 
@@ -167,6 +166,8 @@ export async function POST(request: NextRequest) {
             },
         }, { status: 201 });
     } catch (error) {
-        return handleServerError(error, '/bridge/api.v1/folders/create', { method: 'POST' });
+        await logica.logger.type('error').data({ route: '/bridge/api.v1/folders/create' }).error(error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+import { logica } from '@neup/logica';

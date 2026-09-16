@@ -4,7 +4,6 @@ import type { Prisma } from '@neup/core/database/prisma';
 import { createBridgeFileUrl, getFolderType, getParam, getRequestDeviceIp, isActiveFileDetails } from '@/lib/bridge-api';
 import { parseDurationSeconds } from '@/lib/cdn-token';
 import { prisma } from '@neup/core/database/prisma';
-import { handleServerError } from '@/lib/error-server';
 import { appendBridgeFileAccessLog } from '@/lib/file-access-log';
 
 /*
@@ -96,6 +95,8 @@ export async function GET(request: NextRequest) {
             view_url: viewUrl,
         });
     } catch (error) {
-        return handleServerError(error, 'bridge/api.v1/drive/files/preview');
+        await logica.logger.type('error').data({ route: 'bridge/api.v1/drive/files/preview' }).error(error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+import { logica } from '@neup/logica';

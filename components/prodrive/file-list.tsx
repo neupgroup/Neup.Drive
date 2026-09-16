@@ -3,7 +3,6 @@
 import * as React from 'react';
 import { FileIcon, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from '@neup/components/ui/button';
-import { handleClientError } from '@/lib/error-client';
 import {
     Table,
     TableBody,
@@ -48,18 +47,13 @@ export function FileList({ refreshTrigger = 0 }: FileListProps) {
                 } catch {
                     errorData = await res.text().catch(() => '');
                 }
-                const message = await handleClientError(
-                    new Error('Failed to fetch files'),
-                    'FileList',
-                    {
-                        status: res.status,
-                        response: errorData,
-                    }
-                );
+                await logica.logger.type('client-error').data({ component: 'components/prodrive/file-list.tsx' }).error(error);
+                const message = 'Something went wrong. The team has been notified.';
                 setError(message);
             }
         } catch (error) {
-            const userMessage = await handleClientError(error, 'FileList');
+            await logica.logger.type('client-error').data({ component: 'components/prodrive/file-list.tsx' }).error(error);
+            const userMessage = 'Something went wrong. The team has been notified.';
             setError(userMessage);
         } finally {
             setLoading(false);
@@ -145,3 +139,4 @@ export function FileList({ refreshTrigger = 0 }: FileListProps) {
         </div>
     );
 }
+import { logica } from '@neup/logica';

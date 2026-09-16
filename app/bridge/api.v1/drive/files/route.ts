@@ -23,7 +23,6 @@ path, while signed file URLs resolve against `details.storage_path`.
 */
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@neup/core/database/prisma';
-import { handleServerError } from '@/lib/error-server';
 import {
     createBridgeFileUrl,
     getAuthenticatedBridgeOwner,
@@ -101,7 +100,8 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(mappedFiles);
     } catch (error) {
-        return handleServerError(error, 'bridge/api.v1/drive/files');
+        await logica.logger.type('error').data({ route: 'bridge/api.v1/drive/files' }).error(error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 
@@ -138,3 +138,4 @@ async function resolveDriveOwner(request: NextRequest) {
     const requestedOwner = request.nextUrl.searchParams.get('account_id') || request.nextUrl.searchParams.get('owner');
     return requestedOwner?.trim() || null;
 }
+import { logica } from '@neup/logica';

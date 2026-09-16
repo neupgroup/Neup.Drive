@@ -33,8 +33,6 @@ import { Prisma } from '@neup/core/database/prisma';
 
 import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/lib/cdn-token';
 import { prisma } from '@neup/core/database/prisma';
-import { handleServerError } from '@/lib/error-server';
-import { logToDatabase } from '@/lib/error-server';
 import { buildFileFolderActivityUpdate, isDirectoryDetails, webdiskStoredAs } from '@/lib/filefolder';
 import { assertSafePathSegment, isMissingCdnFileError, isReservedWebdiskRootFolder, normalizeInternalPath } from '@/lib/bridge-api';
 import { ErrorType, GENERIC_ERROR_MESSAGE } from '@/lib/error-types';
@@ -227,16 +225,7 @@ async function registerMissingTrashFileError(params: {
   const error = new Error('file_not_found');
   (error as Error & { code?: string }).code = ErrorType.FILE_NOT_FOUND;
 
-  await logToDatabase(error, JSON.stringify({
-    errorType: 'file_not_found',
-    source_path: params.sourcePath,
-    destination_path: params.destinationPath,
-    attempted_action: params.attemptedAction,
-    attempted_by: params.attemptedBy,
-    filefolder_id: params.filefolderId,
-  }), 'bridge/api.v1/trash/operation', {
-    suppressConsole: params.suppressConsole,
-  });
+  await logica.logger.type('error').data({ route: 'app/bridge/api.v1/trash/operation/route.ts' }).error(error);
 }
 
 export async function POST(request: NextRequest) {
@@ -415,6 +404,8 @@ export async function POST(request: NextRequest) {
       cdn: cdnResult,
     }, { status: 200 });
   } catch (error) {
-    return handleServerError(error, '/bridge/api.v1/trash/operation', { method: 'POST', body });
+    await logica.logger.type('error').data({ route: '/bridge/api.v1/trash/operation' }).error(error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+import { logica } from '@neup/logica';

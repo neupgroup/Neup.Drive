@@ -13,7 +13,6 @@ import {
     normalizeFolderType,
 } from '@/lib/bridge-api';
 import { prisma } from '@neup/core/database/prisma';
-import { handleServerError } from '@/lib/error-server';
 import { isDirectoryMimeType, webdiskStoredAs } from '@/lib/filefolder';
 
 export async function GET(request: NextRequest) {
@@ -73,6 +72,8 @@ export async function GET(request: NextRequest) {
             }),
         });
     } catch (error) {
-        return handleServerError(error, 'bridge/api.v1/list');
+        await logica.logger.type('error').data({ route: 'bridge/api.v1/list' }).error(error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+import { logica } from '@neup/logica';

@@ -10,7 +10,6 @@ import { hashFile } from '@/lib/blake3';
 import type { UploadInitResponse } from '@/lib/upload-types';
 import { uploadFileChunks } from '@/lib/chunked-upload';
 import { saveUpload, getUploads, deleteUpload, type UploadQueueItem } from '@/lib/upload-persistence';
-import { handleClientError } from '@/lib/error-client';
 import { logUploadTrace } from '@/lib/upload-trace';
 
 interface FileUploadProps {
@@ -124,11 +123,8 @@ export function FileUpload({
                     hash,
                 });
             } catch (error) {
-                const userMessage = await handleClientError(error, 'FileUpload:Hashing', {
-                    accountId,
-                    fileId: pendingItem.id,
-                    fileName: pendingItem.metadata.name
-                });
+                await logica.logger.type('client-error').data({ component: 'components/prodrive/file-upload.tsx' }).error(error);
+                const userMessage = 'Something went wrong. The team has been notified.';
                 void logUploadTrace('FileUpload', 'hashing_failed', {
                     accountId,
                     fileId: pendingItem.id,
@@ -207,11 +203,8 @@ export function FileUpload({
                     return;
                 }
 
-                const userMessage = await handleClientError(error, 'FileUpload:Authorization', {
-                    accountId,
-                    fileId: hashedItem.id,
-                    fileName: hashedItem.metadata.name
-                });
+                await logica.logger.type('client-error').data({ component: 'components/prodrive/file-upload.tsx' }).error(error);
+                const userMessage = 'Something went wrong. The team has been notified.';
                 void logUploadTrace('FileUpload', 'upload_init_failed', {
                     accountId,
                     fileId: hashedItem.id,
@@ -283,14 +276,8 @@ export function FileUpload({
                     status?: number;
                     response?: unknown;
                 };
-                const userMessage = await handleClientError(error, 'FileUpload:Uploading', {
-                    accountId,
-                    fileId: readyItem.id,
-                    fileName: readyItem.metadata.name,
-                    stage: 'chunk_upload',
-                    status: uploadError.status,
-                    response: uploadError.response,
-                });
+                await logica.logger.type('client-error').data({ component: 'components/prodrive/file-upload.tsx' }).error(error);
+                const userMessage = 'Something went wrong. The team has been notified.';
                 void logUploadTrace('FileUpload', 'chunk_upload_failed', {
                     accountId,
                     fileId: readyItem.id,
@@ -533,3 +520,4 @@ export function FileUpload({
         </div>
     );
 }
+import { logica } from '@neup/logica';
