@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS "ErrorLog";
+DROP TABLE IF EXISTS "system_error";

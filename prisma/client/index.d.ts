@@ -24,16 +24,6 @@ export type FileFolder = $Result.DefaultSelection<Prisma.$FileFolderPayload>
  */
 export type FileFolderLog = $Result.DefaultSelection<Prisma.$FileFolderLogPayload>
 /**
- * Model ErrorLog
- * 
- */
-export type ErrorLog = $Result.DefaultSelection<Prisma.$ErrorLogPayload>
-/**
- * Model SystemError
- * 
- */
-export type SystemError = $Result.DefaultSelection<Prisma.$SystemErrorPayload>
-/**
  * Model WebDisk
  * 
  */
@@ -43,6 +33,11 @@ export type WebDisk = $Result.DefaultSelection<Prisma.$WebDiskPayload>
  * 
  */
 export type Account = $Result.DefaultSelection<Prisma.$AccountPayload>
+/**
+ * Model Site
+ * 
+ */
+export type Site = $Result.DefaultSelection<Prisma.$SitePayload>
 
 /**
  * ##  Prisma Client ʲˢ
@@ -186,26 +181,6 @@ export class PrismaClient<
   get fileFolderLog(): Prisma.FileFolderLogDelegate<ExtArgs, ClientOptions>;
 
   /**
-   * `prisma.errorLog`: Exposes CRUD operations for the **ErrorLog** model.
-    * Example usage:
-    * ```ts
-    * // Fetch zero or more ErrorLogs
-    * const errorLogs = await prisma.errorLog.findMany()
-    * ```
-    */
-  get errorLog(): Prisma.ErrorLogDelegate<ExtArgs, ClientOptions>;
-
-  /**
-   * `prisma.systemError`: Exposes CRUD operations for the **SystemError** model.
-    * Example usage:
-    * ```ts
-    * // Fetch zero or more SystemErrors
-    * const systemErrors = await prisma.systemError.findMany()
-    * ```
-    */
-  get systemError(): Prisma.SystemErrorDelegate<ExtArgs, ClientOptions>;
-
-  /**
    * `prisma.webDisk`: Exposes CRUD operations for the **WebDisk** model.
     * Example usage:
     * ```ts
@@ -224,6 +199,16 @@ export class PrismaClient<
     * ```
     */
   get account(): Prisma.AccountDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.site`: Exposes CRUD operations for the **Site** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Sites
+    * const sites = await prisma.site.findMany()
+    * ```
+    */
+  get site(): Prisma.SiteDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -673,10 +658,9 @@ export namespace Prisma {
   export const ModelName: {
     FileFolder: 'FileFolder',
     FileFolderLog: 'FileFolderLog',
-    ErrorLog: 'ErrorLog',
-    SystemError: 'SystemError',
     WebDisk: 'WebDisk',
-    Account: 'Account'
+    Account: 'Account',
+    Site: 'Site'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -692,7 +676,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "fileFolder" | "fileFolderLog" | "errorLog" | "systemError" | "webDisk" | "account"
+      modelProps: "fileFolder" | "fileFolderLog" | "webDisk" | "account" | "site"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -844,154 +828,6 @@ export namespace Prisma {
           }
         }
       }
-      ErrorLog: {
-        payload: Prisma.$ErrorLogPayload<ExtArgs>
-        fields: Prisma.ErrorLogFieldRefs
-        operations: {
-          findUnique: {
-            args: Prisma.ErrorLogFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ErrorLogPayload> | null
-          }
-          findUniqueOrThrow: {
-            args: Prisma.ErrorLogFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ErrorLogPayload>
-          }
-          findFirst: {
-            args: Prisma.ErrorLogFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ErrorLogPayload> | null
-          }
-          findFirstOrThrow: {
-            args: Prisma.ErrorLogFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ErrorLogPayload>
-          }
-          findMany: {
-            args: Prisma.ErrorLogFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ErrorLogPayload>[]
-          }
-          create: {
-            args: Prisma.ErrorLogCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ErrorLogPayload>
-          }
-          createMany: {
-            args: Prisma.ErrorLogCreateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          createManyAndReturn: {
-            args: Prisma.ErrorLogCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ErrorLogPayload>[]
-          }
-          delete: {
-            args: Prisma.ErrorLogDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ErrorLogPayload>
-          }
-          update: {
-            args: Prisma.ErrorLogUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ErrorLogPayload>
-          }
-          deleteMany: {
-            args: Prisma.ErrorLogDeleteManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateMany: {
-            args: Prisma.ErrorLogUpdateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateManyAndReturn: {
-            args: Prisma.ErrorLogUpdateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ErrorLogPayload>[]
-          }
-          upsert: {
-            args: Prisma.ErrorLogUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ErrorLogPayload>
-          }
-          aggregate: {
-            args: Prisma.ErrorLogAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateErrorLog>
-          }
-          groupBy: {
-            args: Prisma.ErrorLogGroupByArgs<ExtArgs>
-            result: $Utils.Optional<ErrorLogGroupByOutputType>[]
-          }
-          count: {
-            args: Prisma.ErrorLogCountArgs<ExtArgs>
-            result: $Utils.Optional<ErrorLogCountAggregateOutputType> | number
-          }
-        }
-      }
-      SystemError: {
-        payload: Prisma.$SystemErrorPayload<ExtArgs>
-        fields: Prisma.SystemErrorFieldRefs
-        operations: {
-          findUnique: {
-            args: Prisma.SystemErrorFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SystemErrorPayload> | null
-          }
-          findUniqueOrThrow: {
-            args: Prisma.SystemErrorFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SystemErrorPayload>
-          }
-          findFirst: {
-            args: Prisma.SystemErrorFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SystemErrorPayload> | null
-          }
-          findFirstOrThrow: {
-            args: Prisma.SystemErrorFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SystemErrorPayload>
-          }
-          findMany: {
-            args: Prisma.SystemErrorFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SystemErrorPayload>[]
-          }
-          create: {
-            args: Prisma.SystemErrorCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SystemErrorPayload>
-          }
-          createMany: {
-            args: Prisma.SystemErrorCreateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          createManyAndReturn: {
-            args: Prisma.SystemErrorCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SystemErrorPayload>[]
-          }
-          delete: {
-            args: Prisma.SystemErrorDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SystemErrorPayload>
-          }
-          update: {
-            args: Prisma.SystemErrorUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SystemErrorPayload>
-          }
-          deleteMany: {
-            args: Prisma.SystemErrorDeleteManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateMany: {
-            args: Prisma.SystemErrorUpdateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateManyAndReturn: {
-            args: Prisma.SystemErrorUpdateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SystemErrorPayload>[]
-          }
-          upsert: {
-            args: Prisma.SystemErrorUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SystemErrorPayload>
-          }
-          aggregate: {
-            args: Prisma.SystemErrorAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateSystemError>
-          }
-          groupBy: {
-            args: Prisma.SystemErrorGroupByArgs<ExtArgs>
-            result: $Utils.Optional<SystemErrorGroupByOutputType>[]
-          }
-          count: {
-            args: Prisma.SystemErrorCountArgs<ExtArgs>
-            result: $Utils.Optional<SystemErrorCountAggregateOutputType> | number
-          }
-        }
-      }
       WebDisk: {
         payload: Prisma.$WebDiskPayload<ExtArgs>
         fields: Prisma.WebDiskFieldRefs
@@ -1140,6 +976,80 @@ export namespace Prisma {
           }
         }
       }
+      Site: {
+        payload: Prisma.$SitePayload<ExtArgs>
+        fields: Prisma.SiteFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.SiteFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SitePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.SiteFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SitePayload>
+          }
+          findFirst: {
+            args: Prisma.SiteFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SitePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.SiteFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SitePayload>
+          }
+          findMany: {
+            args: Prisma.SiteFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SitePayload>[]
+          }
+          create: {
+            args: Prisma.SiteCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SitePayload>
+          }
+          createMany: {
+            args: Prisma.SiteCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.SiteCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SitePayload>[]
+          }
+          delete: {
+            args: Prisma.SiteDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SitePayload>
+          }
+          update: {
+            args: Prisma.SiteUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SitePayload>
+          }
+          deleteMany: {
+            args: Prisma.SiteDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.SiteUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.SiteUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SitePayload>[]
+          }
+          upsert: {
+            args: Prisma.SiteUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SitePayload>
+          }
+          aggregate: {
+            args: Prisma.SiteAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateSite>
+          }
+          groupBy: {
+            args: Prisma.SiteGroupByArgs<ExtArgs>
+            result: $Utils.Optional<SiteGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.SiteCountArgs<ExtArgs>
+            result: $Utils.Optional<SiteCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1265,10 +1175,9 @@ export namespace Prisma {
   export type GlobalOmitConfig = {
     fileFolder?: FileFolderOmit
     fileFolderLog?: FileFolderLogOmit
-    errorLog?: ErrorLogOmit
-    systemError?: SystemErrorOmit
     webDisk?: WebDiskOmit
     account?: AccountOmit
+    site?: SiteOmit
   }
 
   /* Types for Logging */
@@ -1372,6 +1281,37 @@ export namespace Prisma {
    */
   export type FileFolderCountOutputTypeCountLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: FileFolderLogWhereInput
+  }
+
+
+  /**
+   * Count Type AccountCountOutputType
+   */
+
+  export type AccountCountOutputType = {
+    sites: number
+  }
+
+  export type AccountCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    sites?: boolean | AccountCountOutputTypeCountSitesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * AccountCountOutputType without action
+   */
+  export type AccountCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountCountOutputType
+     */
+    select?: AccountCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * AccountCountOutputType without action
+   */
+  export type AccountCountOutputTypeCountSitesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SiteWhereInput
   }
 
 
@@ -3661,2002 +3601,6 @@ export namespace Prisma {
 
 
   /**
-   * Model ErrorLog
-   */
-
-  export type AggregateErrorLog = {
-    _count: ErrorLogCountAggregateOutputType | null
-    _min: ErrorLogMinAggregateOutputType | null
-    _max: ErrorLogMaxAggregateOutputType | null
-  }
-
-  export type ErrorLogMinAggregateOutputType = {
-    id: string | null
-    on_page: string | null
-    context: string | null
-    created_on: Date | null
-  }
-
-  export type ErrorLogMaxAggregateOutputType = {
-    id: string | null
-    on_page: string | null
-    context: string | null
-    created_on: Date | null
-  }
-
-  export type ErrorLogCountAggregateOutputType = {
-    id: number
-    on_page: number
-    context: number
-    created_on: number
-    _all: number
-  }
-
-
-  export type ErrorLogMinAggregateInputType = {
-    id?: true
-    on_page?: true
-    context?: true
-    created_on?: true
-  }
-
-  export type ErrorLogMaxAggregateInputType = {
-    id?: true
-    on_page?: true
-    context?: true
-    created_on?: true
-  }
-
-  export type ErrorLogCountAggregateInputType = {
-    id?: true
-    on_page?: true
-    context?: true
-    created_on?: true
-    _all?: true
-  }
-
-  export type ErrorLogAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which ErrorLog to aggregate.
-     */
-    where?: ErrorLogWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of ErrorLogs to fetch.
-     */
-    orderBy?: ErrorLogOrderByWithRelationInput | ErrorLogOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the start position
-     */
-    cursor?: ErrorLogWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` ErrorLogs from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` ErrorLogs.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Count returned ErrorLogs
-    **/
-    _count?: true | ErrorLogCountAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the minimum value
-    **/
-    _min?: ErrorLogMinAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the maximum value
-    **/
-    _max?: ErrorLogMaxAggregateInputType
-  }
-
-  export type GetErrorLogAggregateType<T extends ErrorLogAggregateArgs> = {
-        [P in keyof T & keyof AggregateErrorLog]: P extends '_count' | 'count'
-      ? T[P] extends true
-        ? number
-        : GetScalarType<T[P], AggregateErrorLog[P]>
-      : GetScalarType<T[P], AggregateErrorLog[P]>
-  }
-
-
-
-
-  export type ErrorLogGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: ErrorLogWhereInput
-    orderBy?: ErrorLogOrderByWithAggregationInput | ErrorLogOrderByWithAggregationInput[]
-    by: ErrorLogScalarFieldEnum[] | ErrorLogScalarFieldEnum
-    having?: ErrorLogScalarWhereWithAggregatesInput
-    take?: number
-    skip?: number
-    _count?: ErrorLogCountAggregateInputType | true
-    _min?: ErrorLogMinAggregateInputType
-    _max?: ErrorLogMaxAggregateInputType
-  }
-
-  export type ErrorLogGroupByOutputType = {
-    id: string
-    on_page: string
-    context: string
-    created_on: Date
-    _count: ErrorLogCountAggregateOutputType | null
-    _min: ErrorLogMinAggregateOutputType | null
-    _max: ErrorLogMaxAggregateOutputType | null
-  }
-
-  type GetErrorLogGroupByPayload<T extends ErrorLogGroupByArgs> = Prisma.PrismaPromise<
-    Array<
-      PickEnumerable<ErrorLogGroupByOutputType, T['by']> &
-        {
-          [P in ((keyof T) & (keyof ErrorLogGroupByOutputType))]: P extends '_count'
-            ? T[P] extends boolean
-              ? number
-              : GetScalarType<T[P], ErrorLogGroupByOutputType[P]>
-            : GetScalarType<T[P], ErrorLogGroupByOutputType[P]>
-        }
-      >
-    >
-
-
-  export type ErrorLogSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    on_page?: boolean
-    context?: boolean
-    created_on?: boolean
-  }, ExtArgs["result"]["errorLog"]>
-
-  export type ErrorLogSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    on_page?: boolean
-    context?: boolean
-    created_on?: boolean
-  }, ExtArgs["result"]["errorLog"]>
-
-  export type ErrorLogSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    on_page?: boolean
-    context?: boolean
-    created_on?: boolean
-  }, ExtArgs["result"]["errorLog"]>
-
-  export type ErrorLogSelectScalar = {
-    id?: boolean
-    on_page?: boolean
-    context?: boolean
-    created_on?: boolean
-  }
-
-  export type ErrorLogOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "on_page" | "context" | "created_on", ExtArgs["result"]["errorLog"]>
-
-  export type $ErrorLogPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "ErrorLog"
-    objects: {}
-    scalars: $Extensions.GetPayloadResult<{
-      id: string
-      on_page: string
-      context: string
-      created_on: Date
-    }, ExtArgs["result"]["errorLog"]>
-    composites: {}
-  }
-
-  type ErrorLogGetPayload<S extends boolean | null | undefined | ErrorLogDefaultArgs> = $Result.GetResult<Prisma.$ErrorLogPayload, S>
-
-  type ErrorLogCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
-    Omit<ErrorLogFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
-      select?: ErrorLogCountAggregateInputType | true
-    }
-
-  export interface ErrorLogDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ErrorLog'], meta: { name: 'ErrorLog' } }
-    /**
-     * Find zero or one ErrorLog that matches the filter.
-     * @param {ErrorLogFindUniqueArgs} args - Arguments to find a ErrorLog
-     * @example
-     * // Get one ErrorLog
-     * const errorLog = await prisma.errorLog.findUnique({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUnique<T extends ErrorLogFindUniqueArgs>(args: SelectSubset<T, ErrorLogFindUniqueArgs<ExtArgs>>): Prisma__ErrorLogClient<$Result.GetResult<Prisma.$ErrorLogPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find one ErrorLog that matches the filter or throw an error with `error.code='P2025'`
-     * if no matches were found.
-     * @param {ErrorLogFindUniqueOrThrowArgs} args - Arguments to find a ErrorLog
-     * @example
-     * // Get one ErrorLog
-     * const errorLog = await prisma.errorLog.findUniqueOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUniqueOrThrow<T extends ErrorLogFindUniqueOrThrowArgs>(args: SelectSubset<T, ErrorLogFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ErrorLogClient<$Result.GetResult<Prisma.$ErrorLogPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first ErrorLog that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ErrorLogFindFirstArgs} args - Arguments to find a ErrorLog
-     * @example
-     * // Get one ErrorLog
-     * const errorLog = await prisma.errorLog.findFirst({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirst<T extends ErrorLogFindFirstArgs>(args?: SelectSubset<T, ErrorLogFindFirstArgs<ExtArgs>>): Prisma__ErrorLogClient<$Result.GetResult<Prisma.$ErrorLogPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first ErrorLog that matches the filter or
-     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ErrorLogFindFirstOrThrowArgs} args - Arguments to find a ErrorLog
-     * @example
-     * // Get one ErrorLog
-     * const errorLog = await prisma.errorLog.findFirstOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirstOrThrow<T extends ErrorLogFindFirstOrThrowArgs>(args?: SelectSubset<T, ErrorLogFindFirstOrThrowArgs<ExtArgs>>): Prisma__ErrorLogClient<$Result.GetResult<Prisma.$ErrorLogPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find zero or more ErrorLogs that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ErrorLogFindManyArgs} args - Arguments to filter and select certain fields only.
-     * @example
-     * // Get all ErrorLogs
-     * const errorLogs = await prisma.errorLog.findMany()
-     * 
-     * // Get first 10 ErrorLogs
-     * const errorLogs = await prisma.errorLog.findMany({ take: 10 })
-     * 
-     * // Only select the `id`
-     * const errorLogWithIdOnly = await prisma.errorLog.findMany({ select: { id: true } })
-     * 
-     */
-    findMany<T extends ErrorLogFindManyArgs>(args?: SelectSubset<T, ErrorLogFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ErrorLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
-
-    /**
-     * Create a ErrorLog.
-     * @param {ErrorLogCreateArgs} args - Arguments to create a ErrorLog.
-     * @example
-     * // Create one ErrorLog
-     * const ErrorLog = await prisma.errorLog.create({
-     *   data: {
-     *     // ... data to create a ErrorLog
-     *   }
-     * })
-     * 
-     */
-    create<T extends ErrorLogCreateArgs>(args: SelectSubset<T, ErrorLogCreateArgs<ExtArgs>>): Prisma__ErrorLogClient<$Result.GetResult<Prisma.$ErrorLogPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Create many ErrorLogs.
-     * @param {ErrorLogCreateManyArgs} args - Arguments to create many ErrorLogs.
-     * @example
-     * // Create many ErrorLogs
-     * const errorLog = await prisma.errorLog.createMany({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     *     
-     */
-    createMany<T extends ErrorLogCreateManyArgs>(args?: SelectSubset<T, ErrorLogCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Create many ErrorLogs and returns the data saved in the database.
-     * @param {ErrorLogCreateManyAndReturnArgs} args - Arguments to create many ErrorLogs.
-     * @example
-     * // Create many ErrorLogs
-     * const errorLog = await prisma.errorLog.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many ErrorLogs and only return the `id`
-     * const errorLogWithIdOnly = await prisma.errorLog.createManyAndReturn({
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends ErrorLogCreateManyAndReturnArgs>(args?: SelectSubset<T, ErrorLogCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ErrorLogPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Delete a ErrorLog.
-     * @param {ErrorLogDeleteArgs} args - Arguments to delete one ErrorLog.
-     * @example
-     * // Delete one ErrorLog
-     * const ErrorLog = await prisma.errorLog.delete({
-     *   where: {
-     *     // ... filter to delete one ErrorLog
-     *   }
-     * })
-     * 
-     */
-    delete<T extends ErrorLogDeleteArgs>(args: SelectSubset<T, ErrorLogDeleteArgs<ExtArgs>>): Prisma__ErrorLogClient<$Result.GetResult<Prisma.$ErrorLogPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Update one ErrorLog.
-     * @param {ErrorLogUpdateArgs} args - Arguments to update one ErrorLog.
-     * @example
-     * // Update one ErrorLog
-     * const errorLog = await prisma.errorLog.update({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    update<T extends ErrorLogUpdateArgs>(args: SelectSubset<T, ErrorLogUpdateArgs<ExtArgs>>): Prisma__ErrorLogClient<$Result.GetResult<Prisma.$ErrorLogPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Delete zero or more ErrorLogs.
-     * @param {ErrorLogDeleteManyArgs} args - Arguments to filter ErrorLogs to delete.
-     * @example
-     * // Delete a few ErrorLogs
-     * const { count } = await prisma.errorLog.deleteMany({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     * 
-     */
-    deleteMany<T extends ErrorLogDeleteManyArgs>(args?: SelectSubset<T, ErrorLogDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more ErrorLogs.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ErrorLogUpdateManyArgs} args - Arguments to update one or more rows.
-     * @example
-     * // Update many ErrorLogs
-     * const errorLog = await prisma.errorLog.updateMany({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    updateMany<T extends ErrorLogUpdateManyArgs>(args: SelectSubset<T, ErrorLogUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more ErrorLogs and returns the data updated in the database.
-     * @param {ErrorLogUpdateManyAndReturnArgs} args - Arguments to update many ErrorLogs.
-     * @example
-     * // Update many ErrorLogs
-     * const errorLog = await prisma.errorLog.updateManyAndReturn({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Update zero or more ErrorLogs and only return the `id`
-     * const errorLogWithIdOnly = await prisma.errorLog.updateManyAndReturn({
-     *   select: { id: true },
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    updateManyAndReturn<T extends ErrorLogUpdateManyAndReturnArgs>(args: SelectSubset<T, ErrorLogUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ErrorLogPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Create or update one ErrorLog.
-     * @param {ErrorLogUpsertArgs} args - Arguments to update or create a ErrorLog.
-     * @example
-     * // Update or create a ErrorLog
-     * const errorLog = await prisma.errorLog.upsert({
-     *   create: {
-     *     // ... data to create a ErrorLog
-     *   },
-     *   update: {
-     *     // ... in case it already exists, update
-     *   },
-     *   where: {
-     *     // ... the filter for the ErrorLog we want to update
-     *   }
-     * })
-     */
-    upsert<T extends ErrorLogUpsertArgs>(args: SelectSubset<T, ErrorLogUpsertArgs<ExtArgs>>): Prisma__ErrorLogClient<$Result.GetResult<Prisma.$ErrorLogPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-
-    /**
-     * Count the number of ErrorLogs.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ErrorLogCountArgs} args - Arguments to filter ErrorLogs to count.
-     * @example
-     * // Count the number of ErrorLogs
-     * const count = await prisma.errorLog.count({
-     *   where: {
-     *     // ... the filter for the ErrorLogs we want to count
-     *   }
-     * })
-    **/
-    count<T extends ErrorLogCountArgs>(
-      args?: Subset<T, ErrorLogCountArgs>,
-    ): Prisma.PrismaPromise<
-      T extends $Utils.Record<'select', any>
-        ? T['select'] extends true
-          ? number
-          : GetScalarType<T['select'], ErrorLogCountAggregateOutputType>
-        : number
-    >
-
-    /**
-     * Allows you to perform aggregations operations on a ErrorLog.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ErrorLogAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
-     * @example
-     * // Ordered by age ascending
-     * // Where email contains prisma.io
-     * // Limited to the 10 users
-     * const aggregations = await prisma.user.aggregate({
-     *   _avg: {
-     *     age: true,
-     *   },
-     *   where: {
-     *     email: {
-     *       contains: "prisma.io",
-     *     },
-     *   },
-     *   orderBy: {
-     *     age: "asc",
-     *   },
-     *   take: 10,
-     * })
-    **/
-    aggregate<T extends ErrorLogAggregateArgs>(args: Subset<T, ErrorLogAggregateArgs>): Prisma.PrismaPromise<GetErrorLogAggregateType<T>>
-
-    /**
-     * Group by ErrorLog.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ErrorLogGroupByArgs} args - Group by arguments.
-     * @example
-     * // Group by city, order by createdAt, get count
-     * const result = await prisma.user.groupBy({
-     *   by: ['city', 'createdAt'],
-     *   orderBy: {
-     *     createdAt: true
-     *   },
-     *   _count: {
-     *     _all: true
-     *   },
-     * })
-     * 
-    **/
-    groupBy<
-      T extends ErrorLogGroupByArgs,
-      HasSelectOrTake extends Or<
-        Extends<'skip', Keys<T>>,
-        Extends<'take', Keys<T>>
-      >,
-      OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: ErrorLogGroupByArgs['orderBy'] }
-        : { orderBy?: ErrorLogGroupByArgs['orderBy'] },
-      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
-      ByFields extends MaybeTupleToUnion<T['by']>,
-      ByValid extends Has<ByFields, OrderFields>,
-      HavingFields extends GetHavingFields<T['having']>,
-      HavingValid extends Has<ByFields, HavingFields>,
-      ByEmpty extends T['by'] extends never[] ? True : False,
-      InputErrors extends ByEmpty extends True
-      ? `Error: "by" must not be empty.`
-      : HavingValid extends False
-      ? {
-          [P in HavingFields]: P extends ByFields
-            ? never
-            : P extends string
-            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-            : [
-                Error,
-                'Field ',
-                P,
-                ` in "having" needs to be provided in "by"`,
-              ]
-        }[HavingFields]
-      : 'take' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "take", you also need to provide "orderBy"'
-      : 'skip' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "skip", you also need to provide "orderBy"'
-      : ByValid extends True
-      ? {}
-      : {
-          [P in OrderFields]: P extends ByFields
-            ? never
-            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-        }[OrderFields]
-    >(args: SubsetIntersection<T, ErrorLogGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetErrorLogGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-  /**
-   * Fields of the ErrorLog model
-   */
-  readonly fields: ErrorLogFieldRefs;
-  }
-
-  /**
-   * The delegate class that acts as a "Promise-like" for ErrorLog.
-   * Why is this prefixed with `Prisma__`?
-   * Because we want to prevent naming conflicts as mentioned in
-   * https://github.com/prisma/prisma-client-js/issues/707
-   */
-  export interface Prisma__ErrorLogClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
-    readonly [Symbol.toStringTag]: "PrismaPromise"
-    /**
-     * Attaches callbacks for the resolution and/or rejection of the Promise.
-     * @param onfulfilled The callback to execute when the Promise is resolved.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of which ever callback is executed.
-     */
-    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
-    /**
-     * Attaches a callback for only the rejection of the Promise.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of the callback.
-     */
-    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
-    /**
-     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
-     * resolved value cannot be modified from the callback.
-     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
-     * @returns A Promise for the completion of the callback.
-     */
-    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
-  }
-
-
-
-
-  /**
-   * Fields of the ErrorLog model
-   */
-  interface ErrorLogFieldRefs {
-    readonly id: FieldRef<"ErrorLog", 'String'>
-    readonly on_page: FieldRef<"ErrorLog", 'String'>
-    readonly context: FieldRef<"ErrorLog", 'String'>
-    readonly created_on: FieldRef<"ErrorLog", 'DateTime'>
-  }
-    
-
-  // Custom InputTypes
-  /**
-   * ErrorLog findUnique
-   */
-  export type ErrorLogFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ErrorLog
-     */
-    select?: ErrorLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ErrorLog
-     */
-    omit?: ErrorLogOmit<ExtArgs> | null
-    /**
-     * Filter, which ErrorLog to fetch.
-     */
-    where: ErrorLogWhereUniqueInput
-  }
-
-  /**
-   * ErrorLog findUniqueOrThrow
-   */
-  export type ErrorLogFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ErrorLog
-     */
-    select?: ErrorLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ErrorLog
-     */
-    omit?: ErrorLogOmit<ExtArgs> | null
-    /**
-     * Filter, which ErrorLog to fetch.
-     */
-    where: ErrorLogWhereUniqueInput
-  }
-
-  /**
-   * ErrorLog findFirst
-   */
-  export type ErrorLogFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ErrorLog
-     */
-    select?: ErrorLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ErrorLog
-     */
-    omit?: ErrorLogOmit<ExtArgs> | null
-    /**
-     * Filter, which ErrorLog to fetch.
-     */
-    where?: ErrorLogWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of ErrorLogs to fetch.
-     */
-    orderBy?: ErrorLogOrderByWithRelationInput | ErrorLogOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for ErrorLogs.
-     */
-    cursor?: ErrorLogWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` ErrorLogs from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` ErrorLogs.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of ErrorLogs.
-     */
-    distinct?: ErrorLogScalarFieldEnum | ErrorLogScalarFieldEnum[]
-  }
-
-  /**
-   * ErrorLog findFirstOrThrow
-   */
-  export type ErrorLogFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ErrorLog
-     */
-    select?: ErrorLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ErrorLog
-     */
-    omit?: ErrorLogOmit<ExtArgs> | null
-    /**
-     * Filter, which ErrorLog to fetch.
-     */
-    where?: ErrorLogWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of ErrorLogs to fetch.
-     */
-    orderBy?: ErrorLogOrderByWithRelationInput | ErrorLogOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for ErrorLogs.
-     */
-    cursor?: ErrorLogWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` ErrorLogs from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` ErrorLogs.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of ErrorLogs.
-     */
-    distinct?: ErrorLogScalarFieldEnum | ErrorLogScalarFieldEnum[]
-  }
-
-  /**
-   * ErrorLog findMany
-   */
-  export type ErrorLogFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ErrorLog
-     */
-    select?: ErrorLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ErrorLog
-     */
-    omit?: ErrorLogOmit<ExtArgs> | null
-    /**
-     * Filter, which ErrorLogs to fetch.
-     */
-    where?: ErrorLogWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of ErrorLogs to fetch.
-     */
-    orderBy?: ErrorLogOrderByWithRelationInput | ErrorLogOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for listing ErrorLogs.
-     */
-    cursor?: ErrorLogWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` ErrorLogs from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` ErrorLogs.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of ErrorLogs.
-     */
-    distinct?: ErrorLogScalarFieldEnum | ErrorLogScalarFieldEnum[]
-  }
-
-  /**
-   * ErrorLog create
-   */
-  export type ErrorLogCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ErrorLog
-     */
-    select?: ErrorLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ErrorLog
-     */
-    omit?: ErrorLogOmit<ExtArgs> | null
-    /**
-     * The data needed to create a ErrorLog.
-     */
-    data: XOR<ErrorLogCreateInput, ErrorLogUncheckedCreateInput>
-  }
-
-  /**
-   * ErrorLog createMany
-   */
-  export type ErrorLogCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to create many ErrorLogs.
-     */
-    data: ErrorLogCreateManyInput | ErrorLogCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * ErrorLog createManyAndReturn
-   */
-  export type ErrorLogCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ErrorLog
-     */
-    select?: ErrorLogSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the ErrorLog
-     */
-    omit?: ErrorLogOmit<ExtArgs> | null
-    /**
-     * The data used to create many ErrorLogs.
-     */
-    data: ErrorLogCreateManyInput | ErrorLogCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * ErrorLog update
-   */
-  export type ErrorLogUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ErrorLog
-     */
-    select?: ErrorLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ErrorLog
-     */
-    omit?: ErrorLogOmit<ExtArgs> | null
-    /**
-     * The data needed to update a ErrorLog.
-     */
-    data: XOR<ErrorLogUpdateInput, ErrorLogUncheckedUpdateInput>
-    /**
-     * Choose, which ErrorLog to update.
-     */
-    where: ErrorLogWhereUniqueInput
-  }
-
-  /**
-   * ErrorLog updateMany
-   */
-  export type ErrorLogUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to update ErrorLogs.
-     */
-    data: XOR<ErrorLogUpdateManyMutationInput, ErrorLogUncheckedUpdateManyInput>
-    /**
-     * Filter which ErrorLogs to update
-     */
-    where?: ErrorLogWhereInput
-    /**
-     * Limit how many ErrorLogs to update.
-     */
-    limit?: number
-  }
-
-  /**
-   * ErrorLog updateManyAndReturn
-   */
-  export type ErrorLogUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ErrorLog
-     */
-    select?: ErrorLogSelectUpdateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the ErrorLog
-     */
-    omit?: ErrorLogOmit<ExtArgs> | null
-    /**
-     * The data used to update ErrorLogs.
-     */
-    data: XOR<ErrorLogUpdateManyMutationInput, ErrorLogUncheckedUpdateManyInput>
-    /**
-     * Filter which ErrorLogs to update
-     */
-    where?: ErrorLogWhereInput
-    /**
-     * Limit how many ErrorLogs to update.
-     */
-    limit?: number
-  }
-
-  /**
-   * ErrorLog upsert
-   */
-  export type ErrorLogUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ErrorLog
-     */
-    select?: ErrorLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ErrorLog
-     */
-    omit?: ErrorLogOmit<ExtArgs> | null
-    /**
-     * The filter to search for the ErrorLog to update in case it exists.
-     */
-    where: ErrorLogWhereUniqueInput
-    /**
-     * In case the ErrorLog found by the `where` argument doesn't exist, create a new ErrorLog with this data.
-     */
-    create: XOR<ErrorLogCreateInput, ErrorLogUncheckedCreateInput>
-    /**
-     * In case the ErrorLog was found with the provided `where` argument, update it with this data.
-     */
-    update: XOR<ErrorLogUpdateInput, ErrorLogUncheckedUpdateInput>
-  }
-
-  /**
-   * ErrorLog delete
-   */
-  export type ErrorLogDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ErrorLog
-     */
-    select?: ErrorLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ErrorLog
-     */
-    omit?: ErrorLogOmit<ExtArgs> | null
-    /**
-     * Filter which ErrorLog to delete.
-     */
-    where: ErrorLogWhereUniqueInput
-  }
-
-  /**
-   * ErrorLog deleteMany
-   */
-  export type ErrorLogDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which ErrorLogs to delete
-     */
-    where?: ErrorLogWhereInput
-    /**
-     * Limit how many ErrorLogs to delete.
-     */
-    limit?: number
-  }
-
-  /**
-   * ErrorLog without action
-   */
-  export type ErrorLogDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ErrorLog
-     */
-    select?: ErrorLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ErrorLog
-     */
-    omit?: ErrorLogOmit<ExtArgs> | null
-  }
-
-
-  /**
-   * Model SystemError
-   */
-
-  export type AggregateSystemError = {
-    _count: SystemErrorCountAggregateOutputType | null
-    _min: SystemErrorMinAggregateOutputType | null
-    _max: SystemErrorMaxAggregateOutputType | null
-  }
-
-  export type SystemErrorMinAggregateOutputType = {
-    id: string | null
-    on_account: string | null
-    type: string | null
-    log: string | null
-    logged_on: Date | null
-  }
-
-  export type SystemErrorMaxAggregateOutputType = {
-    id: string | null
-    on_account: string | null
-    type: string | null
-    log: string | null
-    logged_on: Date | null
-  }
-
-  export type SystemErrorCountAggregateOutputType = {
-    id: number
-    on_account: number
-    type: number
-    log: number
-    details: number
-    logged_on: number
-    _all: number
-  }
-
-
-  export type SystemErrorMinAggregateInputType = {
-    id?: true
-    on_account?: true
-    type?: true
-    log?: true
-    logged_on?: true
-  }
-
-  export type SystemErrorMaxAggregateInputType = {
-    id?: true
-    on_account?: true
-    type?: true
-    log?: true
-    logged_on?: true
-  }
-
-  export type SystemErrorCountAggregateInputType = {
-    id?: true
-    on_account?: true
-    type?: true
-    log?: true
-    details?: true
-    logged_on?: true
-    _all?: true
-  }
-
-  export type SystemErrorAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which SystemError to aggregate.
-     */
-    where?: SystemErrorWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of SystemErrors to fetch.
-     */
-    orderBy?: SystemErrorOrderByWithRelationInput | SystemErrorOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the start position
-     */
-    cursor?: SystemErrorWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` SystemErrors from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` SystemErrors.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Count returned SystemErrors
-    **/
-    _count?: true | SystemErrorCountAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the minimum value
-    **/
-    _min?: SystemErrorMinAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the maximum value
-    **/
-    _max?: SystemErrorMaxAggregateInputType
-  }
-
-  export type GetSystemErrorAggregateType<T extends SystemErrorAggregateArgs> = {
-        [P in keyof T & keyof AggregateSystemError]: P extends '_count' | 'count'
-      ? T[P] extends true
-        ? number
-        : GetScalarType<T[P], AggregateSystemError[P]>
-      : GetScalarType<T[P], AggregateSystemError[P]>
-  }
-
-
-
-
-  export type SystemErrorGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: SystemErrorWhereInput
-    orderBy?: SystemErrorOrderByWithAggregationInput | SystemErrorOrderByWithAggregationInput[]
-    by: SystemErrorScalarFieldEnum[] | SystemErrorScalarFieldEnum
-    having?: SystemErrorScalarWhereWithAggregatesInput
-    take?: number
-    skip?: number
-    _count?: SystemErrorCountAggregateInputType | true
-    _min?: SystemErrorMinAggregateInputType
-    _max?: SystemErrorMaxAggregateInputType
-  }
-
-  export type SystemErrorGroupByOutputType = {
-    id: string
-    on_account: string | null
-    type: string
-    log: string
-    details: JsonValue
-    logged_on: Date
-    _count: SystemErrorCountAggregateOutputType | null
-    _min: SystemErrorMinAggregateOutputType | null
-    _max: SystemErrorMaxAggregateOutputType | null
-  }
-
-  type GetSystemErrorGroupByPayload<T extends SystemErrorGroupByArgs> = Prisma.PrismaPromise<
-    Array<
-      PickEnumerable<SystemErrorGroupByOutputType, T['by']> &
-        {
-          [P in ((keyof T) & (keyof SystemErrorGroupByOutputType))]: P extends '_count'
-            ? T[P] extends boolean
-              ? number
-              : GetScalarType<T[P], SystemErrorGroupByOutputType[P]>
-            : GetScalarType<T[P], SystemErrorGroupByOutputType[P]>
-        }
-      >
-    >
-
-
-  export type SystemErrorSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    on_account?: boolean
-    type?: boolean
-    log?: boolean
-    details?: boolean
-    logged_on?: boolean
-  }, ExtArgs["result"]["systemError"]>
-
-  export type SystemErrorSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    on_account?: boolean
-    type?: boolean
-    log?: boolean
-    details?: boolean
-    logged_on?: boolean
-  }, ExtArgs["result"]["systemError"]>
-
-  export type SystemErrorSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    on_account?: boolean
-    type?: boolean
-    log?: boolean
-    details?: boolean
-    logged_on?: boolean
-  }, ExtArgs["result"]["systemError"]>
-
-  export type SystemErrorSelectScalar = {
-    id?: boolean
-    on_account?: boolean
-    type?: boolean
-    log?: boolean
-    details?: boolean
-    logged_on?: boolean
-  }
-
-  export type SystemErrorOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "on_account" | "type" | "log" | "details" | "logged_on", ExtArgs["result"]["systemError"]>
-
-  export type $SystemErrorPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "SystemError"
-    objects: {}
-    scalars: $Extensions.GetPayloadResult<{
-      id: string
-      on_account: string | null
-      type: string
-      log: string
-      details: Prisma.JsonValue
-      logged_on: Date
-    }, ExtArgs["result"]["systemError"]>
-    composites: {}
-  }
-
-  type SystemErrorGetPayload<S extends boolean | null | undefined | SystemErrorDefaultArgs> = $Result.GetResult<Prisma.$SystemErrorPayload, S>
-
-  type SystemErrorCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
-    Omit<SystemErrorFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
-      select?: SystemErrorCountAggregateInputType | true
-    }
-
-  export interface SystemErrorDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['SystemError'], meta: { name: 'SystemError' } }
-    /**
-     * Find zero or one SystemError that matches the filter.
-     * @param {SystemErrorFindUniqueArgs} args - Arguments to find a SystemError
-     * @example
-     * // Get one SystemError
-     * const systemError = await prisma.systemError.findUnique({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUnique<T extends SystemErrorFindUniqueArgs>(args: SelectSubset<T, SystemErrorFindUniqueArgs<ExtArgs>>): Prisma__SystemErrorClient<$Result.GetResult<Prisma.$SystemErrorPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find one SystemError that matches the filter or throw an error with `error.code='P2025'`
-     * if no matches were found.
-     * @param {SystemErrorFindUniqueOrThrowArgs} args - Arguments to find a SystemError
-     * @example
-     * // Get one SystemError
-     * const systemError = await prisma.systemError.findUniqueOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUniqueOrThrow<T extends SystemErrorFindUniqueOrThrowArgs>(args: SelectSubset<T, SystemErrorFindUniqueOrThrowArgs<ExtArgs>>): Prisma__SystemErrorClient<$Result.GetResult<Prisma.$SystemErrorPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first SystemError that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {SystemErrorFindFirstArgs} args - Arguments to find a SystemError
-     * @example
-     * // Get one SystemError
-     * const systemError = await prisma.systemError.findFirst({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirst<T extends SystemErrorFindFirstArgs>(args?: SelectSubset<T, SystemErrorFindFirstArgs<ExtArgs>>): Prisma__SystemErrorClient<$Result.GetResult<Prisma.$SystemErrorPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first SystemError that matches the filter or
-     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {SystemErrorFindFirstOrThrowArgs} args - Arguments to find a SystemError
-     * @example
-     * // Get one SystemError
-     * const systemError = await prisma.systemError.findFirstOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirstOrThrow<T extends SystemErrorFindFirstOrThrowArgs>(args?: SelectSubset<T, SystemErrorFindFirstOrThrowArgs<ExtArgs>>): Prisma__SystemErrorClient<$Result.GetResult<Prisma.$SystemErrorPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find zero or more SystemErrors that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {SystemErrorFindManyArgs} args - Arguments to filter and select certain fields only.
-     * @example
-     * // Get all SystemErrors
-     * const systemErrors = await prisma.systemError.findMany()
-     * 
-     * // Get first 10 SystemErrors
-     * const systemErrors = await prisma.systemError.findMany({ take: 10 })
-     * 
-     * // Only select the `id`
-     * const systemErrorWithIdOnly = await prisma.systemError.findMany({ select: { id: true } })
-     * 
-     */
-    findMany<T extends SystemErrorFindManyArgs>(args?: SelectSubset<T, SystemErrorFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SystemErrorPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
-
-    /**
-     * Create a SystemError.
-     * @param {SystemErrorCreateArgs} args - Arguments to create a SystemError.
-     * @example
-     * // Create one SystemError
-     * const SystemError = await prisma.systemError.create({
-     *   data: {
-     *     // ... data to create a SystemError
-     *   }
-     * })
-     * 
-     */
-    create<T extends SystemErrorCreateArgs>(args: SelectSubset<T, SystemErrorCreateArgs<ExtArgs>>): Prisma__SystemErrorClient<$Result.GetResult<Prisma.$SystemErrorPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Create many SystemErrors.
-     * @param {SystemErrorCreateManyArgs} args - Arguments to create many SystemErrors.
-     * @example
-     * // Create many SystemErrors
-     * const systemError = await prisma.systemError.createMany({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     *     
-     */
-    createMany<T extends SystemErrorCreateManyArgs>(args?: SelectSubset<T, SystemErrorCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Create many SystemErrors and returns the data saved in the database.
-     * @param {SystemErrorCreateManyAndReturnArgs} args - Arguments to create many SystemErrors.
-     * @example
-     * // Create many SystemErrors
-     * const systemError = await prisma.systemError.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many SystemErrors and only return the `id`
-     * const systemErrorWithIdOnly = await prisma.systemError.createManyAndReturn({
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends SystemErrorCreateManyAndReturnArgs>(args?: SelectSubset<T, SystemErrorCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SystemErrorPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Delete a SystemError.
-     * @param {SystemErrorDeleteArgs} args - Arguments to delete one SystemError.
-     * @example
-     * // Delete one SystemError
-     * const SystemError = await prisma.systemError.delete({
-     *   where: {
-     *     // ... filter to delete one SystemError
-     *   }
-     * })
-     * 
-     */
-    delete<T extends SystemErrorDeleteArgs>(args: SelectSubset<T, SystemErrorDeleteArgs<ExtArgs>>): Prisma__SystemErrorClient<$Result.GetResult<Prisma.$SystemErrorPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Update one SystemError.
-     * @param {SystemErrorUpdateArgs} args - Arguments to update one SystemError.
-     * @example
-     * // Update one SystemError
-     * const systemError = await prisma.systemError.update({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    update<T extends SystemErrorUpdateArgs>(args: SelectSubset<T, SystemErrorUpdateArgs<ExtArgs>>): Prisma__SystemErrorClient<$Result.GetResult<Prisma.$SystemErrorPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Delete zero or more SystemErrors.
-     * @param {SystemErrorDeleteManyArgs} args - Arguments to filter SystemErrors to delete.
-     * @example
-     * // Delete a few SystemErrors
-     * const { count } = await prisma.systemError.deleteMany({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     * 
-     */
-    deleteMany<T extends SystemErrorDeleteManyArgs>(args?: SelectSubset<T, SystemErrorDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more SystemErrors.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {SystemErrorUpdateManyArgs} args - Arguments to update one or more rows.
-     * @example
-     * // Update many SystemErrors
-     * const systemError = await prisma.systemError.updateMany({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    updateMany<T extends SystemErrorUpdateManyArgs>(args: SelectSubset<T, SystemErrorUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more SystemErrors and returns the data updated in the database.
-     * @param {SystemErrorUpdateManyAndReturnArgs} args - Arguments to update many SystemErrors.
-     * @example
-     * // Update many SystemErrors
-     * const systemError = await prisma.systemError.updateManyAndReturn({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Update zero or more SystemErrors and only return the `id`
-     * const systemErrorWithIdOnly = await prisma.systemError.updateManyAndReturn({
-     *   select: { id: true },
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    updateManyAndReturn<T extends SystemErrorUpdateManyAndReturnArgs>(args: SelectSubset<T, SystemErrorUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SystemErrorPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Create or update one SystemError.
-     * @param {SystemErrorUpsertArgs} args - Arguments to update or create a SystemError.
-     * @example
-     * // Update or create a SystemError
-     * const systemError = await prisma.systemError.upsert({
-     *   create: {
-     *     // ... data to create a SystemError
-     *   },
-     *   update: {
-     *     // ... in case it already exists, update
-     *   },
-     *   where: {
-     *     // ... the filter for the SystemError we want to update
-     *   }
-     * })
-     */
-    upsert<T extends SystemErrorUpsertArgs>(args: SelectSubset<T, SystemErrorUpsertArgs<ExtArgs>>): Prisma__SystemErrorClient<$Result.GetResult<Prisma.$SystemErrorPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-
-    /**
-     * Count the number of SystemErrors.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {SystemErrorCountArgs} args - Arguments to filter SystemErrors to count.
-     * @example
-     * // Count the number of SystemErrors
-     * const count = await prisma.systemError.count({
-     *   where: {
-     *     // ... the filter for the SystemErrors we want to count
-     *   }
-     * })
-    **/
-    count<T extends SystemErrorCountArgs>(
-      args?: Subset<T, SystemErrorCountArgs>,
-    ): Prisma.PrismaPromise<
-      T extends $Utils.Record<'select', any>
-        ? T['select'] extends true
-          ? number
-          : GetScalarType<T['select'], SystemErrorCountAggregateOutputType>
-        : number
-    >
-
-    /**
-     * Allows you to perform aggregations operations on a SystemError.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {SystemErrorAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
-     * @example
-     * // Ordered by age ascending
-     * // Where email contains prisma.io
-     * // Limited to the 10 users
-     * const aggregations = await prisma.user.aggregate({
-     *   _avg: {
-     *     age: true,
-     *   },
-     *   where: {
-     *     email: {
-     *       contains: "prisma.io",
-     *     },
-     *   },
-     *   orderBy: {
-     *     age: "asc",
-     *   },
-     *   take: 10,
-     * })
-    **/
-    aggregate<T extends SystemErrorAggregateArgs>(args: Subset<T, SystemErrorAggregateArgs>): Prisma.PrismaPromise<GetSystemErrorAggregateType<T>>
-
-    /**
-     * Group by SystemError.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {SystemErrorGroupByArgs} args - Group by arguments.
-     * @example
-     * // Group by city, order by createdAt, get count
-     * const result = await prisma.user.groupBy({
-     *   by: ['city', 'createdAt'],
-     *   orderBy: {
-     *     createdAt: true
-     *   },
-     *   _count: {
-     *     _all: true
-     *   },
-     * })
-     * 
-    **/
-    groupBy<
-      T extends SystemErrorGroupByArgs,
-      HasSelectOrTake extends Or<
-        Extends<'skip', Keys<T>>,
-        Extends<'take', Keys<T>>
-      >,
-      OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: SystemErrorGroupByArgs['orderBy'] }
-        : { orderBy?: SystemErrorGroupByArgs['orderBy'] },
-      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
-      ByFields extends MaybeTupleToUnion<T['by']>,
-      ByValid extends Has<ByFields, OrderFields>,
-      HavingFields extends GetHavingFields<T['having']>,
-      HavingValid extends Has<ByFields, HavingFields>,
-      ByEmpty extends T['by'] extends never[] ? True : False,
-      InputErrors extends ByEmpty extends True
-      ? `Error: "by" must not be empty.`
-      : HavingValid extends False
-      ? {
-          [P in HavingFields]: P extends ByFields
-            ? never
-            : P extends string
-            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-            : [
-                Error,
-                'Field ',
-                P,
-                ` in "having" needs to be provided in "by"`,
-              ]
-        }[HavingFields]
-      : 'take' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "take", you also need to provide "orderBy"'
-      : 'skip' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "skip", you also need to provide "orderBy"'
-      : ByValid extends True
-      ? {}
-      : {
-          [P in OrderFields]: P extends ByFields
-            ? never
-            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-        }[OrderFields]
-    >(args: SubsetIntersection<T, SystemErrorGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSystemErrorGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-  /**
-   * Fields of the SystemError model
-   */
-  readonly fields: SystemErrorFieldRefs;
-  }
-
-  /**
-   * The delegate class that acts as a "Promise-like" for SystemError.
-   * Why is this prefixed with `Prisma__`?
-   * Because we want to prevent naming conflicts as mentioned in
-   * https://github.com/prisma/prisma-client-js/issues/707
-   */
-  export interface Prisma__SystemErrorClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
-    readonly [Symbol.toStringTag]: "PrismaPromise"
-    /**
-     * Attaches callbacks for the resolution and/or rejection of the Promise.
-     * @param onfulfilled The callback to execute when the Promise is resolved.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of which ever callback is executed.
-     */
-    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
-    /**
-     * Attaches a callback for only the rejection of the Promise.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of the callback.
-     */
-    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
-    /**
-     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
-     * resolved value cannot be modified from the callback.
-     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
-     * @returns A Promise for the completion of the callback.
-     */
-    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
-  }
-
-
-
-
-  /**
-   * Fields of the SystemError model
-   */
-  interface SystemErrorFieldRefs {
-    readonly id: FieldRef<"SystemError", 'String'>
-    readonly on_account: FieldRef<"SystemError", 'String'>
-    readonly type: FieldRef<"SystemError", 'String'>
-    readonly log: FieldRef<"SystemError", 'String'>
-    readonly details: FieldRef<"SystemError", 'Json'>
-    readonly logged_on: FieldRef<"SystemError", 'DateTime'>
-  }
-    
-
-  // Custom InputTypes
-  /**
-   * SystemError findUnique
-   */
-  export type SystemErrorFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the SystemError
-     */
-    select?: SystemErrorSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the SystemError
-     */
-    omit?: SystemErrorOmit<ExtArgs> | null
-    /**
-     * Filter, which SystemError to fetch.
-     */
-    where: SystemErrorWhereUniqueInput
-  }
-
-  /**
-   * SystemError findUniqueOrThrow
-   */
-  export type SystemErrorFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the SystemError
-     */
-    select?: SystemErrorSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the SystemError
-     */
-    omit?: SystemErrorOmit<ExtArgs> | null
-    /**
-     * Filter, which SystemError to fetch.
-     */
-    where: SystemErrorWhereUniqueInput
-  }
-
-  /**
-   * SystemError findFirst
-   */
-  export type SystemErrorFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the SystemError
-     */
-    select?: SystemErrorSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the SystemError
-     */
-    omit?: SystemErrorOmit<ExtArgs> | null
-    /**
-     * Filter, which SystemError to fetch.
-     */
-    where?: SystemErrorWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of SystemErrors to fetch.
-     */
-    orderBy?: SystemErrorOrderByWithRelationInput | SystemErrorOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for SystemErrors.
-     */
-    cursor?: SystemErrorWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` SystemErrors from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` SystemErrors.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of SystemErrors.
-     */
-    distinct?: SystemErrorScalarFieldEnum | SystemErrorScalarFieldEnum[]
-  }
-
-  /**
-   * SystemError findFirstOrThrow
-   */
-  export type SystemErrorFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the SystemError
-     */
-    select?: SystemErrorSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the SystemError
-     */
-    omit?: SystemErrorOmit<ExtArgs> | null
-    /**
-     * Filter, which SystemError to fetch.
-     */
-    where?: SystemErrorWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of SystemErrors to fetch.
-     */
-    orderBy?: SystemErrorOrderByWithRelationInput | SystemErrorOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for SystemErrors.
-     */
-    cursor?: SystemErrorWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` SystemErrors from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` SystemErrors.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of SystemErrors.
-     */
-    distinct?: SystemErrorScalarFieldEnum | SystemErrorScalarFieldEnum[]
-  }
-
-  /**
-   * SystemError findMany
-   */
-  export type SystemErrorFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the SystemError
-     */
-    select?: SystemErrorSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the SystemError
-     */
-    omit?: SystemErrorOmit<ExtArgs> | null
-    /**
-     * Filter, which SystemErrors to fetch.
-     */
-    where?: SystemErrorWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of SystemErrors to fetch.
-     */
-    orderBy?: SystemErrorOrderByWithRelationInput | SystemErrorOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for listing SystemErrors.
-     */
-    cursor?: SystemErrorWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` SystemErrors from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` SystemErrors.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of SystemErrors.
-     */
-    distinct?: SystemErrorScalarFieldEnum | SystemErrorScalarFieldEnum[]
-  }
-
-  /**
-   * SystemError create
-   */
-  export type SystemErrorCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the SystemError
-     */
-    select?: SystemErrorSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the SystemError
-     */
-    omit?: SystemErrorOmit<ExtArgs> | null
-    /**
-     * The data needed to create a SystemError.
-     */
-    data: XOR<SystemErrorCreateInput, SystemErrorUncheckedCreateInput>
-  }
-
-  /**
-   * SystemError createMany
-   */
-  export type SystemErrorCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to create many SystemErrors.
-     */
-    data: SystemErrorCreateManyInput | SystemErrorCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * SystemError createManyAndReturn
-   */
-  export type SystemErrorCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the SystemError
-     */
-    select?: SystemErrorSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the SystemError
-     */
-    omit?: SystemErrorOmit<ExtArgs> | null
-    /**
-     * The data used to create many SystemErrors.
-     */
-    data: SystemErrorCreateManyInput | SystemErrorCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * SystemError update
-   */
-  export type SystemErrorUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the SystemError
-     */
-    select?: SystemErrorSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the SystemError
-     */
-    omit?: SystemErrorOmit<ExtArgs> | null
-    /**
-     * The data needed to update a SystemError.
-     */
-    data: XOR<SystemErrorUpdateInput, SystemErrorUncheckedUpdateInput>
-    /**
-     * Choose, which SystemError to update.
-     */
-    where: SystemErrorWhereUniqueInput
-  }
-
-  /**
-   * SystemError updateMany
-   */
-  export type SystemErrorUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to update SystemErrors.
-     */
-    data: XOR<SystemErrorUpdateManyMutationInput, SystemErrorUncheckedUpdateManyInput>
-    /**
-     * Filter which SystemErrors to update
-     */
-    where?: SystemErrorWhereInput
-    /**
-     * Limit how many SystemErrors to update.
-     */
-    limit?: number
-  }
-
-  /**
-   * SystemError updateManyAndReturn
-   */
-  export type SystemErrorUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the SystemError
-     */
-    select?: SystemErrorSelectUpdateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the SystemError
-     */
-    omit?: SystemErrorOmit<ExtArgs> | null
-    /**
-     * The data used to update SystemErrors.
-     */
-    data: XOR<SystemErrorUpdateManyMutationInput, SystemErrorUncheckedUpdateManyInput>
-    /**
-     * Filter which SystemErrors to update
-     */
-    where?: SystemErrorWhereInput
-    /**
-     * Limit how many SystemErrors to update.
-     */
-    limit?: number
-  }
-
-  /**
-   * SystemError upsert
-   */
-  export type SystemErrorUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the SystemError
-     */
-    select?: SystemErrorSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the SystemError
-     */
-    omit?: SystemErrorOmit<ExtArgs> | null
-    /**
-     * The filter to search for the SystemError to update in case it exists.
-     */
-    where: SystemErrorWhereUniqueInput
-    /**
-     * In case the SystemError found by the `where` argument doesn't exist, create a new SystemError with this data.
-     */
-    create: XOR<SystemErrorCreateInput, SystemErrorUncheckedCreateInput>
-    /**
-     * In case the SystemError was found with the provided `where` argument, update it with this data.
-     */
-    update: XOR<SystemErrorUpdateInput, SystemErrorUncheckedUpdateInput>
-  }
-
-  /**
-   * SystemError delete
-   */
-  export type SystemErrorDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the SystemError
-     */
-    select?: SystemErrorSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the SystemError
-     */
-    omit?: SystemErrorOmit<ExtArgs> | null
-    /**
-     * Filter which SystemError to delete.
-     */
-    where: SystemErrorWhereUniqueInput
-  }
-
-  /**
-   * SystemError deleteMany
-   */
-  export type SystemErrorDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which SystemErrors to delete
-     */
-    where?: SystemErrorWhereInput
-    /**
-     * Limit how many SystemErrors to delete.
-     */
-    limit?: number
-  }
-
-  /**
-   * SystemError without action
-   */
-  export type SystemErrorDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the SystemError
-     */
-    select?: SystemErrorSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the SystemError
-     */
-    omit?: SystemErrorOmit<ExtArgs> | null
-  }
-
-
-  /**
    * Model WebDisk
    */
 
@@ -6857,6 +4801,8 @@ export namespace Prisma {
     neupid?: boolean
     created_on?: boolean
     accessed_on?: boolean
+    sites?: boolean | Account$sitesArgs<ExtArgs>
+    _count?: boolean | AccountCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["account"]>
 
   export type AccountSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -6893,10 +4839,18 @@ export namespace Prisma {
   }
 
   export type AccountOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "account_type" | "connection_id" | "display_name" | "display_image" | "neupid" | "created_on" | "accessed_on", ExtArgs["result"]["account"]>
+  export type AccountInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    sites?: boolean | Account$sitesArgs<ExtArgs>
+    _count?: boolean | AccountCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type AccountIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type AccountIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
 
   export type $AccountPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Account"
-    objects: {}
+    objects: {
+      sites: Prisma.$SitePayload<ExtArgs>[]
+    }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       account_type: string
@@ -7300,6 +5254,7 @@ export namespace Prisma {
    */
   export interface Prisma__AccountClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    sites<T extends Account$sitesArgs<ExtArgs> = {}>(args?: Subset<T, Account$sitesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SitePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -7354,6 +5309,10 @@ export namespace Prisma {
      */
     omit?: AccountOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountInclude<ExtArgs> | null
+    /**
      * Filter, which Account to fetch.
      */
     where: AccountWhereUniqueInput
@@ -7372,6 +5331,10 @@ export namespace Prisma {
      */
     omit?: AccountOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountInclude<ExtArgs> | null
+    /**
      * Filter, which Account to fetch.
      */
     where: AccountWhereUniqueInput
@@ -7389,6 +5352,10 @@ export namespace Prisma {
      * Omit specific fields from the Account
      */
     omit?: AccountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountInclude<ExtArgs> | null
     /**
      * Filter, which Account to fetch.
      */
@@ -7438,6 +5405,10 @@ export namespace Prisma {
      */
     omit?: AccountOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountInclude<ExtArgs> | null
+    /**
      * Filter, which Account to fetch.
      */
     where?: AccountWhereInput
@@ -7485,6 +5456,10 @@ export namespace Prisma {
      * Omit specific fields from the Account
      */
     omit?: AccountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountInclude<ExtArgs> | null
     /**
      * Filter, which Accounts to fetch.
      */
@@ -7534,6 +5509,10 @@ export namespace Prisma {
      */
     omit?: AccountOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountInclude<ExtArgs> | null
+    /**
      * The data needed to create a Account.
      */
     data: XOR<AccountCreateInput, AccountUncheckedCreateInput>
@@ -7581,6 +5560,10 @@ export namespace Prisma {
      * Omit specific fields from the Account
      */
     omit?: AccountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountInclude<ExtArgs> | null
     /**
      * The data needed to update a Account.
      */
@@ -7648,6 +5631,10 @@ export namespace Prisma {
      */
     omit?: AccountOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountInclude<ExtArgs> | null
+    /**
      * The filter to search for the Account to update in case it exists.
      */
     where: AccountWhereUniqueInput
@@ -7674,6 +5661,10 @@ export namespace Prisma {
      */
     omit?: AccountOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountInclude<ExtArgs> | null
+    /**
      * Filter which Account to delete.
      */
     where: AccountWhereUniqueInput
@@ -7694,6 +5685,30 @@ export namespace Prisma {
   }
 
   /**
+   * Account.sites
+   */
+  export type Account$sitesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Site
+     */
+    select?: SiteSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Site
+     */
+    omit?: SiteOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SiteInclude<ExtArgs> | null
+    where?: SiteWhereInput
+    orderBy?: SiteOrderByWithRelationInput | SiteOrderByWithRelationInput[]
+    cursor?: SiteWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: SiteScalarFieldEnum | SiteScalarFieldEnum[]
+  }
+
+  /**
    * Account without action
    */
   export type AccountDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -7705,6 +5720,1082 @@ export namespace Prisma {
      * Omit specific fields from the Account
      */
     omit?: AccountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model Site
+   */
+
+  export type AggregateSite = {
+    _count: SiteCountAggregateOutputType | null
+    _min: SiteMinAggregateOutputType | null
+    _max: SiteMaxAggregateOutputType | null
+  }
+
+  export type SiteMinAggregateOutputType = {
+    id: string | null
+    name: string | null
+    ownerId: string | null
+    tokenHash: string | null
+    lastUpdated: Date | null
+  }
+
+  export type SiteMaxAggregateOutputType = {
+    id: string | null
+    name: string | null
+    ownerId: string | null
+    tokenHash: string | null
+    lastUpdated: Date | null
+  }
+
+  export type SiteCountAggregateOutputType = {
+    id: number
+    name: number
+    ownerId: number
+    tokenHash: number
+    allowedIp: number
+    lastUpdated: number
+    _all: number
+  }
+
+
+  export type SiteMinAggregateInputType = {
+    id?: true
+    name?: true
+    ownerId?: true
+    tokenHash?: true
+    lastUpdated?: true
+  }
+
+  export type SiteMaxAggregateInputType = {
+    id?: true
+    name?: true
+    ownerId?: true
+    tokenHash?: true
+    lastUpdated?: true
+  }
+
+  export type SiteCountAggregateInputType = {
+    id?: true
+    name?: true
+    ownerId?: true
+    tokenHash?: true
+    allowedIp?: true
+    lastUpdated?: true
+    _all?: true
+  }
+
+  export type SiteAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Site to aggregate.
+     */
+    where?: SiteWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Sites to fetch.
+     */
+    orderBy?: SiteOrderByWithRelationInput | SiteOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: SiteWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Sites from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Sites.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Sites
+    **/
+    _count?: true | SiteCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: SiteMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: SiteMaxAggregateInputType
+  }
+
+  export type GetSiteAggregateType<T extends SiteAggregateArgs> = {
+        [P in keyof T & keyof AggregateSite]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateSite[P]>
+      : GetScalarType<T[P], AggregateSite[P]>
+  }
+
+
+
+
+  export type SiteGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SiteWhereInput
+    orderBy?: SiteOrderByWithAggregationInput | SiteOrderByWithAggregationInput[]
+    by: SiteScalarFieldEnum[] | SiteScalarFieldEnum
+    having?: SiteScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: SiteCountAggregateInputType | true
+    _min?: SiteMinAggregateInputType
+    _max?: SiteMaxAggregateInputType
+  }
+
+  export type SiteGroupByOutputType = {
+    id: string
+    name: string
+    ownerId: string
+    tokenHash: string
+    allowedIp: string[]
+    lastUpdated: Date
+    _count: SiteCountAggregateOutputType | null
+    _min: SiteMinAggregateOutputType | null
+    _max: SiteMaxAggregateOutputType | null
+  }
+
+  type GetSiteGroupByPayload<T extends SiteGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<SiteGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof SiteGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], SiteGroupByOutputType[P]>
+            : GetScalarType<T[P], SiteGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type SiteSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    ownerId?: boolean
+    tokenHash?: boolean
+    allowedIp?: boolean
+    lastUpdated?: boolean
+    owner?: boolean | AccountDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["site"]>
+
+  export type SiteSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    ownerId?: boolean
+    tokenHash?: boolean
+    allowedIp?: boolean
+    lastUpdated?: boolean
+    owner?: boolean | AccountDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["site"]>
+
+  export type SiteSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    ownerId?: boolean
+    tokenHash?: boolean
+    allowedIp?: boolean
+    lastUpdated?: boolean
+    owner?: boolean | AccountDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["site"]>
+
+  export type SiteSelectScalar = {
+    id?: boolean
+    name?: boolean
+    ownerId?: boolean
+    tokenHash?: boolean
+    allowedIp?: boolean
+    lastUpdated?: boolean
+  }
+
+  export type SiteOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "ownerId" | "tokenHash" | "allowedIp" | "lastUpdated", ExtArgs["result"]["site"]>
+  export type SiteInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    owner?: boolean | AccountDefaultArgs<ExtArgs>
+  }
+  export type SiteIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    owner?: boolean | AccountDefaultArgs<ExtArgs>
+  }
+  export type SiteIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    owner?: boolean | AccountDefaultArgs<ExtArgs>
+  }
+
+  export type $SitePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Site"
+    objects: {
+      owner: Prisma.$AccountPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      name: string
+      ownerId: string
+      tokenHash: string
+      allowedIp: string[]
+      lastUpdated: Date
+    }, ExtArgs["result"]["site"]>
+    composites: {}
+  }
+
+  type SiteGetPayload<S extends boolean | null | undefined | SiteDefaultArgs> = $Result.GetResult<Prisma.$SitePayload, S>
+
+  type SiteCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<SiteFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: SiteCountAggregateInputType | true
+    }
+
+  export interface SiteDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Site'], meta: { name: 'Site' } }
+    /**
+     * Find zero or one Site that matches the filter.
+     * @param {SiteFindUniqueArgs} args - Arguments to find a Site
+     * @example
+     * // Get one Site
+     * const site = await prisma.site.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends SiteFindUniqueArgs>(args: SelectSubset<T, SiteFindUniqueArgs<ExtArgs>>): Prisma__SiteClient<$Result.GetResult<Prisma.$SitePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Site that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {SiteFindUniqueOrThrowArgs} args - Arguments to find a Site
+     * @example
+     * // Get one Site
+     * const site = await prisma.site.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends SiteFindUniqueOrThrowArgs>(args: SelectSubset<T, SiteFindUniqueOrThrowArgs<ExtArgs>>): Prisma__SiteClient<$Result.GetResult<Prisma.$SitePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Site that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SiteFindFirstArgs} args - Arguments to find a Site
+     * @example
+     * // Get one Site
+     * const site = await prisma.site.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends SiteFindFirstArgs>(args?: SelectSubset<T, SiteFindFirstArgs<ExtArgs>>): Prisma__SiteClient<$Result.GetResult<Prisma.$SitePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Site that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SiteFindFirstOrThrowArgs} args - Arguments to find a Site
+     * @example
+     * // Get one Site
+     * const site = await prisma.site.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends SiteFindFirstOrThrowArgs>(args?: SelectSubset<T, SiteFindFirstOrThrowArgs<ExtArgs>>): Prisma__SiteClient<$Result.GetResult<Prisma.$SitePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Sites that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SiteFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Sites
+     * const sites = await prisma.site.findMany()
+     * 
+     * // Get first 10 Sites
+     * const sites = await prisma.site.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const siteWithIdOnly = await prisma.site.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends SiteFindManyArgs>(args?: SelectSubset<T, SiteFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SitePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Site.
+     * @param {SiteCreateArgs} args - Arguments to create a Site.
+     * @example
+     * // Create one Site
+     * const Site = await prisma.site.create({
+     *   data: {
+     *     // ... data to create a Site
+     *   }
+     * })
+     * 
+     */
+    create<T extends SiteCreateArgs>(args: SelectSubset<T, SiteCreateArgs<ExtArgs>>): Prisma__SiteClient<$Result.GetResult<Prisma.$SitePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Sites.
+     * @param {SiteCreateManyArgs} args - Arguments to create many Sites.
+     * @example
+     * // Create many Sites
+     * const site = await prisma.site.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends SiteCreateManyArgs>(args?: SelectSubset<T, SiteCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Sites and returns the data saved in the database.
+     * @param {SiteCreateManyAndReturnArgs} args - Arguments to create many Sites.
+     * @example
+     * // Create many Sites
+     * const site = await prisma.site.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Sites and only return the `id`
+     * const siteWithIdOnly = await prisma.site.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends SiteCreateManyAndReturnArgs>(args?: SelectSubset<T, SiteCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SitePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Site.
+     * @param {SiteDeleteArgs} args - Arguments to delete one Site.
+     * @example
+     * // Delete one Site
+     * const Site = await prisma.site.delete({
+     *   where: {
+     *     // ... filter to delete one Site
+     *   }
+     * })
+     * 
+     */
+    delete<T extends SiteDeleteArgs>(args: SelectSubset<T, SiteDeleteArgs<ExtArgs>>): Prisma__SiteClient<$Result.GetResult<Prisma.$SitePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Site.
+     * @param {SiteUpdateArgs} args - Arguments to update one Site.
+     * @example
+     * // Update one Site
+     * const site = await prisma.site.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends SiteUpdateArgs>(args: SelectSubset<T, SiteUpdateArgs<ExtArgs>>): Prisma__SiteClient<$Result.GetResult<Prisma.$SitePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Sites.
+     * @param {SiteDeleteManyArgs} args - Arguments to filter Sites to delete.
+     * @example
+     * // Delete a few Sites
+     * const { count } = await prisma.site.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends SiteDeleteManyArgs>(args?: SelectSubset<T, SiteDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Sites.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SiteUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Sites
+     * const site = await prisma.site.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends SiteUpdateManyArgs>(args: SelectSubset<T, SiteUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Sites and returns the data updated in the database.
+     * @param {SiteUpdateManyAndReturnArgs} args - Arguments to update many Sites.
+     * @example
+     * // Update many Sites
+     * const site = await prisma.site.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Sites and only return the `id`
+     * const siteWithIdOnly = await prisma.site.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends SiteUpdateManyAndReturnArgs>(args: SelectSubset<T, SiteUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SitePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Site.
+     * @param {SiteUpsertArgs} args - Arguments to update or create a Site.
+     * @example
+     * // Update or create a Site
+     * const site = await prisma.site.upsert({
+     *   create: {
+     *     // ... data to create a Site
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Site we want to update
+     *   }
+     * })
+     */
+    upsert<T extends SiteUpsertArgs>(args: SelectSubset<T, SiteUpsertArgs<ExtArgs>>): Prisma__SiteClient<$Result.GetResult<Prisma.$SitePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Sites.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SiteCountArgs} args - Arguments to filter Sites to count.
+     * @example
+     * // Count the number of Sites
+     * const count = await prisma.site.count({
+     *   where: {
+     *     // ... the filter for the Sites we want to count
+     *   }
+     * })
+    **/
+    count<T extends SiteCountArgs>(
+      args?: Subset<T, SiteCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], SiteCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Site.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SiteAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends SiteAggregateArgs>(args: Subset<T, SiteAggregateArgs>): Prisma.PrismaPromise<GetSiteAggregateType<T>>
+
+    /**
+     * Group by Site.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SiteGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends SiteGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: SiteGroupByArgs['orderBy'] }
+        : { orderBy?: SiteGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, SiteGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSiteGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Site model
+   */
+  readonly fields: SiteFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Site.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__SiteClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    owner<T extends AccountDefaultArgs<ExtArgs> = {}>(args?: Subset<T, AccountDefaultArgs<ExtArgs>>): Prisma__AccountClient<$Result.GetResult<Prisma.$AccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Site model
+   */
+  interface SiteFieldRefs {
+    readonly id: FieldRef<"Site", 'String'>
+    readonly name: FieldRef<"Site", 'String'>
+    readonly ownerId: FieldRef<"Site", 'String'>
+    readonly tokenHash: FieldRef<"Site", 'String'>
+    readonly allowedIp: FieldRef<"Site", 'String[]'>
+    readonly lastUpdated: FieldRef<"Site", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Site findUnique
+   */
+  export type SiteFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Site
+     */
+    select?: SiteSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Site
+     */
+    omit?: SiteOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SiteInclude<ExtArgs> | null
+    /**
+     * Filter, which Site to fetch.
+     */
+    where: SiteWhereUniqueInput
+  }
+
+  /**
+   * Site findUniqueOrThrow
+   */
+  export type SiteFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Site
+     */
+    select?: SiteSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Site
+     */
+    omit?: SiteOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SiteInclude<ExtArgs> | null
+    /**
+     * Filter, which Site to fetch.
+     */
+    where: SiteWhereUniqueInput
+  }
+
+  /**
+   * Site findFirst
+   */
+  export type SiteFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Site
+     */
+    select?: SiteSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Site
+     */
+    omit?: SiteOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SiteInclude<ExtArgs> | null
+    /**
+     * Filter, which Site to fetch.
+     */
+    where?: SiteWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Sites to fetch.
+     */
+    orderBy?: SiteOrderByWithRelationInput | SiteOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Sites.
+     */
+    cursor?: SiteWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Sites from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Sites.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Sites.
+     */
+    distinct?: SiteScalarFieldEnum | SiteScalarFieldEnum[]
+  }
+
+  /**
+   * Site findFirstOrThrow
+   */
+  export type SiteFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Site
+     */
+    select?: SiteSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Site
+     */
+    omit?: SiteOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SiteInclude<ExtArgs> | null
+    /**
+     * Filter, which Site to fetch.
+     */
+    where?: SiteWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Sites to fetch.
+     */
+    orderBy?: SiteOrderByWithRelationInput | SiteOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Sites.
+     */
+    cursor?: SiteWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Sites from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Sites.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Sites.
+     */
+    distinct?: SiteScalarFieldEnum | SiteScalarFieldEnum[]
+  }
+
+  /**
+   * Site findMany
+   */
+  export type SiteFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Site
+     */
+    select?: SiteSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Site
+     */
+    omit?: SiteOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SiteInclude<ExtArgs> | null
+    /**
+     * Filter, which Sites to fetch.
+     */
+    where?: SiteWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Sites to fetch.
+     */
+    orderBy?: SiteOrderByWithRelationInput | SiteOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Sites.
+     */
+    cursor?: SiteWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Sites from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Sites.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Sites.
+     */
+    distinct?: SiteScalarFieldEnum | SiteScalarFieldEnum[]
+  }
+
+  /**
+   * Site create
+   */
+  export type SiteCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Site
+     */
+    select?: SiteSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Site
+     */
+    omit?: SiteOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SiteInclude<ExtArgs> | null
+    /**
+     * The data needed to create a Site.
+     */
+    data: XOR<SiteCreateInput, SiteUncheckedCreateInput>
+  }
+
+  /**
+   * Site createMany
+   */
+  export type SiteCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Sites.
+     */
+    data: SiteCreateManyInput | SiteCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Site createManyAndReturn
+   */
+  export type SiteCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Site
+     */
+    select?: SiteSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Site
+     */
+    omit?: SiteOmit<ExtArgs> | null
+    /**
+     * The data used to create many Sites.
+     */
+    data: SiteCreateManyInput | SiteCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SiteIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Site update
+   */
+  export type SiteUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Site
+     */
+    select?: SiteSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Site
+     */
+    omit?: SiteOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SiteInclude<ExtArgs> | null
+    /**
+     * The data needed to update a Site.
+     */
+    data: XOR<SiteUpdateInput, SiteUncheckedUpdateInput>
+    /**
+     * Choose, which Site to update.
+     */
+    where: SiteWhereUniqueInput
+  }
+
+  /**
+   * Site updateMany
+   */
+  export type SiteUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Sites.
+     */
+    data: XOR<SiteUpdateManyMutationInput, SiteUncheckedUpdateManyInput>
+    /**
+     * Filter which Sites to update
+     */
+    where?: SiteWhereInput
+    /**
+     * Limit how many Sites to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * Site updateManyAndReturn
+   */
+  export type SiteUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Site
+     */
+    select?: SiteSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Site
+     */
+    omit?: SiteOmit<ExtArgs> | null
+    /**
+     * The data used to update Sites.
+     */
+    data: XOR<SiteUpdateManyMutationInput, SiteUncheckedUpdateManyInput>
+    /**
+     * Filter which Sites to update
+     */
+    where?: SiteWhereInput
+    /**
+     * Limit how many Sites to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SiteIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Site upsert
+   */
+  export type SiteUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Site
+     */
+    select?: SiteSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Site
+     */
+    omit?: SiteOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SiteInclude<ExtArgs> | null
+    /**
+     * The filter to search for the Site to update in case it exists.
+     */
+    where: SiteWhereUniqueInput
+    /**
+     * In case the Site found by the `where` argument doesn't exist, create a new Site with this data.
+     */
+    create: XOR<SiteCreateInput, SiteUncheckedCreateInput>
+    /**
+     * In case the Site was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<SiteUpdateInput, SiteUncheckedUpdateInput>
+  }
+
+  /**
+   * Site delete
+   */
+  export type SiteDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Site
+     */
+    select?: SiteSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Site
+     */
+    omit?: SiteOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SiteInclude<ExtArgs> | null
+    /**
+     * Filter which Site to delete.
+     */
+    where: SiteWhereUniqueInput
+  }
+
+  /**
+   * Site deleteMany
+   */
+  export type SiteDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Sites to delete
+     */
+    where?: SiteWhereInput
+    /**
+     * Limit how many Sites to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * Site without action
+   */
+  export type SiteDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Site
+     */
+    select?: SiteSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Site
+     */
+    omit?: SiteOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SiteInclude<ExtArgs> | null
   }
 
 
@@ -7753,28 +6844,6 @@ export namespace Prisma {
   export type FileFolderLogScalarFieldEnum = (typeof FileFolderLogScalarFieldEnum)[keyof typeof FileFolderLogScalarFieldEnum]
 
 
-  export const ErrorLogScalarFieldEnum: {
-    id: 'id',
-    on_page: 'on_page',
-    context: 'context',
-    created_on: 'created_on'
-  };
-
-  export type ErrorLogScalarFieldEnum = (typeof ErrorLogScalarFieldEnum)[keyof typeof ErrorLogScalarFieldEnum]
-
-
-  export const SystemErrorScalarFieldEnum: {
-    id: 'id',
-    on_account: 'on_account',
-    type: 'type',
-    log: 'log',
-    details: 'details',
-    logged_on: 'logged_on'
-  };
-
-  export type SystemErrorScalarFieldEnum = (typeof SystemErrorScalarFieldEnum)[keyof typeof SystemErrorScalarFieldEnum]
-
-
   export const WebDiskScalarFieldEnum: {
     id: 'id',
     filename: 'filename',
@@ -7799,6 +6868,18 @@ export namespace Prisma {
   };
 
   export type AccountScalarFieldEnum = (typeof AccountScalarFieldEnum)[keyof typeof AccountScalarFieldEnum]
+
+
+  export const SiteScalarFieldEnum: {
+    id: 'id',
+    name: 'name',
+    ownerId: 'ownerId',
+    tokenHash: 'tokenHash',
+    allowedIp: 'allowedIp',
+    lastUpdated: 'lastUpdated'
+  };
+
+  export type SiteScalarFieldEnum = (typeof SiteScalarFieldEnum)[keyof typeof SiteScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -8090,110 +7171,6 @@ export namespace Prisma {
     done_on?: DateTimeWithAggregatesFilter<"FileFolderLog"> | Date | string
   }
 
-  export type ErrorLogWhereInput = {
-    AND?: ErrorLogWhereInput | ErrorLogWhereInput[]
-    OR?: ErrorLogWhereInput[]
-    NOT?: ErrorLogWhereInput | ErrorLogWhereInput[]
-    id?: StringFilter<"ErrorLog"> | string
-    on_page?: StringFilter<"ErrorLog"> | string
-    context?: StringFilter<"ErrorLog"> | string
-    created_on?: DateTimeFilter<"ErrorLog"> | Date | string
-  }
-
-  export type ErrorLogOrderByWithRelationInput = {
-    id?: SortOrder
-    on_page?: SortOrder
-    context?: SortOrder
-    created_on?: SortOrder
-  }
-
-  export type ErrorLogWhereUniqueInput = Prisma.AtLeast<{
-    id?: string
-    AND?: ErrorLogWhereInput | ErrorLogWhereInput[]
-    OR?: ErrorLogWhereInput[]
-    NOT?: ErrorLogWhereInput | ErrorLogWhereInput[]
-    on_page?: StringFilter<"ErrorLog"> | string
-    context?: StringFilter<"ErrorLog"> | string
-    created_on?: DateTimeFilter<"ErrorLog"> | Date | string
-  }, "id">
-
-  export type ErrorLogOrderByWithAggregationInput = {
-    id?: SortOrder
-    on_page?: SortOrder
-    context?: SortOrder
-    created_on?: SortOrder
-    _count?: ErrorLogCountOrderByAggregateInput
-    _max?: ErrorLogMaxOrderByAggregateInput
-    _min?: ErrorLogMinOrderByAggregateInput
-  }
-
-  export type ErrorLogScalarWhereWithAggregatesInput = {
-    AND?: ErrorLogScalarWhereWithAggregatesInput | ErrorLogScalarWhereWithAggregatesInput[]
-    OR?: ErrorLogScalarWhereWithAggregatesInput[]
-    NOT?: ErrorLogScalarWhereWithAggregatesInput | ErrorLogScalarWhereWithAggregatesInput[]
-    id?: StringWithAggregatesFilter<"ErrorLog"> | string
-    on_page?: StringWithAggregatesFilter<"ErrorLog"> | string
-    context?: StringWithAggregatesFilter<"ErrorLog"> | string
-    created_on?: DateTimeWithAggregatesFilter<"ErrorLog"> | Date | string
-  }
-
-  export type SystemErrorWhereInput = {
-    AND?: SystemErrorWhereInput | SystemErrorWhereInput[]
-    OR?: SystemErrorWhereInput[]
-    NOT?: SystemErrorWhereInput | SystemErrorWhereInput[]
-    id?: StringFilter<"SystemError"> | string
-    on_account?: StringNullableFilter<"SystemError"> | string | null
-    type?: StringFilter<"SystemError"> | string
-    log?: StringFilter<"SystemError"> | string
-    details?: JsonFilter<"SystemError">
-    logged_on?: DateTimeFilter<"SystemError"> | Date | string
-  }
-
-  export type SystemErrorOrderByWithRelationInput = {
-    id?: SortOrder
-    on_account?: SortOrderInput | SortOrder
-    type?: SortOrder
-    log?: SortOrder
-    details?: SortOrder
-    logged_on?: SortOrder
-  }
-
-  export type SystemErrorWhereUniqueInput = Prisma.AtLeast<{
-    id?: string
-    AND?: SystemErrorWhereInput | SystemErrorWhereInput[]
-    OR?: SystemErrorWhereInput[]
-    NOT?: SystemErrorWhereInput | SystemErrorWhereInput[]
-    on_account?: StringNullableFilter<"SystemError"> | string | null
-    type?: StringFilter<"SystemError"> | string
-    log?: StringFilter<"SystemError"> | string
-    details?: JsonFilter<"SystemError">
-    logged_on?: DateTimeFilter<"SystemError"> | Date | string
-  }, "id">
-
-  export type SystemErrorOrderByWithAggregationInput = {
-    id?: SortOrder
-    on_account?: SortOrderInput | SortOrder
-    type?: SortOrder
-    log?: SortOrder
-    details?: SortOrder
-    logged_on?: SortOrder
-    _count?: SystemErrorCountOrderByAggregateInput
-    _max?: SystemErrorMaxOrderByAggregateInput
-    _min?: SystemErrorMinOrderByAggregateInput
-  }
-
-  export type SystemErrorScalarWhereWithAggregatesInput = {
-    AND?: SystemErrorScalarWhereWithAggregatesInput | SystemErrorScalarWhereWithAggregatesInput[]
-    OR?: SystemErrorScalarWhereWithAggregatesInput[]
-    NOT?: SystemErrorScalarWhereWithAggregatesInput | SystemErrorScalarWhereWithAggregatesInput[]
-    id?: StringWithAggregatesFilter<"SystemError"> | string
-    on_account?: StringNullableWithAggregatesFilter<"SystemError"> | string | null
-    type?: StringWithAggregatesFilter<"SystemError"> | string
-    log?: StringWithAggregatesFilter<"SystemError"> | string
-    details?: JsonWithAggregatesFilter<"SystemError">
-    logged_on?: DateTimeWithAggregatesFilter<"SystemError"> | Date | string
-  }
-
   export type WebDiskWhereInput = {
     AND?: WebDiskWhereInput | WebDiskWhereInput[]
     OR?: WebDiskWhereInput[]
@@ -8263,6 +7240,7 @@ export namespace Prisma {
     neupid?: StringNullableFilter<"Account"> | string | null
     created_on?: DateTimeFilter<"Account"> | Date | string
     accessed_on?: DateTimeNullableFilter<"Account"> | Date | string | null
+    sites?: SiteListRelationFilter
   }
 
   export type AccountOrderByWithRelationInput = {
@@ -8274,6 +7252,7 @@ export namespace Prisma {
     neupid?: SortOrderInput | SortOrder
     created_on?: SortOrder
     accessed_on?: SortOrderInput | SortOrder
+    sites?: SiteOrderByRelationAggregateInput
   }
 
   export type AccountWhereUniqueInput = Prisma.AtLeast<{
@@ -8288,6 +7267,7 @@ export namespace Prisma {
     neupid?: StringNullableFilter<"Account"> | string | null
     created_on?: DateTimeFilter<"Account"> | Date | string
     accessed_on?: DateTimeNullableFilter<"Account"> | Date | string | null
+    sites?: SiteListRelationFilter
   }, "id">
 
   export type AccountOrderByWithAggregationInput = {
@@ -8316,6 +7296,66 @@ export namespace Prisma {
     neupid?: StringNullableWithAggregatesFilter<"Account"> | string | null
     created_on?: DateTimeWithAggregatesFilter<"Account"> | Date | string
     accessed_on?: DateTimeNullableWithAggregatesFilter<"Account"> | Date | string | null
+  }
+
+  export type SiteWhereInput = {
+    AND?: SiteWhereInput | SiteWhereInput[]
+    OR?: SiteWhereInput[]
+    NOT?: SiteWhereInput | SiteWhereInput[]
+    id?: StringFilter<"Site"> | string
+    name?: StringFilter<"Site"> | string
+    ownerId?: StringFilter<"Site"> | string
+    tokenHash?: StringFilter<"Site"> | string
+    allowedIp?: StringNullableListFilter<"Site">
+    lastUpdated?: DateTimeFilter<"Site"> | Date | string
+    owner?: XOR<AccountScalarRelationFilter, AccountWhereInput>
+  }
+
+  export type SiteOrderByWithRelationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    ownerId?: SortOrder
+    tokenHash?: SortOrder
+    allowedIp?: SortOrder
+    lastUpdated?: SortOrder
+    owner?: AccountOrderByWithRelationInput
+  }
+
+  export type SiteWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: SiteWhereInput | SiteWhereInput[]
+    OR?: SiteWhereInput[]
+    NOT?: SiteWhereInput | SiteWhereInput[]
+    name?: StringFilter<"Site"> | string
+    ownerId?: StringFilter<"Site"> | string
+    tokenHash?: StringFilter<"Site"> | string
+    allowedIp?: StringNullableListFilter<"Site">
+    lastUpdated?: DateTimeFilter<"Site"> | Date | string
+    owner?: XOR<AccountScalarRelationFilter, AccountWhereInput>
+  }, "id">
+
+  export type SiteOrderByWithAggregationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    ownerId?: SortOrder
+    tokenHash?: SortOrder
+    allowedIp?: SortOrder
+    lastUpdated?: SortOrder
+    _count?: SiteCountOrderByAggregateInput
+    _max?: SiteMaxOrderByAggregateInput
+    _min?: SiteMinOrderByAggregateInput
+  }
+
+  export type SiteScalarWhereWithAggregatesInput = {
+    AND?: SiteScalarWhereWithAggregatesInput | SiteScalarWhereWithAggregatesInput[]
+    OR?: SiteScalarWhereWithAggregatesInput[]
+    NOT?: SiteScalarWhereWithAggregatesInput | SiteScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Site"> | string
+    name?: StringWithAggregatesFilter<"Site"> | string
+    ownerId?: StringWithAggregatesFilter<"Site"> | string
+    tokenHash?: StringWithAggregatesFilter<"Site"> | string
+    allowedIp?: StringNullableListFilter<"Site">
+    lastUpdated?: DateTimeWithAggregatesFilter<"Site"> | Date | string
   }
 
   export type FileFolderCreateInput = {
@@ -8496,118 +7536,6 @@ export namespace Prisma {
     done_on?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type ErrorLogCreateInput = {
-    id?: string
-    on_page: string
-    context: string
-    created_on?: Date | string
-  }
-
-  export type ErrorLogUncheckedCreateInput = {
-    id?: string
-    on_page: string
-    context: string
-    created_on?: Date | string
-  }
-
-  export type ErrorLogUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    on_page?: StringFieldUpdateOperationsInput | string
-    context?: StringFieldUpdateOperationsInput | string
-    created_on?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ErrorLogUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    on_page?: StringFieldUpdateOperationsInput | string
-    context?: StringFieldUpdateOperationsInput | string
-    created_on?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ErrorLogCreateManyInput = {
-    id?: string
-    on_page: string
-    context: string
-    created_on?: Date | string
-  }
-
-  export type ErrorLogUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    on_page?: StringFieldUpdateOperationsInput | string
-    context?: StringFieldUpdateOperationsInput | string
-    created_on?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ErrorLogUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    on_page?: StringFieldUpdateOperationsInput | string
-    context?: StringFieldUpdateOperationsInput | string
-    created_on?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type SystemErrorCreateInput = {
-    id?: string
-    on_account?: string | null
-    type: string
-    log: string
-    details?: JsonNullValueInput | InputJsonValue
-    logged_on?: Date | string
-  }
-
-  export type SystemErrorUncheckedCreateInput = {
-    id?: string
-    on_account?: string | null
-    type: string
-    log: string
-    details?: JsonNullValueInput | InputJsonValue
-    logged_on?: Date | string
-  }
-
-  export type SystemErrorUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    on_account?: NullableStringFieldUpdateOperationsInput | string | null
-    type?: StringFieldUpdateOperationsInput | string
-    log?: StringFieldUpdateOperationsInput | string
-    details?: JsonNullValueInput | InputJsonValue
-    logged_on?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type SystemErrorUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    on_account?: NullableStringFieldUpdateOperationsInput | string | null
-    type?: StringFieldUpdateOperationsInput | string
-    log?: StringFieldUpdateOperationsInput | string
-    details?: JsonNullValueInput | InputJsonValue
-    logged_on?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type SystemErrorCreateManyInput = {
-    id?: string
-    on_account?: string | null
-    type: string
-    log: string
-    details?: JsonNullValueInput | InputJsonValue
-    logged_on?: Date | string
-  }
-
-  export type SystemErrorUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    on_account?: NullableStringFieldUpdateOperationsInput | string | null
-    type?: StringFieldUpdateOperationsInput | string
-    log?: StringFieldUpdateOperationsInput | string
-    details?: JsonNullValueInput | InputJsonValue
-    logged_on?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type SystemErrorUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    on_account?: NullableStringFieldUpdateOperationsInput | string | null
-    type?: StringFieldUpdateOperationsInput | string
-    log?: StringFieldUpdateOperationsInput | string
-    details?: JsonNullValueInput | InputJsonValue
-    logged_on?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
   export type WebDiskCreateInput = {
     id?: string
     filename: string
@@ -8680,6 +7608,7 @@ export namespace Prisma {
     neupid?: string | null
     created_on?: Date | string
     accessed_on?: Date | string | null
+    sites?: SiteCreateNestedManyWithoutOwnerInput
   }
 
   export type AccountUncheckedCreateInput = {
@@ -8691,6 +7620,7 @@ export namespace Prisma {
     neupid?: string | null
     created_on?: Date | string
     accessed_on?: Date | string | null
+    sites?: SiteUncheckedCreateNestedManyWithoutOwnerInput
   }
 
   export type AccountUpdateInput = {
@@ -8702,6 +7632,7 @@ export namespace Prisma {
     neupid?: NullableStringFieldUpdateOperationsInput | string | null
     created_on?: DateTimeFieldUpdateOperationsInput | Date | string
     accessed_on?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sites?: SiteUpdateManyWithoutOwnerNestedInput
   }
 
   export type AccountUncheckedUpdateInput = {
@@ -8713,6 +7644,7 @@ export namespace Prisma {
     neupid?: NullableStringFieldUpdateOperationsInput | string | null
     created_on?: DateTimeFieldUpdateOperationsInput | Date | string
     accessed_on?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sites?: SiteUncheckedUpdateManyWithoutOwnerNestedInput
   }
 
   export type AccountCreateManyInput = {
@@ -8746,6 +7678,68 @@ export namespace Prisma {
     neupid?: NullableStringFieldUpdateOperationsInput | string | null
     created_on?: DateTimeFieldUpdateOperationsInput | Date | string
     accessed_on?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type SiteCreateInput = {
+    id: string
+    name: string
+    tokenHash: string
+    allowedIp?: SiteCreateallowedIpInput | string[]
+    lastUpdated?: Date | string
+    owner: AccountCreateNestedOneWithoutSitesInput
+  }
+
+  export type SiteUncheckedCreateInput = {
+    id: string
+    name: string
+    ownerId: string
+    tokenHash: string
+    allowedIp?: SiteCreateallowedIpInput | string[]
+    lastUpdated?: Date | string
+  }
+
+  export type SiteUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    allowedIp?: SiteUpdateallowedIpInput | string[]
+    lastUpdated?: DateTimeFieldUpdateOperationsInput | Date | string
+    owner?: AccountUpdateOneRequiredWithoutSitesNestedInput
+  }
+
+  export type SiteUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    allowedIp?: SiteUpdateallowedIpInput | string[]
+    lastUpdated?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SiteCreateManyInput = {
+    id: string
+    name: string
+    ownerId: string
+    tokenHash: string
+    allowedIp?: SiteCreateallowedIpInput | string[]
+    lastUpdated?: Date | string
+  }
+
+  export type SiteUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    allowedIp?: SiteUpdateallowedIpInput | string[]
+    lastUpdated?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SiteUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    allowedIp?: SiteUpdateallowedIpInput | string[]
+    lastUpdated?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -9033,85 +8027,6 @@ export namespace Prisma {
     done_on?: SortOrder
   }
 
-  export type ErrorLogCountOrderByAggregateInput = {
-    id?: SortOrder
-    on_page?: SortOrder
-    context?: SortOrder
-    created_on?: SortOrder
-  }
-
-  export type ErrorLogMaxOrderByAggregateInput = {
-    id?: SortOrder
-    on_page?: SortOrder
-    context?: SortOrder
-    created_on?: SortOrder
-  }
-
-  export type ErrorLogMinOrderByAggregateInput = {
-    id?: SortOrder
-    on_page?: SortOrder
-    context?: SortOrder
-    created_on?: SortOrder
-  }
-
-  export type StringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
-  }
-
-  export type SystemErrorCountOrderByAggregateInput = {
-    id?: SortOrder
-    on_account?: SortOrder
-    type?: SortOrder
-    log?: SortOrder
-    details?: SortOrder
-    logged_on?: SortOrder
-  }
-
-  export type SystemErrorMaxOrderByAggregateInput = {
-    id?: SortOrder
-    on_account?: SortOrder
-    type?: SortOrder
-    log?: SortOrder
-    logged_on?: SortOrder
-  }
-
-  export type SystemErrorMinOrderByAggregateInput = {
-    id?: SortOrder
-    on_account?: SortOrder
-    type?: SortOrder
-    log?: SortOrder
-    logged_on?: SortOrder
-  }
-
-  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
-  }
-
   export type WebDiskCountOrderByAggregateInput = {
     id?: SortOrder
     filename?: SortOrder
@@ -9137,6 +8052,31 @@ export namespace Prisma {
     mimeType?: SortOrder
     uploaded_by?: SortOrder
     uploaded_on?: SortOrder
+  }
+
+  export type StringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type SiteListRelationFilter = {
+    every?: SiteWhereInput
+    some?: SiteWhereInput
+    none?: SiteWhereInput
+  }
+
+  export type SiteOrderByRelationAggregateInput = {
+    _count?: SortOrder
   }
 
   export type AccountCountOrderByAggregateInput = {
@@ -9170,6 +8110,62 @@ export namespace Prisma {
     neupid?: SortOrder
     created_on?: SortOrder
     accessed_on?: SortOrder
+  }
+
+  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type StringNullableListFilter<$PrismaModel = never> = {
+    equals?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    has?: string | StringFieldRefInput<$PrismaModel> | null
+    hasEvery?: string[] | ListStringFieldRefInput<$PrismaModel>
+    hasSome?: string[] | ListStringFieldRefInput<$PrismaModel>
+    isEmpty?: boolean
+  }
+
+  export type AccountScalarRelationFilter = {
+    is?: AccountWhereInput
+    isNot?: AccountWhereInput
+  }
+
+  export type SiteCountOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    ownerId?: SortOrder
+    tokenHash?: SortOrder
+    allowedIp?: SortOrder
+    lastUpdated?: SortOrder
+  }
+
+  export type SiteMaxOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    ownerId?: SortOrder
+    tokenHash?: SortOrder
+    lastUpdated?: SortOrder
+  }
+
+  export type SiteMinOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    ownerId?: SortOrder
+    tokenHash?: SortOrder
+    lastUpdated?: SortOrder
   }
 
   export type FileFolderLogCreateNestedManyWithoutFilefolderInput = {
@@ -9256,8 +8252,73 @@ export namespace Prisma {
     update?: XOR<XOR<FileFolderUpdateToOneWithWhereWithoutLogsInput, FileFolderUpdateWithoutLogsInput>, FileFolderUncheckedUpdateWithoutLogsInput>
   }
 
+  export type SiteCreateNestedManyWithoutOwnerInput = {
+    create?: XOR<SiteCreateWithoutOwnerInput, SiteUncheckedCreateWithoutOwnerInput> | SiteCreateWithoutOwnerInput[] | SiteUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: SiteCreateOrConnectWithoutOwnerInput | SiteCreateOrConnectWithoutOwnerInput[]
+    createMany?: SiteCreateManyOwnerInputEnvelope
+    connect?: SiteWhereUniqueInput | SiteWhereUniqueInput[]
+  }
+
+  export type SiteUncheckedCreateNestedManyWithoutOwnerInput = {
+    create?: XOR<SiteCreateWithoutOwnerInput, SiteUncheckedCreateWithoutOwnerInput> | SiteCreateWithoutOwnerInput[] | SiteUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: SiteCreateOrConnectWithoutOwnerInput | SiteCreateOrConnectWithoutOwnerInput[]
+    createMany?: SiteCreateManyOwnerInputEnvelope
+    connect?: SiteWhereUniqueInput | SiteWhereUniqueInput[]
+  }
+
   export type NullableStringFieldUpdateOperationsInput = {
     set?: string | null
+  }
+
+  export type SiteUpdateManyWithoutOwnerNestedInput = {
+    create?: XOR<SiteCreateWithoutOwnerInput, SiteUncheckedCreateWithoutOwnerInput> | SiteCreateWithoutOwnerInput[] | SiteUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: SiteCreateOrConnectWithoutOwnerInput | SiteCreateOrConnectWithoutOwnerInput[]
+    upsert?: SiteUpsertWithWhereUniqueWithoutOwnerInput | SiteUpsertWithWhereUniqueWithoutOwnerInput[]
+    createMany?: SiteCreateManyOwnerInputEnvelope
+    set?: SiteWhereUniqueInput | SiteWhereUniqueInput[]
+    disconnect?: SiteWhereUniqueInput | SiteWhereUniqueInput[]
+    delete?: SiteWhereUniqueInput | SiteWhereUniqueInput[]
+    connect?: SiteWhereUniqueInput | SiteWhereUniqueInput[]
+    update?: SiteUpdateWithWhereUniqueWithoutOwnerInput | SiteUpdateWithWhereUniqueWithoutOwnerInput[]
+    updateMany?: SiteUpdateManyWithWhereWithoutOwnerInput | SiteUpdateManyWithWhereWithoutOwnerInput[]
+    deleteMany?: SiteScalarWhereInput | SiteScalarWhereInput[]
+  }
+
+  export type SiteUncheckedUpdateManyWithoutOwnerNestedInput = {
+    create?: XOR<SiteCreateWithoutOwnerInput, SiteUncheckedCreateWithoutOwnerInput> | SiteCreateWithoutOwnerInput[] | SiteUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: SiteCreateOrConnectWithoutOwnerInput | SiteCreateOrConnectWithoutOwnerInput[]
+    upsert?: SiteUpsertWithWhereUniqueWithoutOwnerInput | SiteUpsertWithWhereUniqueWithoutOwnerInput[]
+    createMany?: SiteCreateManyOwnerInputEnvelope
+    set?: SiteWhereUniqueInput | SiteWhereUniqueInput[]
+    disconnect?: SiteWhereUniqueInput | SiteWhereUniqueInput[]
+    delete?: SiteWhereUniqueInput | SiteWhereUniqueInput[]
+    connect?: SiteWhereUniqueInput | SiteWhereUniqueInput[]
+    update?: SiteUpdateWithWhereUniqueWithoutOwnerInput | SiteUpdateWithWhereUniqueWithoutOwnerInput[]
+    updateMany?: SiteUpdateManyWithWhereWithoutOwnerInput | SiteUpdateManyWithWhereWithoutOwnerInput[]
+    deleteMany?: SiteScalarWhereInput | SiteScalarWhereInput[]
+  }
+
+  export type SiteCreateallowedIpInput = {
+    set: string[]
+  }
+
+  export type AccountCreateNestedOneWithoutSitesInput = {
+    create?: XOR<AccountCreateWithoutSitesInput, AccountUncheckedCreateWithoutSitesInput>
+    connectOrCreate?: AccountCreateOrConnectWithoutSitesInput
+    connect?: AccountWhereUniqueInput
+  }
+
+  export type SiteUpdateallowedIpInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type AccountUpdateOneRequiredWithoutSitesNestedInput = {
+    create?: XOR<AccountCreateWithoutSitesInput, AccountUncheckedCreateWithoutSitesInput>
+    connectOrCreate?: AccountCreateOrConnectWithoutSitesInput
+    upsert?: AccountUpsertWithoutSitesInput
+    connect?: AccountWhereUniqueInput
+    update?: XOR<XOR<AccountUpdateToOneWithWhereWithoutSitesInput, AccountUpdateWithoutSitesInput>, AccountUncheckedUpdateWithoutSitesInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -9605,6 +8666,120 @@ export namespace Prisma {
     updated_on?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type SiteCreateWithoutOwnerInput = {
+    id: string
+    name: string
+    tokenHash: string
+    allowedIp?: SiteCreateallowedIpInput | string[]
+    lastUpdated?: Date | string
+  }
+
+  export type SiteUncheckedCreateWithoutOwnerInput = {
+    id: string
+    name: string
+    tokenHash: string
+    allowedIp?: SiteCreateallowedIpInput | string[]
+    lastUpdated?: Date | string
+  }
+
+  export type SiteCreateOrConnectWithoutOwnerInput = {
+    where: SiteWhereUniqueInput
+    create: XOR<SiteCreateWithoutOwnerInput, SiteUncheckedCreateWithoutOwnerInput>
+  }
+
+  export type SiteCreateManyOwnerInputEnvelope = {
+    data: SiteCreateManyOwnerInput | SiteCreateManyOwnerInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type SiteUpsertWithWhereUniqueWithoutOwnerInput = {
+    where: SiteWhereUniqueInput
+    update: XOR<SiteUpdateWithoutOwnerInput, SiteUncheckedUpdateWithoutOwnerInput>
+    create: XOR<SiteCreateWithoutOwnerInput, SiteUncheckedCreateWithoutOwnerInput>
+  }
+
+  export type SiteUpdateWithWhereUniqueWithoutOwnerInput = {
+    where: SiteWhereUniqueInput
+    data: XOR<SiteUpdateWithoutOwnerInput, SiteUncheckedUpdateWithoutOwnerInput>
+  }
+
+  export type SiteUpdateManyWithWhereWithoutOwnerInput = {
+    where: SiteScalarWhereInput
+    data: XOR<SiteUpdateManyMutationInput, SiteUncheckedUpdateManyWithoutOwnerInput>
+  }
+
+  export type SiteScalarWhereInput = {
+    AND?: SiteScalarWhereInput | SiteScalarWhereInput[]
+    OR?: SiteScalarWhereInput[]
+    NOT?: SiteScalarWhereInput | SiteScalarWhereInput[]
+    id?: StringFilter<"Site"> | string
+    name?: StringFilter<"Site"> | string
+    ownerId?: StringFilter<"Site"> | string
+    tokenHash?: StringFilter<"Site"> | string
+    allowedIp?: StringNullableListFilter<"Site">
+    lastUpdated?: DateTimeFilter<"Site"> | Date | string
+  }
+
+  export type AccountCreateWithoutSitesInput = {
+    id?: string
+    account_type: string
+    connection_id?: string | null
+    display_name?: string | null
+    display_image?: string | null
+    neupid?: string | null
+    created_on?: Date | string
+    accessed_on?: Date | string | null
+  }
+
+  export type AccountUncheckedCreateWithoutSitesInput = {
+    id?: string
+    account_type: string
+    connection_id?: string | null
+    display_name?: string | null
+    display_image?: string | null
+    neupid?: string | null
+    created_on?: Date | string
+    accessed_on?: Date | string | null
+  }
+
+  export type AccountCreateOrConnectWithoutSitesInput = {
+    where: AccountWhereUniqueInput
+    create: XOR<AccountCreateWithoutSitesInput, AccountUncheckedCreateWithoutSitesInput>
+  }
+
+  export type AccountUpsertWithoutSitesInput = {
+    update: XOR<AccountUpdateWithoutSitesInput, AccountUncheckedUpdateWithoutSitesInput>
+    create: XOR<AccountCreateWithoutSitesInput, AccountUncheckedCreateWithoutSitesInput>
+    where?: AccountWhereInput
+  }
+
+  export type AccountUpdateToOneWithWhereWithoutSitesInput = {
+    where?: AccountWhereInput
+    data: XOR<AccountUpdateWithoutSitesInput, AccountUncheckedUpdateWithoutSitesInput>
+  }
+
+  export type AccountUpdateWithoutSitesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    account_type?: StringFieldUpdateOperationsInput | string
+    connection_id?: NullableStringFieldUpdateOperationsInput | string | null
+    display_name?: NullableStringFieldUpdateOperationsInput | string | null
+    display_image?: NullableStringFieldUpdateOperationsInput | string | null
+    neupid?: NullableStringFieldUpdateOperationsInput | string | null
+    created_on?: DateTimeFieldUpdateOperationsInput | Date | string
+    accessed_on?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type AccountUncheckedUpdateWithoutSitesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    account_type?: StringFieldUpdateOperationsInput | string
+    connection_id?: NullableStringFieldUpdateOperationsInput | string | null
+    display_name?: NullableStringFieldUpdateOperationsInput | string | null
+    display_image?: NullableStringFieldUpdateOperationsInput | string | null
+    neupid?: NullableStringFieldUpdateOperationsInput | string | null
+    created_on?: DateTimeFieldUpdateOperationsInput | Date | string
+    accessed_on?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
   export type FileFolderLogCreateManyFilefolderInput = {
     id?: string
     action: string
@@ -9635,6 +8810,38 @@ export namespace Prisma {
     details?: JsonNullValueInput | InputJsonValue
     done_by?: StringFieldUpdateOperationsInput | string
     done_on?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SiteCreateManyOwnerInput = {
+    id: string
+    name: string
+    tokenHash: string
+    allowedIp?: SiteCreateallowedIpInput | string[]
+    lastUpdated?: Date | string
+  }
+
+  export type SiteUpdateWithoutOwnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    allowedIp?: SiteUpdateallowedIpInput | string[]
+    lastUpdated?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SiteUncheckedUpdateWithoutOwnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    allowedIp?: SiteUpdateallowedIpInput | string[]
+    lastUpdated?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SiteUncheckedUpdateManyWithoutOwnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    allowedIp?: SiteUpdateallowedIpInput | string[]
+    lastUpdated?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
 

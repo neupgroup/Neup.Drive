@@ -11,6 +11,7 @@ import { appendBridgeFileAccessLog } from '@/lib/file-access-log';
 import { prisma } from '@neup/core/database/prisma';
 import { createBridgeFileUrl, isActiveFileDetails } from '@/lib/bridge-api';
 import { recordFileFolderActivity } from '@/lib/filefolder';
+import logica from '@neup/logica';
 
 /*
 ::neup.documentation::viewer-page
@@ -64,31 +65,11 @@ async function logViewerRetrievalError(params: {
   const { file, viewUrl, message, status, statusText, error } = params;
   const errorMessage = error instanceof Error ? error.message : String(error ?? message);
 
-  try {
-    await prisma.errorLog.create({
-      data: {
-        on_page: '/viewer/[id]',
-        context: JSON.stringify({
-          type: 'UNKNOWN',
-          originalError: message,
-          stack: error instanceof Error ? error.stack : undefined,
-          context: {
-            filefolder_id: file.id,
-            name: file.name,
-            owner: file.owner,
-            path: file.path,
-            status,
-            statusText,
-            url: viewUrl,
-            error: errorMessage,
-          },
-          response: status ? { status, statusText } : undefined,
-        }),
-      },
-    });
-  } catch {
-    // Keep the viewer user-facing. A logging failure should not render a dev error overlay.
-  }
+  await logica.logger.type('viewer-retrieval-error').data({
+    onPage: '/viewer/[id]', filefolder_id: file.id, name: file.name,
+    owner: file.owner, path: file.path, status, statusText, url: viewUrl,
+    errorMessage,
+  }).error(error ?? message);
 }
 
 async function verifyViewerFileExists(params: {

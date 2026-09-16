@@ -1,0 +1,53 @@
+Table: filefolder, Model: FileFolder
+Fields:
+> id: string, uuid, primary key;
+> name: string;
+> path: string;
+> type: string;
+> owner: string;
+> stored_as: string, default: drive;
+> size: bigint, default: 0;
+> last_activity: json, default: {};
+> lastActivityOn: timestamp, nullable, maps to last_activity_on;
+> totalActivity: int, default: 0, maps to total_activity;
+> details: json, default: {};
+> created_on: timestamp, default: now;
+> updated_on: timestamp, auto-updated;
+
+Table: filefolder_log, Model: FileFolderLog
+Fields:
+> id: string, uuid, primary key;
+> filefolder_id: string, references filefolder.id;
+> action: string;
+> details: json, default: {};
+> done_by: string;
+> done_on: timestamp, default: now;
+
+Table: WebDisk, Model: WebDisk
+Fields:
+> id: string, uuid, primary key;
+> filename: string;
+> path: string;
+> mimeType: string, default: application/octet-stream;
+> uploaded_by: string;
+> uploaded_on: timestamp, default: now;
+
+Table: Account, Model: Account
+Fields:
+> id: string, uuid, primary key;
+> account_type: string;
+> connection_id: string, nullable;
+> display_name: string, nullable;
+> display_image: string, nullable;
+> neupid: string, nullable;
+> created_on: timestamp, default: now;
+> accessed_on: timestamp, nullable;
+
+Table: sites, Model: Site
+Fields:
+> id: string, primary key;
+> name: string;
+> ownerId: string, references Account.id;
+> tokenHash: string;
+> allowedIp: string[];
+> lastUpdated: timestamp, auto-updated;

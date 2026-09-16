@@ -145,22 +145,6 @@ exports.Prisma.FileFolderLogScalarFieldEnum = {
   done_on: 'done_on'
 };
 
-exports.Prisma.ErrorLogScalarFieldEnum = {
-  id: 'id',
-  on_page: 'on_page',
-  context: 'context',
-  created_on: 'created_on'
-};
-
-exports.Prisma.SystemErrorScalarFieldEnum = {
-  id: 'id',
-  on_account: 'on_account',
-  type: 'type',
-  log: 'log',
-  details: 'details',
-  logged_on: 'logged_on'
-};
-
 exports.Prisma.WebDiskScalarFieldEnum = {
   id: 'id',
   filename: 'filename',
@@ -179,6 +163,15 @@ exports.Prisma.AccountScalarFieldEnum = {
   neupid: 'neupid',
   created_on: 'created_on',
   accessed_on: 'accessed_on'
+};
+
+exports.Prisma.SiteScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  ownerId: 'ownerId',
+  tokenHash: 'tokenHash',
+  allowedIp: 'allowedIp',
+  lastUpdated: 'lastUpdated'
 };
 
 exports.Prisma.SortOrder = {
@@ -210,10 +203,9 @@ exports.Prisma.NullsOrder = {
 exports.Prisma.ModelName = {
   FileFolder: 'FileFolder',
   FileFolderLog: 'FileFolderLog',
-  ErrorLog: 'ErrorLog',
-  SystemError: 'SystemError',
   WebDisk: 'WebDisk',
-  Account: 'Account'
+  Account: 'Account',
+  Site: 'Site'
 };
 
 /**
