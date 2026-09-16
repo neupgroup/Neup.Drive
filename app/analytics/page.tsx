@@ -28,10 +28,10 @@ bandwidth, file, domain, and page breakdowns without needing a client fetch.
 */
 import { BarChart3, Globe, HardDriveDownload, HardDriveUpload, Link2, TrendingUp } from 'lucide-react';
 
-import { getCookie } from '@/core/helpers/cookie';
+import { getCookie } from '@neup/core/helpers/cookie';
 import { getDriveAnalytics } from '@/lib/analytics';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { logica } from '@/logica';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@neup/components/ui/card';
+import { logica } from '@neup/logica';
 
 function formatBytes(bytes: number) {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';

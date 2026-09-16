@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import './globals.css';
-import { Toaster } from '@/components/ui/toaster';
+import NeupRootLayout from '@neup/components/layout/RootLayout';
 import { Header } from '@/components/prodrive/header';
 import { Sidebar } from '@/components/prodrive/sidebar';
 import { UploadStatusToast } from '@/components/prodrive/upload-status-toast';
@@ -24,19 +24,20 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <div className="flex min-h-screen w-full flex-col bg-white">
-          <Suspense fallback={null}>
-            <Header />
-          </Suspense>
-          <div className="flex flex-1 w-full max-w-[1440px] mx-auto">
-            <Sidebar />
-            <main className="flex-1 p-6 sm:px-8 sm:py-8">
-              {children}
-            </main>
+        <NeupRootLayout>
+          <div className="flex min-h-screen w-full flex-col bg-white">
+            <Suspense fallback={null}>
+              <Header />
+            </Suspense>
+            <div className="flex flex-1 w-full max-w-[1440px] mx-auto">
+              <Sidebar />
+              <main className="flex-1 p-6 sm:px-8 sm:py-8">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
-        <UploadStatusToast />
-        <Toaster />
+          <UploadStatusToast />
+        </NeupRootLayout>
       </body>
     </html>
   );

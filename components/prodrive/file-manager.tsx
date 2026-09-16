@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { ChevronRight, Copy, Download, Edit3, Eye, FolderInput, MoreHorizontal, Share2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { FileOrFolder } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@neup/components/ui/button';
+import { Card, CardContent } from '@neup/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -14,11 +14,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ToastAction } from '@/components/ui/toast';
-import { toast } from '@/core/hooks/use-toast';
+} from '@neup/components/ui/dialog';
+import { Input } from '@neup/components/ui/input';
+import { Label } from '@neup/components/ui/label';
+import { ToastAction } from '@neup/components/ui/toast';
+import { toast } from '@neup/core/hooks/useToast';
 import { FileListView } from './file-list-view';
 
 type MoveTarget = 'drive' | 'assets' | 'signed';
@@ -748,7 +748,7 @@ export function FileManager({
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateFolderDialogOpen(false)}>
+            <Button variant="outlined" onClick={() => setCreateFolderDialogOpen(false)}>
               Cancel
             </Button>
             <Button onClick={() => void submitCreateFolder()}>
@@ -855,7 +855,7 @@ export function FileManager({
               </div>
 
               <DialogFooter className="border-t border-slate-200/70 px-6 py-5">
-                <Button variant="outline" onClick={() => setRenameDialog(null)} className="rounded-full">
+                <Button variant="outlined" onClick={() => setRenameDialog(null)} className="rounded-full">
                   Cancel
                 </Button>
                 <Button onClick={submitRename} className="rounded-full shadow-lg shadow-indigo-500/20">

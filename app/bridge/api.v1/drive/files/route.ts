@@ -22,7 +22,7 @@ path, while signed file URLs resolve against `details.storage_path`.
 ::end
 */
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/core/database/prisma';
+import { prisma } from '@neup/core/database/prisma';
 import { handleServerError } from '@/lib/error-server';
 import {
     createBridgeFileUrl,

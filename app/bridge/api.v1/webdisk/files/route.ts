@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import path from 'node:path';
 import { getRequestDeviceIp } from '@/lib/bridge-api';
 import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken, parseDurationSeconds } from '@/lib/cdn-token';
-import { prisma } from '@/core/database/prisma';
+import { prisma } from '@neup/core/database/prisma';
 import { resolveAuthenticatedAccountId, resolveAuthenticatedAccountProfile } from '@/lib/bridge-api';
 import { handleServerError } from '@/lib/error-server';
 

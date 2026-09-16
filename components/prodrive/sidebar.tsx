@@ -1,25 +1,25 @@
 import Link from 'next/link';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@neup/components/ui/avatar';
+import { Button } from '@neup/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@neup/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Separator } from '@/components/ui/separator';
+} from '@neup/components/ui/dropdown-menu';
+import { Separator } from '@neup/components/ui/separator';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from '@neup/components/ui/tooltip';
 import { NavLinks } from '@/components/prodrive/nav-links';
-import type { Prisma } from '@/core/database/prisma';
-import { prisma } from '@/core/database/prisma';
+import type { Prisma } from '@neup/core/database/prisma';
+import { prisma } from '@neup/core/database/prisma';
 import { isActiveFileDetails } from '@/lib/bridge-api';
 import {
   formatStorageBytes,
@@ -27,8 +27,8 @@ import {
   storageTierFromStoredAs,
   type StorageTier,
 } from '@/lib/storage-tiers';
-import { getCookie } from '@/core/helpers/cookie';
-import { account } from '@/logica/account';
+import { getCookie } from '@neup/core/helpers/cookie';
+import { account } from '@neup/logica/account';
 import { PRODRIVE_QUOTA_PATH } from './routes';
 
 const STORAGE_OWNER = process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
@@ -248,7 +248,7 @@ export async function Sidebar() {
         <Separator />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex h-auto items-center justify-start gap-2 p-1">
+            <Button variant="plain" className="flex h-auto items-center justify-start gap-2 p-1">
               <Avatar className="h-9 w-9 border">
                 <AvatarImage src={signedInAccount?.displayImage || undefined} alt={displayName} data-ai-hint="person face" />
                 <AvatarFallback>{avatarFallback}</AvatarFallback>

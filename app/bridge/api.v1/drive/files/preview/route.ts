@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { Prisma } from '@/core/database/prisma';
+import type { Prisma } from '@neup/core/database/prisma';
 
 import { createBridgeFileUrl, getFolderType, getParam, getRequestDeviceIp, isActiveFileDetails } from '@/lib/bridge-api';
 import { parseDurationSeconds } from '@/lib/cdn-token';
-import { prisma } from '@/core/database/prisma';
+import { prisma } from '@neup/core/database/prisma';
 import { handleServerError } from '@/lib/error-server';
 import { appendBridgeFileAccessLog } from '@/lib/file-access-log';
 

@@ -8,11 +8,9 @@
     "npm": "12.0.2"
   },
   "scripts": {
-    "setup": "rm -rf core && rm -rf neup.core && git clone https://github.com/neupgroup/neup.core && mv neup.core core && rm -rf logica && rm -rf neup.logica && git clone https://github.com/neupgroup/neup.logica && mv neup.logica logica",
-
+    "setup": "chmod +x ./setup.sh && ./setup.sh",
     "prebuild": "npm run setup && npx prisma generate",
     "predev": "npm run setup",
-
     "dev": "next dev --port 3748 --experimental-https",
     "build": "next build",
     "start": "next start --port 3748",
@@ -54,6 +52,7 @@
     "hash-wasm": "^4.12.0",
     "lucide-react": "^0.475.0",
     "next": "16.3.0",
+    "nprogress": "^0.2.0",
     "patch-package": "^8.0.0",
     "react": "^19.2.1",
     "react-day-picker": "^9.11.3",

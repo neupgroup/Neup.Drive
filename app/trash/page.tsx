@@ -18,12 +18,12 @@ The trash page for the configured owner.
 
 ::end
 */
-import type { Prisma } from '@/core/database/prisma';
+import type { Prisma } from '@neup/core/database/prisma';
 import path from 'node:path';
 
 import { TrashPageManager } from '@/components/prodrive/trash-page-manager';
-import { getCookie } from '@/core/helpers/cookie';
-import { prisma } from '@/core/database/prisma';
+import { getCookie } from '@neup/core/helpers/cookie';
+import { prisma } from '@neup/core/database/prisma';
 import { resolveAuthenticatedAccountId } from '@/lib/bridge-api';
 import { isDirectoryMimeType } from '@/lib/filefolder';
 import type { FileOrFolder } from '@/lib/types';

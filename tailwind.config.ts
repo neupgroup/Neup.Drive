@@ -7,6 +7,7 @@ export default {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './core/**/*.{js,ts,jsx,tsx,mdx}',
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    "./.neup/**/*.{js,ts,jsx,tsx,mdx}"
   ],
   theme: {
     extend: {

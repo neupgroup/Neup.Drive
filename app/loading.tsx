@@ -25,7 +25,7 @@ files area keeps a list-style skeleton to preserve layout stability.
 
 ::end
 */
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@neup/components/ui/skeleton';
 
 const SKELETON_ROWS = 8;
 

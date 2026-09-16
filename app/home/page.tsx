@@ -30,9 +30,9 @@ import { Suspense } from 'react';
 import { RecentPageManager } from '@/components/prodrive/recent-page-manager';
 import { resolveAuthenticatedAccountId } from '@/lib/bridge-api';
 import { getRecentDriveFiles } from '@/lib/drive-files';
-import { Skeleton } from '@/components/ui/skeleton';
-import { getCookie } from '@/core/helpers/cookie';
-import { logica } from '@/logica';
+import { Skeleton } from '@neup/components/ui/skeleton';
+import { getCookie } from '@neup/core/helpers/cookie';
+import { logica } from '@neup/logica';
 
 async function getHomepageDisplayName() {
   const authAccountToken = await getCookie('auth_account');

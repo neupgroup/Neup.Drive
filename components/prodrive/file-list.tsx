@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { FileIcon, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@neup/components/ui/button';
 import { handleClientError } from '@/lib/error-client';
 import {
     Table,
@@ -11,7 +11,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from '@/components/ui/table';
+} from '@neup/components/ui/table';
 import { formatDistanceToNow } from 'date-fns';
 
 interface FileRecord {
@@ -82,7 +82,7 @@ export function FileList({ refreshTrigger = 0 }: FileListProps) {
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h3 className="text-lg font-medium">Your Files</h3>
-                <Button variant="outline" size="sm" onClick={fetchFiles} disabled={loading}>
+                <Button variant="outlined" size="sm" onClick={fetchFiles} disabled={loading}>
                     <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                     Refresh
                 </Button>
@@ -128,7 +128,7 @@ export function FileList({ refreshTrigger = 0 }: FileListProps) {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <Button
-                                            variant="ghost"
+                                            variant="plain"
                                             size="sm"
                                             onClick={() => window.open(file.url, '_blank')}
                                         >

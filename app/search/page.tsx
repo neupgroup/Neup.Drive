@@ -25,7 +25,7 @@ the main file manager layout with search-specific heading and empty-state copy.
 ::end
 */
 import { FileManager } from '@/components/prodrive/file-manager';
-import { getCookie } from '@/core/helpers/cookie';
+import { getCookie } from '@neup/core/helpers/cookie';
 import { resolveAuthenticatedAccountId } from '@/lib/bridge-api';
 import { getDriveFiles } from '@/lib/drive-files';
 

@@ -27,8 +27,8 @@ server so the client upload flow cannot fall back to the demo owner.
 ::end
 */
 import { FileUpload } from '@/components/prodrive/file-upload';
-import { makeAppPath } from '@/core/appconfig';
-import { getCookie } from '@/core/helpers/cookie';
+import { makeAppPath } from '@neup/core/appconfig';
+import { getCookie } from '@neup/core/helpers/cookie';
 import { resolveAuthenticatedAccountId } from '@/lib/bridge-api';
 
 const WEBDISK_TYPES = ['assets', 'signed'] as const;

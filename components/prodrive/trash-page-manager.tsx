@@ -37,7 +37,7 @@ import { FolderInput, RotateCcw, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { FileManager } from '@/components/prodrive/file-manager';
-import { Button } from '@/components/ui/button';
+import { Button } from '@neup/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -45,11 +45,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from '@/core/hooks/use-toast';
+} from '@neup/components/ui/dialog';
+import { Input } from '@neup/components/ui/input';
+import { Label } from '@neup/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@neup/components/ui/select';
+import { toast } from '@neup/core/hooks/useToast';
 import type { FileOrFolder } from '@/lib/types';
 import { PRODRIVE_STORAGE_PATH } from './routes';
 
@@ -387,7 +387,7 @@ export function TrashPageManager({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRestoreToDialogItem(null)}>
+            <Button variant="outlined" onClick={() => setRestoreToDialogItem(null)}>
               Cancel
             </Button>
             <Button onClick={() => void submitRestoreTo()}>

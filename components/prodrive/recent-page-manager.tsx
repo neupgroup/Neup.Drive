@@ -38,8 +38,8 @@ import * as React from 'react';
 import { Eye, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { FileManager } from '@/components/prodrive/file-manager';
-import { toast } from '@/core/hooks/use-toast';
-import { ToastAction } from '@/components/ui/toast';
+import { toast } from '@neup/core/hooks/useToast';
+import { ToastAction } from '@neup/components/ui/toast';
 import type { FileOrFolder } from '@/lib/types';
 import { PRODRIVE_STORAGE_PATH } from './routes';
 

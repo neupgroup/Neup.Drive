@@ -14,8 +14,8 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Card } from '@/components/ui/card';
+} from '@neup/components/ui/tooltip';
+import { Card } from '@neup/components/ui/card';
 import { storageTierDotClass, storageTierLabel } from '@/lib/storage-tiers';
 
 export function FileListView({

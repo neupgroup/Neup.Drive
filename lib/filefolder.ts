@@ -13,8 +13,8 @@ audit logs, and last-activity counters used by Drive and WebDisk flows.
 ::end
 */
 import path from 'node:path';
-import type { Prisma } from '@/core/database/prisma';
-import { prisma } from '@/core/database/prisma';
+import type { Prisma } from '@neup/core/database/prisma';
+import { prisma } from '@neup/core/database/prisma';
 
 export type FileFolderMode = 'drive' | 'webdisk';
 export type FileFolderStoredAs = 'drive' | 'assets' | 'signed';

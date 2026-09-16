@@ -25,7 +25,7 @@ action area so the page does not jump when the real file content arrives.
 
 ::end
 */
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@neup/components/ui/skeleton';
 
 export default function Loading() {
   return (

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { Prisma } from '@/core/database/prisma';
-import { prisma } from '@/core/database/prisma';
+import type { Prisma } from '@neup/core/database/prisma';
+import { prisma } from '@neup/core/database/prisma';
 import { buildFileFolderActivityUpdate, createFileFolderLog } from '@/lib/filefolder';
 
 /*

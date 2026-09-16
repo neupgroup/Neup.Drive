@@ -5,12 +5,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, Trash2 } from 'lucide-react';
 
 import { FileManager } from '@/components/prodrive/file-manager';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ToastAction } from '@/components/ui/toast';
-import { makeAppPath } from '@/core/appconfig';
-import { toast } from '@/core/hooks/use-toast';
+import { Button } from '@neup/components/ui/button';
+import { Card, CardContent } from '@neup/components/ui/card';
+import { Skeleton } from '@neup/components/ui/skeleton';
+import { ToastAction } from '@neup/components/ui/toast';
+import { makeAppPath } from '@neup/core/appconfig';
+import { toast } from '@neup/core/hooks/useToast';
 import { handleClientError } from '@/lib/error-client';
 import { storageTierFromWebdiskType, type StorageTier } from '@/lib/storage-tiers';
 import type { FileOrFolder } from '@/lib/types';
@@ -621,7 +621,7 @@ function WebdiskContent() {
           <CardContent className="py-10 text-center">
             <p className="mb-2 font-semibold text-destructive">{error}</p>
             <Button
-              variant="outline"
+              variant="outlined"
               size="sm"
               onClick={() => void fetchFiles()}
               className="hover:bg-blue-500/8 hover:text-blue-700 active:bg-blue-500/8"

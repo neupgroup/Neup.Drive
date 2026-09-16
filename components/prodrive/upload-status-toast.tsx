@@ -4,9 +4,9 @@ import * as React from 'react';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-import { useToast } from '@/core/hooks/use-toast';
+import { useToast } from '@neup/core/hooks/useToast';
 import { getUploads } from '@/lib/upload-persistence';
-import { ToastAction } from '@/components/ui/toast';
+import { ToastAction } from '@neup/components/ui/toast';
 
 const ACTIVE_UPLOAD_STATUSES = new Set([
   'PENDING',

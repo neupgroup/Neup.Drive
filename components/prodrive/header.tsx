@@ -1,27 +1,28 @@
 'use client';
-import Link from 'next/link';
 import * as React from 'react';
 import { PanelLeft, Search, Upload } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@neup/components/ui/button';
+import { LinkButton } from '@neup/components/ui/link-button';
+import { Link } from '@neup/components/ui/link';
+import { Input } from '@neup/components/ui/input';
+import { Sheet, SheetContent, SheetTrigger } from '@neup/components/ui/sheet';
 import { Logo } from '@/components/icons';
 import { MobileNavLinks } from './nav-links';
 import { PRODRIVE_HOME_PATH } from './routes';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@neup/components/ui/card';
 
 
 function MobileSidebar() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button
-          size="icon"
-          variant="outline"
+          <Button
+            size="icon"
+            variant="outlined"
+            preIcon={<PanelLeft />}
           className="sm:hidden border-border bg-white text-foreground hover:bg-blue-500/8 hover:text-blue-700 active:bg-blue-500/8"
         >
-          <PanelLeft className="h-5 w-5" />
           <span className="sr-only">Toggle Menu</span>
         </Button>
       </SheetTrigger>
@@ -99,17 +100,15 @@ export function Header() {
           />
         </form>
         <div className="hidden sm:flex items-center gap-2">
-          <Button
+          <LinkButton
             size="sm"
-            variant="outline"
+            variant="outlined"
+            href="/upload"
+            preIcon={<Upload />}
             className="rounded-xl border-border bg-white text-foreground hover:bg-blue-500/8 hover:text-blue-700 active:bg-blue-500/8"
-            asChild
           >
-            <Link href="/upload">
-              <Upload className="mr-2 h-4 w-4" />
-              Upload
-            </Link>
-          </Button>
+            Upload
+          </LinkButton>
         </div>
       </div>
     </header>

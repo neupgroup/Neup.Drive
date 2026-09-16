@@ -33,11 +33,11 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { getCookie } from '@/core/helpers/cookie';
+} from '@neup/components/ui/tooltip';
+import { getCookie } from '@neup/core/helpers/cookie';
 import { formatStorageBytes, STORAGE_LIMIT_BYTES } from '@/lib/storage-tiers';
 import { getDriveQuotaDetails } from '@/lib/drive-files';
-import { logica } from '@/logica';
+import { logica } from '@neup/logica';
 
 function getPercent(usedBytes: number) {
   if (STORAGE_LIMIT_BYTES <= 0) return 0;

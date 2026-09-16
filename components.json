@@ -12,10 +12,10 @@
   },
   "aliases": {
     "components": "@/components",
-    "utils": "@/core/lib/utils",
-    "ui": "@/components/ui",
-    "lib": "@/core/lib",
-    "hooks": "@/core/hooks"
+    "utils": "@neup/core/lib/utils",
+    "ui": "@neup/components/ui",
+    "lib": "@neup/core/lib",
+    "hooks": "@neup/core/hooks"
   },
   "iconLibrary": "lucide"
 }

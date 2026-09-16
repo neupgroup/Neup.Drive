@@ -30,7 +30,7 @@ The parent relative path within the target surface.
 */
 import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/core/database/prisma';
+import { prisma } from '@neup/core/database/prisma';
 import { handleServerError } from '@/lib/error-server';
 import { createFileFolderLog, webdiskStoredAs } from '@/lib/filefolder';
 import { isActiveFileDetails, isReservedWebdiskRootFolder, normalizeInternalPath } from '@/lib/bridge-api';

@@ -31,9 +31,9 @@ import * as React from 'react';
 import { Suspense } from 'react';
 import { AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { getBasePath } from '@/core/appconfig';
+import { Button } from '@neup/components/ui/button';
+import { Skeleton } from '@neup/components/ui/skeleton';
+import { getBasePath } from '@neup/core/appconfig';
 import { formatDistanceToNow } from 'date-fns';
 
 interface ErrorLog {
@@ -216,7 +216,7 @@ function ErrorsPageContent() {
                         </p>
                         <div className="flex items-center gap-2">
                             <Button
-                                variant="outline"
+                                variant="outlined"
                                 size="sm"
                                 onClick={() => updateQuery(Math.max(1, page - 1), pageSize)}
                                 disabled={loading || page <= 1}
@@ -225,7 +225,7 @@ function ErrorsPageContent() {
                                 Previous
                             </Button>
                             <Button
-                                variant="outline"
+                                variant="outlined"
                                 size="sm"
                                 onClick={() => updateQuery(Math.min(totalPages, page + 1), pageSize)}
                                 disabled={loading || page >= totalPages}

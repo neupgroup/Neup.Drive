@@ -2,7 +2,7 @@ import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
 import { appendBridgeFileAccessLog } from '@/lib/file-access-log';
 import { createExpiringOperationPayload, createSignedCdnToken, encodeSignedCdnToken } from '@/lib/cdn-token';
-import { prisma } from '@/core/database/prisma';
+import { prisma } from '@neup/core/database/prisma';
 import { handleServerError } from '@/lib/error-server';
 import { logToDatabase } from '@/lib/error-server';
 import { buildFileFolderActivityUpdate, isDirectoryDetails, webdiskStoredAs } from '@/lib/filefolder';

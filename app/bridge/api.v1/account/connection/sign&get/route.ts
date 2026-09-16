@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { logica } from '@/logica';
+import { logica } from '@neup/logica';
 
 function signJwt(payload: object, secret: string, expiresInSeconds = 3600) {
   const header = { alg: 'HS256', typ: 'JWT' };

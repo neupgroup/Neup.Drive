@@ -2,13 +2,13 @@ import Link from 'next/link';
 import { ArrowLeft, Download, ExternalLink, FileQuestion } from 'lucide-react';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
-import type { Prisma } from '@/core/database/prisma';
+import type { Prisma } from '@neup/core/database/prisma';
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@neup/components/ui/button';
+import { Card, CardContent } from '@neup/components/ui/card';
 import { PRODRIVE_HOME_PATH } from '@/components/prodrive/routes';
 import { appendBridgeFileAccessLog } from '@/lib/file-access-log';
-import { prisma } from '@/core/database/prisma';
+import { prisma } from '@neup/core/database/prisma';
 import { createBridgeFileUrl, isActiveFileDetails } from '@/lib/bridge-api';
 import { recordFileFolderActivity } from '@/lib/filefolder';
 
@@ -270,7 +270,7 @@ export default async function ViewerPage({
     <div className="w-full min-w-0 space-y-4 overflow-hidden">
       <div className="flex min-w-0 flex-col gap-3">
         <div className="min-w-0 flex-1">
-          <Button variant="ghost" size="sm" asChild className="-ml-2 mb-2">
+          <Button variant="plain" size="sm" asChild className="-ml-2 mb-2">
             <Link href={PRODRIVE_HOME_PATH}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
@@ -289,7 +289,7 @@ export default async function ViewerPage({
 
       {exists ? (
         <div className="flex flex-wrap items-center justify-start gap-2">
-          <Button variant="outline" asChild>
+          <Button variant="outlined" asChild>
             <a href={viewUrl} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="mr-2 h-4 w-4" />
               Open

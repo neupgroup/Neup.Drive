@@ -1,4 +1,4 @@
-import { getBasePath } from '@/core/appconfig';
+import { getBasePath } from '@neup/core/appconfig';
 
 const ERROR_LOG_ENDPOINT = `${getBasePath() ?? ''}/bridge/api.v1/log-error`;
 

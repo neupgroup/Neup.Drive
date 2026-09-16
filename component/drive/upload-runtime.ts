@@ -1,5 +1,5 @@
 import { createBLAKE3 } from 'hash-wasm';
-import { getBasePath } from '@/core/appconfig';
+import { getBasePath } from '@neup/core/appconfig';
 
 /*
 ::neup.documentation::portable-drive-upload-runtime

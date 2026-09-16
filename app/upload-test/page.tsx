@@ -1,7 +1,7 @@
 'use client';
 
 import { FileUpload } from '@/components/prodrive/file-upload';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@neup/components/ui/card';
 
 export default function UploadTestPage() {
     // In production, these should come from environment variables or API

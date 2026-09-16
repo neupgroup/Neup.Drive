@@ -18,7 +18,7 @@ import * as React from 'react';
 import { RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@neup/components/ui/button';
 
 export function TrashRestoreButton({
   filefolderId,
@@ -59,7 +59,7 @@ export function TrashRestoreButton({
   return (
     <Button
       type="button"
-      variant="outline"
+      variant="outlined"
       size="sm"
       className="rounded-full"
       onClick={handleRestore}

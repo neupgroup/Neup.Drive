@@ -1,5 +1,5 @@
-import { toast } from '@/core/hooks/use-toast';
-import { makeAppPath } from '@/core/appconfig';
+import { toast } from '@neup/core/hooks/useToast';
+import { makeAppPath } from '@neup/core/appconfig';
 import { ErrorType, identifyError } from './error-types';
 
 type ErrorContext = {

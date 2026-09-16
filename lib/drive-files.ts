@@ -30,13 +30,13 @@ maps them into the `FileOrFolder` UI shape used by the drive pages.
 
 ::end
 */
-import type { Prisma } from '@/core/database/prisma';
-import { prisma } from '@/core/database/prisma';
+import type { Prisma } from '@neup/core/database/prisma';
+import { prisma } from '@neup/core/database/prisma';
 import { isActiveFileDetails, normalizeInternalPath, resolveAuthenticatedAccountProfile } from '@/lib/bridge-api';
 import { isDirectoryDetails } from '@/lib/filefolder';
 import { storageTierFromStoredAs } from '@/lib/storage-tiers';
 import type { FileOrFolder } from '@/lib/types';
-import { getCookie } from '@/core/helpers/cookie';
+import { getCookie } from '@neup/core/helpers/cookie';
 
 export const DEFAULT_DRIVE_OWNER = process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';
 export const DEFAULT_WEBDISK_OWNER = process.env.WEBDISK_ACCOUNT_ID || process.env.NEXT_PUBLIC_ACCOUNT_ID || 'demo-user-123';

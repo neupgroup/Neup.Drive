@@ -8,8 +8,8 @@ import {
   Users,
 } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@neup/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@neup/components/ui/card';
 
 const managementLinks = [
   {
@@ -81,7 +81,7 @@ export default function ManagePage() {
             </CardHeader>
             <CardContent>
               <Button
-                variant="outline"
+                variant="outlined"
                 size="sm"
                 asChild
                 className="hover:bg-blue-500/8 hover:text-blue-700 active:bg-blue-500/8"

@@ -26,7 +26,7 @@ client manager only receives safe internal drive paths.
 ::end
 */
 import { DrivePageManager } from '@/components/prodrive/drive-page-manager';
-import { getCookie } from '@/core/helpers/cookie';
+import { getCookie } from '@neup/core/helpers/cookie';
 import { normalizeInternalPath, resolveAuthenticatedAccountId } from '@/lib/bridge-api';
 import { getDriveFiles } from '@/lib/drive-files';
 

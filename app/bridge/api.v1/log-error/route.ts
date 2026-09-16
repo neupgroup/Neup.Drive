@@ -47,7 +47,7 @@ forwarded to the shared `logToDatabase` helper.
 ::end
 */
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/core/database/prisma';
+import { prisma } from '@neup/core/database/prisma';
 import { logToDatabase } from '@/lib/error-server';
 import { identifyError } from '@/lib/error-types';
 

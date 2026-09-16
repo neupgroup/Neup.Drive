@@ -1,9 +1,9 @@
 import Image from 'next/image';
 import type { FileOrFolder } from '@/lib/types';
 import { LoaderCircle } from 'lucide-react';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@neup/components/ui/card';
 import { FileIcon } from '@/components/file-icon';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@neup/components/ui/badge';
 import { storageTierBadgeClass, storageTierLabel } from '@/lib/storage-tiers';
 
 export function FileGridView({
@@ -61,7 +61,7 @@ export function FileGridView({
             </div>
             <div className="mt-1 flex w-full items-center justify-between gap-2">
               <p className="truncate text-xs text-muted-foreground">{item.size || '—'}</p>
-              <Badge variant="outline" className={storageTierBadgeClass(item.storageTier)}>
+              <Badge variant="outlined" className={storageTierBadgeClass(item.storageTier)}>
                 {storageTierLabel(item.storageTier)}
               </Badge>
             </div>

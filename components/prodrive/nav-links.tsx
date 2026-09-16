@@ -1,11 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AlertCircle, BarChart3, Globe, HardDrive, Home, Share, Trash2, Users } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
-import { cn } from '@/core/utils';
+import { NavLink } from '@neup/components/ui/nav-link';
+import { cn } from '@neup/core/utils';
 import { PRODRIVE_HOME_PATH, PRODRIVE_SHARED_PATH, PRODRIVE_STORAGE_PATH } from './routes';
 
 const primaryNavLinks = [
@@ -44,20 +43,19 @@ function NavSection({
       {links.map((link) => {
         const isActive = pathname === link.href;
         return (
-          <Button
+          <NavLink
             key={link.href}
-            variant="ghost"
-            asChild
+            variant="plain"
+            href={link.href}
+            active={isActive}
             className={cn(
               'justify-start rounded-xl text-muted-foreground transition-colors hover:bg-primary/[0.07] hover:text-foreground',
               isActive && 'bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary'
             )}
           >
-            <Link href={link.href}>
-              <link.icon className="mr-2 h-4 w-4" />
-              {link.label}
-            </Link>
-          </Button>
+            <link.icon className="mr-2 h-4 w-4" />
+            {link.label}
+          </NavLink>
         );
       })}
     </div>
@@ -96,9 +94,10 @@ export function MobileNavLinks({
       {primaryNavLinks.map((link) => {
         const isActive = pathname === link.href;
         return (
-          <Link
+          <NavLink
             key={link.href}
             href={link.href}
+            active={isActive}
             className={cn(
               'flex items-center gap-4 rounded-xl px-2.5 py-2 transition-colors',
               isActive ? activeClassName : inactiveClassName
@@ -106,7 +105,7 @@ export function MobileNavLinks({
           >
             <link.icon className="h-5 w-5" />
             {link.label}
-          </Link>
+          </NavLink>
         );
       })}
       <div className="px-2.5 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -115,9 +114,10 @@ export function MobileNavLinks({
       {managementNavLinks.map((link) => {
         const isActive = pathname === link.href;
         return (
-          <Link
+          <NavLink
             key={link.href}
             href={link.href}
+            active={isActive}
             className={cn(
               'flex items-center gap-4 rounded-xl px-2.5 py-2 transition-colors',
               isActive ? activeClassName : inactiveClassName
@@ -125,7 +125,7 @@ export function MobileNavLinks({
           >
             <link.icon className="h-5 w-5" />
             {link.label}
-          </Link>
+          </NavLink>
         );
       })}
     </>

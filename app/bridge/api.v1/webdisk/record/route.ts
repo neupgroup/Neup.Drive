@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/core/database/prisma';
+import { prisma } from '@neup/core/database/prisma';
 import { handleServerError } from '@/lib/error-server';
 import { createFileFolderLog, recordFileFolderUpload, webdiskStoredAs } from '@/lib/filefolder';
 

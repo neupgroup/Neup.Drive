@@ -2,10 +2,10 @@
 
 import * as React from 'react';
 import { Upload, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+import { Button } from '@neup/components/ui/button';
+import { Progress } from '@neup/components/ui/progress';
 import { initializeUpload } from '@/lib/upload-client';
-import { cn } from '@/core/utils';
+import { cn } from '@neup/core/utils';
 import { hashFile } from '@/lib/blake3';
 import type { UploadInitResponse } from '@/lib/upload-types';
 import { uploadFileChunks } from '@/lib/chunked-upload';
@@ -494,7 +494,7 @@ export function FileUpload({
                                             <AlertCircle className="h-4 w-4 text-destructive" />
                                         )}
                                         <Button
-                                            variant="ghost"
+                                            variant="plain"
                                             size="icon"
                                             className="h-6 w-6"
                                             onClick={() => removeFile(item.id)}

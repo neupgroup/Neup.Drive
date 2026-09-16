@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { FileQuestion } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@neup/components/ui/button';
 import { PRODRIVE_HOME_PATH, PRODRIVE_SHARED_PATH } from '@/components/prodrive/routes';
 
 export default function NotFound() {
@@ -26,7 +26,7 @@ export default function NotFound() {
                             Go to Home
                         </Link>
                     </Button>
-                    <Button asChild variant="outline" size="lg">
+                    <Button asChild variant="outlined" size="lg">
                         <Link href={PRODRIVE_SHARED_PATH}>
                             View Shared Files
                         </Link>

@@ -12,7 +12,7 @@ import {
     isActiveFileDetails,
     normalizeFolderType,
 } from '@/lib/bridge-api';
-import { prisma } from '@/core/database/prisma';
+import { prisma } from '@neup/core/database/prisma';
 import { handleServerError } from '@/lib/error-server';
 import { isDirectoryMimeType, webdiskStoredAs } from '@/lib/filefolder';
 

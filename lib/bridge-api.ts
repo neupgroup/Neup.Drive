@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import type { NextRequest } from 'next/server';
-import type { Prisma } from '@/core/database/prisma';
+import type { Prisma } from '@neup/core/database/prisma';
 
 import {
     createExpiringOperationPayload,
@@ -9,13 +9,13 @@ import {
     encodeSignedCdnToken,
     parseDurationSeconds,
 } from '@/lib/cdn-token';
-import { prisma } from '@/core/database/prisma';
+import { prisma } from '@neup/core/database/prisma';
 import { appendBridgeFileAccessLog } from '@/lib/file-access-log';
 import { createFileFolderLog, recordFileFolderUpload, webdiskStoredAs } from '@/lib/filefolder';
 import { generateNonce } from '@/lib/upload-client';
 import type { UploadInitResponse, UploadSignaturePayload } from '@/lib/upload-types';
 import { signCdnPayloadBase64 } from '@/lib/cdn-token';
-import { account } from '@/logica/account';
+import { account } from '@neup/logica/account';
 
 /*
 ::neup.documentation::bridge-api-file-operations
